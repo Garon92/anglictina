@@ -1,6 +1,8 @@
 import type { ReadingText } from '../types';
+import { READING_TEXTS_EXTRA1 } from './reading_extra1';
+import { READING_TEXTS_EXTRA2 } from './reading_extra2';
 
-export const READING_TEXTS: ReadingText[] = [
+const READING_TEXTS_BASE: ReadingText[] = [
   // ─── 1. My Daily Routine (A1) ────────────────────────────────────────
   {
     id: 'read_daily_01',
@@ -576,6 +578,12 @@ export const READING_TEXTS: ReadingText[] = [
       },
     ],
   },
+];
+
+export const READING_TEXTS: ReadingText[] = [
+  ...READING_TEXTS_BASE,
+  ...READING_TEXTS_EXTRA1,
+  ...READING_TEXTS_EXTRA2,
 ];
 
 export const READING_BY_LEVEL = (level: string) =>

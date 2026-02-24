@@ -12,7 +12,7 @@ export interface VocabWord {
 
 export interface GrammarExercise {
   id: string;
-  type: 'cloze' | 'mcq' | 'translate';
+  type: 'cloze' | 'mcq' | 'translate' | 'open_cloze';
   category: string;
   level: 'A1' | 'A2' | 'B1';
   prompt: string;
@@ -33,10 +33,67 @@ export interface ReadingText {
 
 export interface ReadingQuestion {
   id: string;
-  type: 'mcq' | 'truefalse';
+  type: 'mcq' | 'truefalse' | 'tfns';
   question: string;
   options: string[];
   answerIndex: number;
+}
+
+export interface MatchingExercise {
+  id: string;
+  level: 'A1' | 'A2' | 'B1';
+  topic: string;
+  instructionCs: string;
+  items: { id: string; text: string }[];
+  options: { id: string; text: string }[];
+  correctMatches: Record<string, string>;
+}
+
+export interface GappedTextExercise {
+  id: string;
+  level: 'A1' | 'A2' | 'B1';
+  topic: string;
+  text: string;
+  sentences: { id: string; text: string }[];
+  correctGaps: Record<string, string>;
+}
+
+export interface ListeningExercise {
+  id: string;
+  type: 'dictation' | 'comprehension' | 'gapfill';
+  level: 'A1' | 'A2' | 'B1';
+  topic: string;
+  script: string;
+  questions: ListeningQuestion[];
+}
+
+export interface ListeningQuestion {
+  id: string;
+  type: 'mcq' | 'truefalse' | 'fill';
+  question: string;
+  options?: string[];
+  answerIndex?: number;
+  answer?: string;
+}
+
+export interface PhrasalVerbEntry {
+  id: string;
+  verb: string;
+  meaningCs: string;
+  example: string;
+  exampleCs: string;
+  level: 'A2' | 'B1';
+  category: string;
+}
+
+export interface WritingTemplate {
+  id: string;
+  type: 'email' | 'letter' | 'essay' | 'description';
+  titleCs: string;
+  level: 'A2' | 'B1';
+  structureCs: string;
+  usefulPhrases: { en: string; cs: string }[];
+  example: string;
 }
 
 export interface GrammarTopic {
@@ -73,7 +130,7 @@ export interface ReviewLog {
 export interface DrillSession {
   id?: number;
   date: string;
-  type: 'vocab' | 'grammar' | 'reading' | 'mixed' | 'diagnostic' | 'exam';
+  type: 'vocab' | 'grammar' | 'reading' | 'listening' | 'mixed' | 'diagnostic' | 'exam' | 'phrasal_verbs';
   startedAt: number;
   endedAt?: number;
   totalItems: number;

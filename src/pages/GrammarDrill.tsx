@@ -199,6 +199,12 @@ export default function GrammarDrill() {
 
         <h3 className="text-lg font-semibold text-slate-900 mb-4 leading-relaxed">
           {ex.type === 'cloze' && ex.prompt}
+          {ex.type === 'open_cloze' && (
+            <>
+              <span className="text-sm text-slate-500 block mb-1">Doplň chybějící slovo:</span>
+              {ex.prompt}
+            </>
+          )}
           {ex.type === 'mcq' && ex.prompt}
           {ex.type === 'translate' && (
             <>
@@ -245,11 +251,11 @@ export default function GrammarDrill() {
           </div>
         )}
 
-        {(ex.type === 'cloze' || ex.type === 'translate') && !showResult && (
+        {(ex.type === 'cloze' || ex.type === 'translate' || ex.type === 'open_cloze') && !showResult && (
           <input
             type="text"
             className="input text-lg"
-            placeholder="Tvoje odpověď..."
+            placeholder={ex.type === 'open_cloze' ? 'Doplň slovo...' : 'Tvoje odpověď...'}
             value={userAnswer}
             onChange={(e) => setUserAnswer(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && userAnswer.trim() && checkAnswer()}
@@ -257,7 +263,7 @@ export default function GrammarDrill() {
           />
         )}
 
-        {(ex.type === 'cloze' || ex.type === 'translate') && showResult && (
+        {(ex.type === 'cloze' || ex.type === 'translate' || ex.type === 'open_cloze') && showResult && (
           <div className={`px-4 py-3 rounded-xl ${isCorrect ? 'bg-green-50 border-2 border-green-500' : 'bg-red-50 border-2 border-red-500'}`}>
             <div className="flex items-center gap-2">
               <span>{isCorrect ? '✅' : '❌'}</span>
@@ -279,7 +285,7 @@ export default function GrammarDrill() {
       {!showResult ? (
         <button
           className="btn-primary btn-lg w-full"
-          disabled={ex.type === 'mcq' ? selectedOption === null : !userAnswer.trim()}
+          disabled={ex.type === 'mcq' ? selectedOption === null : !userAnswer.trim().length}
           onClick={checkAnswer}
         >
           Zkontrolovat

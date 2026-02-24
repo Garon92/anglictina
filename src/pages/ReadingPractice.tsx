@@ -14,6 +14,16 @@ export default function ReadingPractice() {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [showAnswer, setShowAnswer] = useState(false);
   const [startTime, setStartTime] = useState(0);
+  const [filterLevel, setFilterLevel] = useState<string>('all');
+  const [filterTopic, setFilterTopic] = useState<string>('all');
+
+  const filteredTexts = READING_TEXTS.filter((t) => {
+    if (filterLevel !== 'all' && t.level !== filterLevel) return false;
+    if (filterTopic !== 'all' && t.topic !== filterTopic) return false;
+    return true;
+  });
+
+  const topics = [...new Set(READING_TEXTS.map((t) => t.topic))];
 
   function selectText(text: ReadingText) {
     setSelectedText(text);
@@ -77,10 +87,47 @@ export default function ReadingPractice() {
       <div className="page-container">
         <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
         <h1 className="page-title">Čtení s porozuměním</h1>
-        <p className="page-subtitle">Vyber si text a odpověz na otázky.</p>
+        <p className="page-subtitle">{READING_TEXTS.length} textů — vyber si podle úrovně nebo tématu.</p>
 
+        <div className="mb-4 flex gap-2 flex-wrap">
+          {['all', 'A1', 'A2', 'B1'].map((lvl) => (
+            <button
+              key={lvl}
+              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                filterLevel === lvl ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-600'
+              }`}
+              onClick={() => setFilterLevel(lvl)}
+            >
+              {lvl === 'all' ? 'Vše' : lvl}
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-4 flex gap-2 flex-wrap">
+          <button
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              filterTopic === 'all' ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+            onClick={() => setFilterTopic('all')}
+          >
+            Všechna témata
+          </button>
+          {topics.map((topic) => (
+            <button
+              key={topic}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                filterTopic === topic ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-600'
+              }`}
+              onClick={() => setFilterTopic(topic)}
+            >
+              {topic}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-xs text-slate-400 mb-3">{filteredTexts.length} textů</p>
         <div className="space-y-3">
-          {READING_TEXTS.map((text) => (
+          {filteredTexts.map((text) => (
             <button
               key={text.id}
               className="card-hover w-full text-left"
@@ -153,6 +200,11 @@ export default function ReadingPractice() {
         </div>
 
         <div className="card !p-6 mb-4">
+          {q.type === 'tfns' && (
+            <span className="inline-block mb-2 text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+              True / False / Not stated
+            </span>
+          )}
           <h3 className="text-lg font-semibold text-slate-900 mb-4">{q.question}</h3>
 
           {!showAnswer ? (

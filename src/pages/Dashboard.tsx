@@ -112,16 +112,22 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
 
       {/* Quick actions */}
       <h2 className="section-title">Co chceš dělat?</h2>
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <QuickAction to="/vocab" icon="📝" title="Slovíčka" desc="SRS kartičky" color="bg-blue-50 text-blue-700" />
         <QuickAction to="/grammar" icon="✏️" title="Gramatika" desc="Cvičení" color="bg-purple-50 text-purple-700" />
         <QuickAction to="/reading" icon="📖" title="Čtení" desc="Texty s otázkami" color="bg-green-50 text-green-700" />
+        <QuickAction to="/listening" icon="🎧" title="Poslech" desc="Poslechová cvičení" color="bg-cyan-50 text-cyan-700" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickAction to="/phrasal-verbs" icon="🧩" title="Fráze" desc="Phrasal verbs" color="bg-orange-50 text-orange-700" />
+        <QuickAction to="/writing" icon="✍️" title="Psaní" desc="Šablony a tipy" color="bg-pink-50 text-pink-700" />
         <QuickAction to="/exam" icon="🎯" title="Zkouška" desc="Simulace testu" color="bg-red-50 text-red-700" />
+        <QuickAction to="/grammar-ref" icon="📋" title="Přehled" desc="Gramatické tabulky" color="bg-amber-50 text-amber-700" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickAction to="/grammar-ref" icon="📋" title="Přehled" desc="Gramatické tabulky" color="bg-amber-50 text-amber-700" />
         <QuickAction to="/review" icon="📊" title="Statistiky" desc="Tvůj pokrok" color="bg-teal-50 text-teal-700" />
+        <QuickAction to="/settings" icon="⚙️" title="Nastavení" desc="Přizpůsobení" color="bg-slate-50 text-slate-700" />
       </div>
 
       {/* Stats overview */}

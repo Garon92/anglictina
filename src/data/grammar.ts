@@ -1,4 +1,6 @@
 import type { GrammarExercise } from '../types';
+import { GRAMMAR_EXTRA1 } from './grammar_extra1';
+import { GRAMMAR_EXTRA2 } from './grammar_extra2';
 
 const cloze = (id: string, cat: string, level: GrammarExercise['level'], prompt: string, answer: string, explanation: string, tags: string[]): GrammarExercise => ({
   id, type: 'cloze', category: cat, level, prompt, answer, explanationCs: explanation, tags,
@@ -10,7 +12,7 @@ const translate = (id: string, cat: string, level: GrammarExercise['level'], pro
   id, type: 'translate', category: cat, level, prompt, answer, explanationCs: explanation, tags,
 });
 
-export const GRAMMAR_EXERCISES: GrammarExercise[] = [
+const GRAMMAR_BASE: GrammarExercise[] = [
 
   // ─── PRESENT SIMPLE (15) ────────────────────────────────────────────
 
@@ -868,6 +870,12 @@ export const GRAMMAR_EXERCISES: GrammarExercise[] = [
     'How much does it cost?',
     '"How much" = kolik (cena). Otázka: How much + does + podmět + sloveso?',
     ['questions', 'translate']),
+];
+
+export const GRAMMAR_EXERCISES: GrammarExercise[] = [
+  ...GRAMMAR_BASE,
+  ...GRAMMAR_EXTRA1,
+  ...GRAMMAR_EXTRA2,
 ];
 
 export const GRAMMAR_BY_CATEGORY = (cat: string) => GRAMMAR_EXERCISES.filter(e => e.category === cat);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStats, getAllSRSStates, getDrillSessions, getReviewLogs } from '../db';
 import { formatMinutes, percentOf, getScoreColor } from '../utils';
+import { VOCABULARY } from '../data/vocabulary';
 import type { UserStats, SRSState, DrillSession } from '../types';
 import { DEFAULT_STATS } from '../types';
 
@@ -210,15 +211,15 @@ export default function Review() {
           <div className="card">
             <h3 className="section-title">Dostupná slovíčka</h3>
             <p className="text-sm text-slate-500">
-              V databázi je celkem 402 slov. Každý den se přidávají nová podle tvého nastavení.
+              V databázi je celkem {VOCABULARY.length} slov z NGSL wordlistu. Každý den se přidávají nová podle tvého nastavení.
             </p>
             <div className="w-full bg-slate-100 rounded-full h-2 mt-3">
               <div
                 className="bg-primary-500 h-full rounded-full"
-                style={{ width: `${percentOf(totalWords, 402)}%` }}
+                style={{ width: `${percentOf(totalWords, VOCABULARY.length)}%` }}
               />
             </div>
-            <p className="text-xs text-slate-400 mt-1">{totalWords} / 402 odhaleno</p>
+            <p className="text-xs text-slate-400 mt-1">{totalWords} / {VOCABULARY.length} odhaleno</p>
           </div>
         </div>
       )}

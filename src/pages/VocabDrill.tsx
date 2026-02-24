@@ -40,7 +40,15 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
     }
 
     const newCards: CardItem[] = [];
-    const available = shuffleArray(VOCABULARY.filter((w) => !learnedIds.has(w.id)));
+    const unlearned = VOCABULARY.filter((w) => !learnedIds.has(w.id));
+    // Prioritize words with examples (rich entries), then band 1, 2, 3
+    const sorted = unlearned.sort((a, b) => {
+      const aRich = a.example ? 0 : 1;
+      const bRich = b.example ? 0 : 1;
+      if (aRich !== bRich) return aRich - bRich;
+      return a.band - b.band;
+    });
+    const available = shuffleArray(sorted.slice(0, Math.max(50, settings.newCardsPerDay * 3)));
     const newCount = Math.max(0, settings.newCardsPerDay - dueCards.filter((c) => c.srs.totalReviews <= 1).length);
 
     for (const word of available.slice(0, newCount)) {

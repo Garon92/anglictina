@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { saveSettings, exportAllData, importData, clearAllData } from '../db';
 import { downloadFile } from '../utils';
+import { getAvailableVoices, setVoiceByName, speak, getCurrentVoiceName } from '../tts';
 import type { UserSettings } from '../types';
 
 interface Props {
@@ -14,6 +15,16 @@ export default function Settings({ settings, onUpdate }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    const v = getAvailableVoices();
+    setVoices(v);
+    if (v.length === 0) {
+      const timer = setTimeout(() => setVoices(getAvailableVoices()), 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const update = (patch: Partial<UserSettings>) => {
     const next = { ...settings, ...patch };
@@ -53,7 +64,7 @@ export default function Settings({ settings, onUpdate }: Props) {
         <h3 className="section-title">Učení</h3>
 
         <label className="block mb-4">
-          <span className="text-sm text-slate-600">Datum maturity</span>
+          <span className="text-sm text-slate-600 dark:text-slate-300">Datum maturity</span>
           <input
             type="date"
             className="input mt-1"
@@ -63,7 +74,7 @@ export default function Settings({ settings, onUpdate }: Props) {
         </label>
 
         <label className="block mb-4">
-          <span className="text-sm text-slate-600">Cílové skóre ({settings.goalScore} bodů)</span>
+          <span className="text-sm text-slate-600 dark:text-slate-300">Cílové skóre ({settings.goalScore} bodů)</span>
           <input
             type="range"
             className="w-full mt-1"
@@ -79,7 +90,7 @@ export default function Settings({ settings, onUpdate }: Props) {
         </label>
 
         <label className="block mb-4">
-          <span className="text-sm text-slate-600">Minut denně ({settings.minutesPerDay})</span>
+          <span className="text-sm text-slate-600 dark:text-slate-300">Minut denně ({settings.minutesPerDay})</span>
           <input
             type="range"
             className="w-full mt-1"
@@ -92,7 +103,7 @@ export default function Settings({ settings, onUpdate }: Props) {
         </label>
 
         <label className="block mb-4">
-          <span className="text-sm text-slate-600">Nová slovíčka denně ({settings.newCardsPerDay})</span>
+          <span className="text-sm text-slate-600 dark:text-slate-300">Nová slovíčka denně ({settings.newCardsPerDay})</span>
           <input
             type="range"
             className="w-full mt-1"
@@ -104,7 +115,7 @@ export default function Settings({ settings, onUpdate }: Props) {
         </label>
 
         <label className="block">
-          <span className="text-sm text-slate-600">Max opakování denně ({settings.maxReviewsPerDay})</span>
+          <span className="text-sm text-slate-600 dark:text-slate-300">Max opakování denně ({settings.maxReviewsPerDay})</span>
           <input
             type="range"
             className="w-full mt-1"
@@ -142,10 +153,10 @@ export default function Settings({ settings, onUpdate }: Props) {
         <h3 className="section-title">Výslovnost (TTS)</h3>
 
         <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-slate-600">Automatické přehrávání</span>
+          <span className="text-sm text-slate-600 dark:text-slate-300">Automatické přehrávání</span>
           <button
             className={`w-12 h-7 rounded-full transition-colors ${
-              settings.ttsEnabled ? 'bg-primary-500' : 'bg-slate-300'
+              settings.ttsEnabled ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'
             }`}
             onClick={() => update({ ttsEnabled: !settings.ttsEnabled })}
           >
@@ -155,8 +166,34 @@ export default function Settings({ settings, onUpdate }: Props) {
           </button>
         </div>
 
+        {voices.length > 0 && (
+          <label className="block mb-4">
+            <span className="text-sm text-slate-600 dark:text-slate-300">Hlas</span>
+            <select
+              className="input mt-1"
+              value={settings.ttsVoice || getCurrentVoiceName()}
+              onChange={(e) => {
+                setVoiceByName(e.target.value);
+                update({ ttsVoice: e.target.value });
+              }}
+            >
+              {voices.map((v) => (
+                <option key={v.name} value={v.name}>
+                  {v.name} ({v.lang})
+                </option>
+              ))}
+            </select>
+            <button
+              className="btn-ghost text-sm mt-2"
+              onClick={() => speak('Hello! This is how I sound. Nice to meet you.', settings.ttsRate)}
+            >
+              ▶ Vyzkoušet hlas
+            </button>
+          </label>
+        )}
+
         <label className="block">
-          <span className="text-sm text-slate-600">Rychlost řeči ({settings.ttsRate}x)</span>
+          <span className="text-sm text-slate-600 dark:text-slate-300">Rychlost řeči ({settings.ttsRate}x)</span>
           <input
             type="range"
             className="w-full mt-1"

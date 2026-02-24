@@ -135,12 +135,12 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
     return (
       <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="text-6xl mb-4">{sessionStats.total === 0 ? '✅' : pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
           {sessionStats.total === 0 ? 'Žádná slovíčka k opakování!' : 'Hotovo!'}
         </h2>
         {sessionStats.total > 0 && (
           <>
-            <p className="text-slate-600 mb-1">
+            <p className="text-slate-600 dark:text-slate-300 mb-1">
               {sessionStats.correct} / {sessionStats.total} správně ({pct}%)
             </p>
             <p className="text-sm text-slate-400 mb-6">
@@ -175,7 +175,7 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-slate-100 rounded-full h-1.5 mb-6">
+      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
         <div
           className="bg-primary-500 h-full rounded-full transition-all duration-300"
           style={{ width: `${((currentIndex) / cards.length) * 100}%` }}
@@ -185,11 +185,11 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
       {/* Card */}
       <div className="card !p-6 sm:!p-8 text-center mb-6 min-h-[280px] flex flex-col justify-center">
         {current.isNew && (
-          <div className="badge bg-primary-100 text-primary-700 mx-auto mb-3">Nové slovo</div>
+          <div className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 mx-auto mb-3">Nové slovo</div>
         )}
 
         <div className="flex items-center justify-center gap-2 mb-2">
-          <h2 className="text-3xl font-bold text-slate-900">{current.word.en}</h2>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">{current.word.en}</h2>
           <button
             className="text-primary-500 hover:text-primary-700 p-1"
             onClick={() => speak(current.word.en, settings.ttsRate)}
@@ -200,14 +200,14 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
           </button>
         </div>
 
-        <p className="text-sm text-slate-400 mb-4 capitalize">{current.word.partOfSpeech}</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 mb-4 capitalize">{current.word.partOfSpeech}</p>
 
         {revealed ? (
           <div className="animate-in fade-in duration-300">
-            <div className="text-xl text-primary-600 font-semibold mb-3">{current.word.cs}</div>
-            <div className="bg-slate-50 rounded-xl p-3 text-left">
-              <p className="text-sm text-slate-700 italic mb-1">"{current.word.example}"</p>
-              <p className="text-xs text-slate-500">{current.word.exampleCs}</p>
+            <div className="text-xl text-primary-500 dark:text-primary-400 font-semibold mb-3">{current.word.cs}</div>
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-left">
+              <p className="text-sm text-slate-700 dark:text-slate-300 italic mb-1">"{current.word.example}"</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{current.word.exampleCs}</p>
             </div>
           </div>
         ) : (
@@ -220,19 +220,21 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
       {/* Grade buttons */}
       {revealed && (
         <div className="space-y-2">
-          <p className="text-center text-sm text-slate-500 mb-2">Jak dobře jsi to věděl/a?</p>
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-2">Jak dobře jsi to věděl/a?</p>
           <div className="grid grid-cols-4 gap-2">
-            {[0, 1, 2, 3].map((grade) => {
+            {[3, 2, 1, 0].map((grade) => {
               const { label, emoji } = getGradeLabel(grade);
               return (
                 <button
                   key={grade}
                   className={`py-3 rounded-xl text-center transition-all active:scale-95 ${
-                    grade < 2
-                      ? 'bg-red-50 hover:bg-red-100 text-red-700'
+                    grade === 3
+                      ? 'bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/50 dark:hover:bg-green-900/70 dark:text-green-300'
                       : grade === 2
-                      ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
-                      : 'bg-green-50 hover:bg-green-100 text-green-700'
+                      ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-900/50 dark:hover:bg-amber-900/70 dark:text-amber-300'
+                      : grade === 1
+                      ? 'bg-orange-100 hover:bg-orange-200 text-orange-800 dark:bg-orange-900/50 dark:hover:bg-orange-900/70 dark:text-orange-300'
+                      : 'bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-900/50 dark:hover:bg-red-900/70 dark:text-red-300'
                   }`}
                   onClick={() => handleGrade(grade)}
                 >

@@ -5,7 +5,7 @@ export function getAvailableVoices(): SpeechSynthesisVoice[] {
   return speechSynthesis.getVoices().filter((v) => v.lang.startsWith('en'));
 }
 
-export function initTTS(): Promise<SpeechSynthesisVoice[]> {
+export function initTTS(preferredVoiceName?: string): Promise<SpeechSynthesisVoice[]> {
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) {
       resolve([]);
@@ -14,14 +14,14 @@ export function initTTS(): Promise<SpeechSynthesisVoice[]> {
 
     const voices = getAvailableVoices();
     if (voices.length > 0) {
-      selectBestVoice(voices);
+      selectVoice(voices, preferredVoiceName);
       resolve(voices);
       return;
     }
 
     speechSynthesis.onvoiceschanged = () => {
       const v = getAvailableVoices();
-      selectBestVoice(v);
+      selectVoice(v, preferredVoiceName);
       resolve(v);
     };
 
@@ -29,7 +29,21 @@ export function initTTS(): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
-function selectBestVoice(voices: SpeechSynthesisVoice[]) {
+export function setVoiceByName(name: string) {
+  const voices = getAvailableVoices();
+  const match = voices.find((v) => v.name === name);
+  if (match) selectedVoice = match;
+}
+
+function selectVoice(voices: SpeechSynthesisVoice[], preferredName?: string) {
+  if (preferredName) {
+    const match = voices.find((v) => v.name === preferredName);
+    if (match) {
+      selectedVoice = match;
+      return;
+    }
+  }
+
   const preferred = [
     'Google UK English Female',
     'Google UK English Male',
@@ -53,6 +67,10 @@ function selectBestVoice(voices: SpeechSynthesisVoice[]) {
   }
 
   selectedVoice = voices[0] ?? null;
+}
+
+export function getCurrentVoiceName(): string {
+  return selectedVoice?.name ?? '';
 }
 
 export function speak(text: string, rate = 0.9, lang = 'en-GB'): Promise<void> {

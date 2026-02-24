@@ -163,6 +163,7 @@ export interface UserSettings {
   ttsEnabled: boolean;
   ttsLang: string;
   ttsRate: number;
+  ttsVoice: string;
   onboardingDone: boolean;
   theme: 'light' | 'dark' | 'auto';
 }
@@ -187,6 +188,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   ttsEnabled: true,
   ttsLang: 'en-GB',
   ttsRate: 0.9,
+  ttsVoice: '',
   onboardingDone: false,
   theme: 'auto',
 };

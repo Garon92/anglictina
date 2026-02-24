@@ -106,7 +106,7 @@ export default function GrammarDrill() {
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   selectedLevel === lvl
                     ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
                 onClick={() => setSelectedLevel(lvl)}
               >
@@ -127,7 +127,7 @@ export default function GrammarDrill() {
                 className={`px-3 py-1.5 rounded-full text-sm transition-all ${
                   selectedCats.includes(cat)
                     ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
                 onClick={() => toggleCat(cat)}
               >
@@ -182,7 +182,7 @@ export default function GrammarDrill() {
         </span>
       </div>
 
-      <div className="w-full bg-slate-100 rounded-full h-1.5 mb-6">
+      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
         <div
           className="bg-primary-500 h-full rounded-full transition-all duration-300"
           style={{ width: `${(currentIndex / exercises.length) * 100}%` }}
@@ -191,24 +191,24 @@ export default function GrammarDrill() {
 
       <div className="card !p-6 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 text-slate-600">
+          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
             {CATEGORY_NAMES[ex.category] || ex.category}
           </span>
-          <span className="badge bg-primary-100 text-primary-700">{ex.level}</span>
+          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">{ex.level}</span>
         </div>
 
-        <h3 className="text-lg font-semibold text-slate-900 mb-4 leading-relaxed">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 leading-relaxed">
           {ex.type === 'cloze' && ex.prompt}
           {ex.type === 'open_cloze' && (
             <>
-              <span className="text-sm text-slate-500 block mb-1">Doplň chybějící slovo:</span>
+              <span className="text-sm text-slate-500 dark:text-slate-400 block mb-1">Doplň chybějící slovo:</span>
               {ex.prompt}
             </>
           )}
           {ex.type === 'mcq' && ex.prompt}
           {ex.type === 'translate' && (
             <>
-              <span className="text-sm text-slate-500 block mb-1">Přelož do angličtiny:</span>
+              <span className="text-sm text-slate-500 dark:text-slate-400 block mb-1">Přelož do angličtiny:</span>
               {ex.prompt}
             </>
           )}
@@ -221,8 +221,8 @@ export default function GrammarDrill() {
                 key={i}
                 className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
                   selectedOption === i
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-slate-100 hover:border-slate-200'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
+                    : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
                 }`}
                 onClick={() => setSelectedOption(i)}
               >
@@ -239,10 +239,10 @@ export default function GrammarDrill() {
                 key={i}
                 className={`px-4 py-3 rounded-xl border-2 ${
                   opt === ex.answer
-                    ? 'border-green-500 bg-green-50'
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
                     : selectedOption === i
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-slate-100'
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                    : 'border-slate-200 dark:border-slate-600'
                 }`}
               >
                 {opt} {opt === ex.answer && ' ✓'}
@@ -264,20 +264,20 @@ export default function GrammarDrill() {
         )}
 
         {(ex.type === 'cloze' || ex.type === 'translate' || ex.type === 'open_cloze') && showResult && (
-          <div className={`px-4 py-3 rounded-xl ${isCorrect ? 'bg-green-50 border-2 border-green-500' : 'bg-red-50 border-2 border-red-500'}`}>
+          <div className={`px-4 py-3 rounded-xl ${isCorrect ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-500' : 'bg-red-50 dark:bg-red-900/30 border-2 border-red-500'}`}>
             <div className="flex items-center gap-2">
               <span>{isCorrect ? '✅' : '❌'}</span>
-              <span className="font-medium">{isCorrect ? 'Správně!' : `Správná odpověď: ${ex.answer}`}</span>
+              <span className="font-medium dark:text-slate-100">{isCorrect ? 'Správně!' : `Správná odpověď: ${ex.answer}`}</span>
             </div>
             {!isCorrect && userAnswer && (
-              <p className="text-sm text-red-600 mt-1">Tvoje odpověď: {userAnswer}</p>
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">Tvoje odpověď: {userAnswer}</p>
             )}
           </div>
         )}
 
         {showResult && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-xl">
-            <p className="text-sm text-blue-800">💡 {ex.explanationCs}</p>
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+            <p className="text-sm text-blue-800 dark:text-blue-300">💡 {ex.explanationCs}</p>
           </div>
         )}
       </div>

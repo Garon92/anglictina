@@ -102,9 +102,9 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
           </button>
         </div>
         <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-xl font-bold text-slate-900">{wotd.en}</span>
+          <span className="text-xl font-bold text-slate-900 dark:text-white">{wotd.en}</span>
           <span className="text-slate-400">—</span>
-          <span className="text-slate-600">{wotd.cs}</span>
+          <span className="text-slate-600 dark:text-slate-300">{wotd.cs}</span>
         </div>
         <p className="text-sm text-slate-500 italic">"{wotd.example}"</p>
         <p className="text-xs text-slate-400 mt-1">{wotd.exampleCs}</p>
@@ -149,8 +149,8 @@ function QuickAction({ to, icon, title, desc, color }: {
         {icon}
       </div>
       <div>
-        <div className="font-semibold text-slate-800 text-sm">{title}</div>
-        <div className="text-xs text-slate-400">{desc}</div>
+        <div className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{title}</div>
+        <div className="text-xs text-slate-400 dark:text-slate-500">{desc}</div>
       </div>
     </Link>
   );
@@ -159,8 +159,8 @@ function QuickAction({ to, icon, title, desc, color }: {
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="card text-center !p-3">
-      <div className="text-2xl font-bold text-slate-900">{value}</div>
-      <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+        <div className="text-2xl font-bold text-slate-900 dark:text-white">{value}</div>
+      <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{label}</div>
     </div>
   );
 }

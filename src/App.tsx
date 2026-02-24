@@ -30,10 +30,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getSettings(), initTTS()]).then(([s]) => {
+    getSettings().then((s) => {
       setSettings(s);
       applyTheme(s.theme);
-      setLoading(false);
+      initTTS(s.ttsVoice).then(() => setLoading(false));
     });
   }, []);
 

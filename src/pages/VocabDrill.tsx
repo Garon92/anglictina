@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDueCards, getSRSState, saveSRSState, addReviewLog, getStats, saveStats, getAllSRSStates, addDrillSession, updateStreak } from '../db';
 import { processReview, createInitialSRSState, getGradeLabel } from '../srs';
 import { speak, stopSpeaking } from '../tts';
 import { VOCABULARY } from '../data/vocabulary';
 import { shuffleArray } from '../utils';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { playCorrect, playIncorrect, playComplete } from '../sounds';
 import type { UserSettings, SRSState, VocabWord } from '../types';
 
 interface CardItem {
@@ -75,6 +77,8 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
   const handleGrade = useCallback(async (grade: number) => {
     if (!current) return;
 
+    if (grade >= 2) playCorrect(); else playIncorrect();
+
     const newSrs = processReview(current.srs, grade);
     await saveSRSState(newSrs);
     await addReviewLog({
@@ -98,6 +102,18 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
     }
   }, [current, currentIndex, cards.length]);
 
+  const keyMap = useMemo((): Record<string, () => void> => {
+    if (!current) return {};
+    if (!revealed) return { ' ': handleReveal, Enter: handleReveal };
+    return {
+      '1': () => handleGrade(3),
+      '2': () => handleGrade(2),
+      '3': () => handleGrade(1),
+      '4': () => handleGrade(0),
+    };
+  }, [current, revealed, handleReveal, handleGrade]);
+  useKeyboard(keyMap, !finished && !loading);
+
   async function finishSession(lastGrade: number) {
     const correct = sessionStats.correct + (lastGrade >= 2 ? 1 : 0);
     const total = sessionStats.total + 1;
@@ -120,6 +136,7 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
 
     setSessionStats({ correct, total });
     setFinished(true);
+    playComplete();
   }
 
   if (loading) {
@@ -220,7 +237,9 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
       {/* Grade buttons */}
       {revealed && (
         <div className="space-y-2">
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-2">Jak dobře jsi to věděl/a?</p>
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-2">
+            Jak dobře jsi to věděl/a? <span className="hidden sm:inline text-xs text-slate-400">(klávesy 1-4)</span>
+          </p>
           <div className="grid grid-cols-4 gap-2">
             {[3, 2, 1, 0].map((grade) => {
               const { label, emoji } = getGradeLabel(grade);

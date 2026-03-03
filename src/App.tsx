@@ -1,22 +1,26 @@
 import { Routes, Route } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import VocabDrill from './pages/VocabDrill';
-import GrammarDrill from './pages/GrammarDrill';
-import ReadingPractice from './pages/ReadingPractice';
-import ListeningPractice from './pages/ListeningPractice';
-import PhrasalVerbsDrill from './pages/PhrasalVerbsDrill';
-import WritingTips from './pages/WritingTips';
-import Review from './pages/Review';
-import Settings from './pages/Settings';
-import GrammarRef from './pages/GrammarRef';
-import ExamSim from './pages/ExamSim';
-import Onboarding from './pages/Onboarding';
 import { getSettings } from './db';
 import { initTTS } from './tts';
 import type { UserSettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
+
+const VocabDrill = lazy(() => import('./pages/VocabDrill'));
+const GrammarDrill = lazy(() => import('./pages/GrammarDrill'));
+const ReadingPractice = lazy(() => import('./pages/ReadingPractice'));
+const ListeningPractice = lazy(() => import('./pages/ListeningPractice'));
+const PhrasalVerbsDrill = lazy(() => import('./pages/PhrasalVerbsDrill'));
+const WritingTips = lazy(() => import('./pages/WritingTips'));
+const IrregularVerbsDrill = lazy(() => import('./pages/IrregularVerbsDrill'));
+const WordOrderDrill = lazy(() => import('./pages/WordOrderDrill'));
+const DiagnosticTest = lazy(() => import('./pages/DiagnosticTest'));
+const Review = lazy(() => import('./pages/Review'));
+const Settings = lazy(() => import('./pages/Settings'));
+const GrammarRef = lazy(() => import('./pages/GrammarRef'));
+const ExamSim = lazy(() => import('./pages/ExamSim'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
   const isDark =
@@ -60,25 +64,40 @@ export default function App() {
     );
   }
 
+  const fallback = (
+    <div className="page-container flex items-center justify-center min-h-[40vh]">
+      <p className="text-slate-400 dark:text-slate-500 text-sm animate-pulse">Načítám...</p>
+    </div>
+  );
+
   if (!settings.onboardingDone) {
-    return <Onboarding onComplete={(s) => { setSettings(s); }} />;
+    return (
+      <Suspense fallback={fallback}>
+        <Onboarding onComplete={(s) => { setSettings(s); }} />
+      </Suspense>
+    );
   }
 
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard settings={settings} />} />
-        <Route path="/vocab" element={<VocabDrill settings={settings} />} />
-        <Route path="/grammar" element={<GrammarDrill />} />
-        <Route path="/reading" element={<ReadingPractice />} />
-        <Route path="/listening" element={<ListeningPractice />} />
-        <Route path="/phrasal-verbs" element={<PhrasalVerbsDrill />} />
-        <Route path="/writing" element={<WritingTips />} />
-        <Route path="/review" element={<Review />} />
-        <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
-        <Route path="/grammar-ref" element={<GrammarRef />} />
-        <Route path="/exam" element={<ExamSim />} />
-      </Routes>
+      <Suspense fallback={fallback}>
+        <Routes>
+          <Route path="/" element={<Dashboard settings={settings} />} />
+          <Route path="/vocab" element={<VocabDrill settings={settings} />} />
+          <Route path="/grammar" element={<GrammarDrill />} />
+          <Route path="/reading" element={<ReadingPractice />} />
+          <Route path="/listening" element={<ListeningPractice />} />
+          <Route path="/phrasal-verbs" element={<PhrasalVerbsDrill />} />
+          <Route path="/writing" element={<WritingTips />} />
+          <Route path="/irregular-verbs" element={<IrregularVerbsDrill />} />
+          <Route path="/word-order" element={<WordOrderDrill />} />
+          <Route path="/diagnostic" element={<DiagnosticTest />} />
+          <Route path="/review" element={<Review />} />
+          <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
+          <Route path="/grammar-ref" element={<GrammarRef />} />
+          <Route path="/exam" element={<ExamSim />} />
+        </Routes>
+      </Suspense>
     </Layout>
   );
 }

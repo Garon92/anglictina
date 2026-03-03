@@ -6,6 +6,7 @@ import { WORD_OF_THE_DAY } from '../data/vocabulary';
 import { daysUntil, getMotivationalMessage, formatMinutes, todayKey } from '../utils';
 import type { UserSettings, UserStats } from '../types';
 import { DEFAULT_STATS } from '../types';
+import DailyChallenge from '../components/DailyChallenge';
 
 export default function Dashboard({ settings }: { settings: UserSettings }) {
   const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
@@ -110,24 +111,32 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
         <p className="text-xs text-slate-400 mt-1">{wotd.exampleCs}</p>
       </div>
 
+      {/* Daily challenge */}
+      <DailyChallenge />
+
       {/* Quick actions */}
       <h2 className="section-title">Co chceš dělat?</h2>
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <QuickAction to="/vocab" icon="📝" title="Slovíčka" desc="SRS kartičky" color="bg-blue-50 text-blue-700" />
-        <QuickAction to="/grammar" icon="✏️" title="Gramatika" desc="Cvičení" color="bg-purple-50 text-purple-700" />
-        <QuickAction to="/reading" icon="📖" title="Čtení" desc="Texty s otázkami" color="bg-green-50 text-green-700" />
-        <QuickAction to="/listening" icon="🎧" title="Poslech" desc="Poslechová cvičení" color="bg-cyan-50 text-cyan-700" />
+        <QuickAction to="/vocab" icon="📝" title="Slovíčka" desc="SRS kartičky" color="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" />
+        <QuickAction to="/grammar" icon="✏️" title="Gramatika" desc="Cvičení" color="bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" />
+        <QuickAction to="/reading" icon="📖" title="Čtení" desc="Texty s otázkami" color="bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" />
+        <QuickAction to="/listening" icon="🎧" title="Poslech" desc="Poslechová cvičení" color="bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300" />
       </div>
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <QuickAction to="/phrasal-verbs" icon="🧩" title="Fráze" desc="Phrasal verbs" color="bg-orange-50 text-orange-700" />
-        <QuickAction to="/writing" icon="✍️" title="Psaní" desc="Šablony a tipy" color="bg-pink-50 text-pink-700" />
-        <QuickAction to="/exam" icon="🎯" title="Zkouška" desc="Simulace testu" color="bg-red-50 text-red-700" />
-        <QuickAction to="/grammar-ref" icon="📋" title="Přehled" desc="Gramatické tabulky" color="bg-amber-50 text-amber-700" />
+        <QuickAction to="/irregular-verbs" icon="🔄" title="Neprav. slovesa" desc="100 nejčastějších" color="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" />
+        <QuickAction to="/word-order" icon="🧱" title="Skládání vět" desc="Pořadí slov" color="bg-lime-50 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300" />
+        <QuickAction to="/phrasal-verbs" icon="🧩" title="Fráze" desc="Phrasal verbs" color="bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" />
+        <QuickAction to="/writing" icon="✍️" title="Psaní" desc="Šablony a tipy" color="bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickAction to="/exam" icon="🎯" title="Zkouška" desc="Simulace testu" color="bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" />
+        <QuickAction to="/grammar-ref" icon="📋" title="Přehled" desc="Gramatické tabulky" color="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" />
+        <QuickAction to="/diagnostic" icon="🩺" title="Diagnostika" desc="Zjisti svou úroveň" color="bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" />
+        <QuickAction to="/review" icon="📊" title="Statistiky" desc="Tvůj pokrok" color="bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <QuickAction to="/review" icon="📊" title="Statistiky" desc="Tvůj pokrok" color="bg-teal-50 text-teal-700" />
-        <QuickAction to="/settings" icon="⚙️" title="Nastavení" desc="Přizpůsobení" color="bg-slate-50 text-slate-700" />
+        <QuickAction to="/settings" icon="⚙️" title="Nastavení" desc="Přizpůsobení" color="bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300" />
       </div>
 
       {/* Stats overview */}

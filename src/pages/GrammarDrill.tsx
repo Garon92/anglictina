@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { GRAMMAR_EXERCISES, GRAMMAR_CATEGORIES, CATEGORY_NAMES } from '../data/grammar';
 import { shuffleArray } from '../utils';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { playCorrect, playIncorrect, playComplete } from '../sounds';
 import type { GrammarExercise } from '../types';
 
 type Phase = 'select' | 'drill' | 'result';
@@ -52,6 +54,8 @@ export default function GrammarDrill() {
       isCorrect = userAnswer.trim().toLowerCase() === ex.answer.toLowerCase();
     }
 
+    if (isCorrect) playCorrect(); else playIncorrect();
+
     setStats((prev) => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
       total: prev.total + 1,
@@ -88,6 +92,7 @@ export default function GrammarDrill() {
     });
 
     setPhase('result');
+    playComplete();
   }
 
   if (phase === 'select') {
@@ -167,6 +172,20 @@ export default function GrammarDrill() {
   }
 
   const ex = exercises[currentIndex];
+
+  const keyMap = useMemo(() => {
+    if (!ex || phase !== 'drill') return {};
+    if (showResult) return { Enter: nextExercise, ' ': nextExercise };
+    if (ex.type === 'mcq' && ex.options) {
+      const map: Record<string, () => void> = {};
+      ex.options.forEach((_, i) => { map[String(i + 1)] = () => setSelectedOption(i); });
+      map['Enter'] = () => { if (selectedOption !== null) checkAnswer(); };
+      return map;
+    }
+    return {};
+  }, [ex, phase, showResult, selectedOption]);
+  useKeyboard(keyMap, phase === 'drill');
+
   if (!ex) return null;
 
   const isCorrect = ex.type === 'mcq' && ex.options

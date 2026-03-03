@@ -37,6 +37,9 @@ const ConditionalsDrill = lazy(() => import('./pages/ConditionalsDrill'));
 const ReportedSpeechDrill = lazy(() => import('./pages/ReportedSpeechDrill'));
 const SentenceTransformDrill = lazy(() => import('./pages/SentenceTransformDrill'));
 const GrammarCheatsheet = lazy(() => import('./pages/GrammarCheatsheet'));
+const WordFormationDrill = lazy(() => import('./pages/WordFormationDrill'));
+const VocabTopics = lazy(() => import('./pages/VocabTopics'));
+const MixedQuiz = lazy(() => import('./pages/MixedQuiz'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
@@ -126,9 +129,12 @@ export default function App() {
           <Route path="/reported-speech" element={<ReportedSpeechDrill />} />
           <Route path="/sentence-transform" element={<SentenceTransformDrill />} />
           <Route path="/cheatsheet" element={<GrammarCheatsheet />} />
+          <Route path="/vocab-topics" element={<VocabTopics />} />
+          <Route path="/mixed-quiz" element={<MixedQuiz />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
           <Route path="/grammar-ref" element={<GrammarRef />} />
+          <Route path="/word-formation" element={<WordFormationDrill />} />
           <Route path="/exam" element={<ExamSim />} />
         </Routes>
       </Suspense>

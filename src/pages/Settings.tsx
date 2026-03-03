@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { saveSettings, exportAllData, importData, clearAllData } from '../db';
 import { downloadFile } from '../utils';
 import { getAvailableVoices, setVoiceByName, speak, getCurrentVoiceName } from '../tts';
+import { VOCABULARY } from '../data/vocabulary';
 import type { UserSettings } from '../types';
 
 interface Props {
@@ -35,6 +36,16 @@ export default function Settings({ settings, onUpdate }: Props) {
   async function handleExport() {
     const json = await exportAllData();
     downloadFile(json, `anglictina-backup-${new Date().toISOString().slice(0, 10)}.json`);
+  }
+
+  function handleAnkiExport() {
+    const lines = VOCABULARY.filter((w) => w.cs).map((w) => {
+      const front = w.en + (w.phonetic ? ` [${w.phonetic}]` : '');
+      const back = w.cs + (w.example ? `<br><i>${w.example}</i>` : '');
+      return `${front}\t${back}`;
+    });
+    const content = lines.join('\n');
+    downloadFile(content, `anglictina-anki-${new Date().toISOString().slice(0, 10)}.txt`);
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -247,6 +258,10 @@ export default function Settings({ settings, onUpdate }: Props) {
         <div className="space-y-3">
           <button className="btn-secondary w-full" onClick={handleExport}>
             📥 Exportovat data (JSON)
+          </button>
+
+          <button className="btn-secondary w-full" onClick={handleAnkiExport}>
+            📑 Exportovat slovíčka (Anki)
           </button>
 
           <button className="btn-secondary w-full" onClick={() => fileRef.current?.click()}>

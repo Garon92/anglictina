@@ -130,7 +130,7 @@ export interface ReviewLog {
 export interface DrillSession {
   id?: number;
   date: string;
-  type: 'vocab' | 'grammar' | 'reading' | 'listening' | 'mixed' | 'diagnostic' | 'exam' | 'phrasal_verbs' | 'word_order' | 'prepositions' | 'confusables' | 'articles' | 'translation' | 'idioms';
+  type: 'vocab' | 'grammar' | 'reading' | 'listening' | 'mixed' | 'diagnostic' | 'exam' | 'phrasal_verbs' | 'word_order' | 'prepositions' | 'confusables' | 'articles' | 'translation' | 'idioms' | 'word_formation';
   startedAt: number;
   endedAt?: number;
   totalItems: number;

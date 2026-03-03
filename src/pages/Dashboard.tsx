@@ -147,11 +147,13 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
         <QuickAction to="/conditionals" icon="🔀" title="Podmínky" desc="If clauses 0-3" color="bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" />
         <QuickAction to="/reported-speech" icon="💬" title="Nepřímá řeč" desc="He said that..." color="bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" />
         <QuickAction to="/sentence-transform" icon="🔄" title="Přeformulace" desc="Key word transform" color="bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300" />
+        <QuickAction to="/word-formation" icon="🔧" title="Tvoření slov" desc="Předpony a přípony" color="bg-lime-50 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300" />
         <QuickAction to="/matching" icon="🃏" title="Pexeso" desc="Spojuj slova" color="bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300" />
       </div>
 
       <h2 className="section-title">Příprava na maturitu</h2>
       <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickAction to="/vocab-topics" icon="📂" title="Témata" desc="Slovíčka podle 20 témat" color="bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300" />
         <QuickAction to="/conversation" icon="💬" title="Konverzace" desc="25 témat na ústní" color="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" />
         <QuickAction to="/writing" icon="✍️" title="Psaní" desc="Šablony a tipy" color="bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300" />
         <QuickAction to="/exam" icon="🎯" title="Zkouška" desc="Simulace testu" color="bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" />
@@ -162,6 +164,7 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
 
       <h2 className="section-title">Výzvy</h2>
       <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickAction to="/mixed-quiz" icon="🎲" title="Mix kvíz" desc="Ze všech modulů" color="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" />
         <QuickAction to="/speed" icon="⚡" title="Rychlovka" desc="20 otázek na čas" color="bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" />
         <QuickAction to="/mistakes" icon="🔁" title="Opakuj chyby" desc="Drill z tvých chyb" color="bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" />
       </div>

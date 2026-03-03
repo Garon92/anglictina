@@ -81,6 +81,7 @@ const MODULE_LABELS: Record<string, string> = {
   word_order: 'Skládání vět',
   reading: 'Čtení',
   listening: 'Poslech',
+  word_formation: 'Tvoření slov',
 };
 
 export function getModuleLabel(module: string): string {

@@ -7,6 +7,7 @@ import { daysUntil, getMotivationalMessage, formatMinutes, todayKey } from '../u
 import type { UserSettings, UserStats } from '../types';
 import { DEFAULT_STATS } from '../types';
 import DailyChallenge from '../components/DailyChallenge';
+import { computeLevel } from './Review';
 
 export default function Dashboard({ settings }: { settings: UserSettings }) {
   const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
@@ -45,8 +46,16 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {(() => {
+            const lv = computeLevel(stats);
+            return (
+              <Link to="/review" className="bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1">
+                {lv.level.icon} {lv.level.name}
+              </Link>
+            );
+          })()}
           {stats.streakDays > 0 && (
-            <div className="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">
+            <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">
               🔥 {stats.streakDays}
             </div>
           )}

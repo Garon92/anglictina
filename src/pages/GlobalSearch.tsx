@@ -5,6 +5,7 @@ import { IRREGULAR_VERBS } from '../data/irregularVerbs';
 import { IDIOMS, COLLOCATIONS } from '../data/idioms';
 import { GRAMMAR_EXERCISES } from '../data/grammar';
 import { speak } from '../tts';
+import { toggleFavorite, isFavorite as checkFavorite } from '../favorites';
 
 interface SearchResult {
   type: 'vocab' | 'irregular' | 'idiom' | 'collocation' | 'grammar';
@@ -96,6 +97,7 @@ export default function GlobalSearch() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [favStamp, setFavStamp] = useState(0);
 
   const results = useMemo(() => search(query), [query]);
 
@@ -152,16 +154,35 @@ export default function GlobalSearch() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-slate-800 dark:text-slate-200 text-sm truncate">{r.primary}</span>
-                    {r.type === 'vocab' && (
+                    {(r.type === 'vocab' || r.type === 'irregular') && (
                       <button
                         className="text-primary-500 hover:text-primary-700 shrink-0"
-                        onClick={(e) => { e.stopPropagation(); handleSpeak(r.primary); }}
+                        onClick={(e) => { e.stopPropagation(); handleSpeak(r.primary.split(' — ')[0]); }}
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07z" />
                         </svg>
                       </button>
                     )}
+                    {r.type !== 'grammar' && (() => {
+                      const favId = `${r.type}_${r.primary}`;
+                      const isFav = checkFavorite(favId);
+                      void favStamp;
+                      return (
+                        <button
+                          className={`shrink-0 transition-colors ${isFav ? 'text-red-500' : 'text-slate-300 dark:text-slate-600 hover:text-red-400'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite({ id: favId, type: r.type as 'vocab', text: r.primary, translation: r.secondary });
+                            setFavStamp(Date.now());
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                          </svg>
+                        </button>
+                      );
+                    })()}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{r.secondary}</div>
                   {isExpanded && r.detail && (

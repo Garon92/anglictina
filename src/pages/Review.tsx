@@ -111,6 +111,35 @@ export default function Review() {
       <h1 className="page-title">Tvůj pokrok</h1>
       <p className="page-subtitle">Přehled tvého učení a statistik.</p>
 
+      {/* ── Level card ── */}
+      {(() => {
+        const lv = computeLevel(stats);
+        return (
+          <div className="card mb-4 !p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">{lv.level.icon}</span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 dark:text-white">{lv.level.name}</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">{lv.xp} XP</span>
+                </div>
+                {lv.nextLevel && (
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mb-1">
+                    Dalši: {lv.nextLevel.icon} {lv.nextLevel.name} ({lv.nextLevel.minXP} XP)
+                  </div>
+                )}
+                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-primary-500 to-primary-400 h-full rounded-full transition-all"
+                    style={{ width: `${lv.progress * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Streak & time cards ── */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="card text-center">
@@ -653,14 +682,22 @@ function buildAchievements(stats: UserStats, sessions: DrillSession[], exams: Ex
   const gram = sessions.filter((s) => s.type === 'grammar').length;
   const read = sessions.filter((s) => s.type === 'reading').length;
   const listen = sessions.filter((s) => s.type === 'listening').length;
+  const wordOrder = sessions.filter((s) => s.type === 'word_order').length;
+  const mixed = sessions.filter((s) => s.tags?.includes('speed_challenge')).length;
+  const mistakeDrills = sessions.filter((s) => s.tags?.includes('mistake_drill')).length;
+  const allTypes = new Set(sessions.map((s) => s.type));
   const uniqSkills = new Set(
-    sessions.map((s) => s.type).filter((t) => (['vocab', 'grammar', 'reading', 'listening', 'phrasal_verbs'] as string[]).includes(t)),
+    sessions.map((s) => s.type).filter((t) =>
+      (['vocab', 'grammar', 'reading', 'listening', 'phrasal_verbs', 'word_order', 'mixed', 'diagnostic', 'exam'] as string[]).includes(t),
+    ),
   );
   const passed = exams.some((e) => e.maxScore > 0 && percentOf(e.scoreTotal, e.maxScore) >= 44);
   const excellent = exams.some((e) => e.maxScore > 0 && percentOf(e.scoreTotal, e.maxScore) >= 80);
+  const totalDrills = sessions.length;
+  const totalEx = stats.totalExercisesDone;
 
   return [
-    { id: 'first', name: 'První kroky', desc: 'Dokonči první cvičení', icon: '👣', earned: sessions.length >= 1, current: Math.min(1, sessions.length), target: 1 },
+    { id: 'first', name: 'První kroky', desc: 'Dokonči první cvičení', icon: '👣', earned: totalDrills >= 1, current: Math.min(1, totalDrills), target: 1 },
     { id: 'vocab100', name: 'Slovíčkář', desc: 'Nauč se 100 slovíček', icon: '📚', earned: stats.totalCardsLearned >= 100, current: Math.min(100, stats.totalCardsLearned), target: 100 },
     { id: 'gram50', name: 'Gramatik', desc: 'Dokonči 50 gramatických cvičení', icon: '✏️', earned: gram >= 50, current: Math.min(50, gram), target: 50 },
     { id: 'read10', name: 'Čtenář', desc: 'Dokonči 10 čtecích textů', icon: '📖', earned: read >= 10, current: Math.min(10, read), target: 10 },
@@ -674,5 +711,41 @@ function buildAchievements(stats: UserStats, sessions: DrillSession[], exams: Ex
     { id: 'persistent', name: 'Vytrvalec', desc: 'Studuj celkem 1000+ minut', icon: '⏱️', earned: stats.totalStudyMinutes >= 1000, current: Math.min(1000, Math.round(stats.totalStudyMinutes)), target: 1000 },
     { id: 'decathlon', name: 'Desetibojař', desc: 'Procvič všech 5 typů dovedností', icon: '🏆', earned: uniqSkills.size >= 5, current: uniqSkills.size, target: 5 },
     { id: 'vocab1000', name: 'Expert', desc: 'Nauč se 1000 slovíček', icon: '👑', earned: stats.totalCardsLearned >= 1000, current: Math.min(1000, stats.totalCardsLearned), target: 1000 },
+    { id: 'wordOrder20', name: 'Stavitel vět', desc: 'Dokonči 20 cvičení na skládání vět', icon: '🧩', earned: wordOrder >= 20, current: Math.min(20, wordOrder), target: 20 },
+    { id: 'speed5', name: 'Blesk', desc: 'Dokonči 5 rychlostních výzev', icon: '⚡', earned: mixed >= 5, current: Math.min(5, mixed), target: 5 },
+    { id: 'mistake10', name: 'Poučený', desc: 'Dokonči 10 drillů z chyb', icon: '🔁', earned: mistakeDrills >= 10, current: Math.min(10, mistakeDrills), target: 10 },
+    { id: 'exercises500', name: 'Maratonec', desc: 'Dokonči celkem 500 cvičení', icon: '🏃', earned: totalEx >= 500, current: Math.min(500, totalEx), target: 500 },
+    { id: 'exercises2000', name: 'Ultra', desc: 'Dokonči celkem 2000 cvičení', icon: '💎', earned: totalEx >= 2000, current: Math.min(2000, totalEx), target: 2000 },
+    { id: 'allModules', name: 'Všeuměl', desc: 'Zkus alespoň 8 různých typů cvičení', icon: '🎪', earned: allTypes.size >= 8, current: Math.min(8, allTypes.size), target: 8 },
+    { id: 'streak100', name: 'Stodenní válečník', desc: '100 dní učení v řadě', icon: '🛡️', earned: stats.bestStreak >= 100, current: Math.min(100, stats.bestStreak), target: 100 },
   ];
+}
+
+const LEVELS = [
+  { name: 'Začátečník', minXP: 0, icon: '🌱' },
+  { name: 'Učeň', minXP: 100, icon: '📗' },
+  { name: 'Student', minXP: 300, icon: '📘' },
+  { name: 'Pokročilý', minXP: 600, icon: '📙' },
+  { name: 'Zdatný', minXP: 1000, icon: '🔵' },
+  { name: 'Zkušený', minXP: 1500, icon: '🟣' },
+  { name: 'Mistr', minXP: 2500, icon: '🟡' },
+  { name: 'Expert', minXP: 4000, icon: '🟠' },
+  { name: 'Guru', minXP: 6000, icon: '🔴' },
+  { name: 'Legenda', minXP: 10000, icon: '👑' },
+];
+
+export function computeLevel(stats: UserStats) {
+  const xp = Math.round(stats.totalExercisesDone * 5 + stats.totalCardsLearned * 10 + stats.totalStudyMinutes * 2 + stats.bestStreak * 20);
+  let level = LEVELS[0];
+  let nextLevel = LEVELS[1];
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (xp >= LEVELS[i].minXP) {
+      level = LEVELS[i];
+      nextLevel = LEVELS[i + 1] || null;
+      break;
+    }
+  }
+  const nextXP = nextLevel ? nextLevel.minXP : level.minXP;
+  const progress = nextLevel ? (xp - level.minXP) / (nextXP - level.minXP) : 1;
+  return { xp, level, nextLevel, progress: Math.min(1, Math.max(0, progress)) };
 }

@@ -7,6 +7,7 @@ import { VOCABULARY } from '../data/vocabulary';
 import { shuffleArray } from '../utils';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { playCorrect, playIncorrect, playComplete } from '../sounds';
+import { toggleFavorite, isFavorite } from '../favorites';
 import type { UserSettings, SRSState, VocabWord } from '../types';
 
 interface CardItem {
@@ -213,6 +214,14 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
+            </svg>
+          </button>
+          <button
+            className={`p-1 transition-colors ${isFavorite(`vocab_${current.word.id}`) ? 'text-red-500' : 'text-slate-300 dark:text-slate-600 hover:text-red-400'}`}
+            onClick={() => { toggleFavorite({ id: `vocab_${current.word.id}`, type: 'vocab', text: current.word.en, translation: current.word.cs }); }}
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
             </svg>
           </button>
         </div>

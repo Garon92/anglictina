@@ -33,6 +33,10 @@ const MistakeDrill = lazy(() => import('./pages/MistakeDrill'));
 const SpeedChallenge = lazy(() => import('./pages/SpeedChallenge'));
 const GlobalSearch = lazy(() => import('./pages/GlobalSearch'));
 const Favorites = lazy(() => import('./pages/Favorites'));
+const ConditionalsDrill = lazy(() => import('./pages/ConditionalsDrill'));
+const ReportedSpeechDrill = lazy(() => import('./pages/ReportedSpeechDrill'));
+const SentenceTransformDrill = lazy(() => import('./pages/SentenceTransformDrill'));
+const GrammarCheatsheet = lazy(() => import('./pages/GrammarCheatsheet'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
@@ -118,6 +122,10 @@ export default function App() {
           <Route path="/speed" element={<SpeedChallenge />} />
           <Route path="/search" element={<GlobalSearch />} />
           <Route path="/favorites" element={<Favorites />} />
+          <Route path="/conditionals" element={<ConditionalsDrill />} />
+          <Route path="/reported-speech" element={<ReportedSpeechDrill />} />
+          <Route path="/sentence-transform" element={<SentenceTransformDrill />} />
+          <Route path="/cheatsheet" element={<GrammarCheatsheet />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
           <Route path="/grammar-ref" element={<GrammarRef />} />

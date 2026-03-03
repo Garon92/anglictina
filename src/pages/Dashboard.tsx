@@ -144,6 +144,9 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
         <QuickAction to="/idioms" icon="💎" title="Idiomy" desc="Ustálené fráze" color="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" />
       </div>
       <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickAction to="/conditionals" icon="🔀" title="Podmínky" desc="If clauses 0-3" color="bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" />
+        <QuickAction to="/reported-speech" icon="💬" title="Nepřímá řeč" desc="He said that..." color="bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" />
+        <QuickAction to="/sentence-transform" icon="🔄" title="Přeformulace" desc="Key word transform" color="bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300" />
         <QuickAction to="/matching" icon="🃏" title="Pexeso" desc="Spojuj slova" color="bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300" />
       </div>
 
@@ -154,6 +157,7 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
         <QuickAction to="/exam" icon="🎯" title="Zkouška" desc="Simulace testu" color="bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" />
         <QuickAction to="/tenses" icon="⏱️" title="Časy" desc="Přehled všech časů" color="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" />
         <QuickAction to="/grammar-ref" icon="📋" title="Gram. tabulky" desc="Pravidla a vzory" color="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" />
+        <QuickAction to="/cheatsheet" icon="🖨️" title="Tahák" desc="Tisknutelný přehled" color="bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300" />
       </div>
 
       <h2 className="section-title">Výzvy</h2>

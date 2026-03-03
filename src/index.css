@@ -347,3 +347,10 @@ body {
 .interactive-hover:active {
   transform: translateY(0);
 }
+
+@media print {
+  nav, .print\\:hidden { display: none !important; }
+  body { background: white !important; color: black !important; font-size: 11px; }
+  .page-container { padding: 0; max-width: 100%; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+}

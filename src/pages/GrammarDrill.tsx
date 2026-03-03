@@ -5,6 +5,7 @@ import { GRAMMAR_EXERCISES, GRAMMAR_CATEGORIES, CATEGORY_NAMES } from '../data/g
 import { shuffleArray } from '../utils';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { playCorrect, playIncorrect, playComplete } from '../sounds';
+import { trackError } from '../errorTracker';
 import type { GrammarExercise } from '../types';
 
 type Phase = 'select' | 'drill' | 'result';
@@ -54,7 +55,13 @@ export default function GrammarDrill() {
       isCorrect = userAnswer.trim().toLowerCase() === ex.answer.toLowerCase();
     }
 
-    if (isCorrect) playCorrect(); else playIncorrect();
+    if (isCorrect) {
+      playCorrect();
+    } else {
+      playIncorrect();
+      const ua = ex.type === 'mcq' && ex.options ? ex.options[selectedOption!] : userAnswer.trim();
+      trackError('grammar', ex.category, ex.prompt, ua, ex.answer);
+    }
 
     setStats((prev) => ({
       correct: prev.correct + (isCorrect ? 1 : 0),

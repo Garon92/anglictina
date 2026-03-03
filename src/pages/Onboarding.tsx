@@ -128,15 +128,34 @@ export default function Onboarding({ onComplete }: Props) {
 
             <div className="flex gap-3">
               <button className="btn-secondary flex-1" onClick={() => setStep(1)}>Zpět</button>
-              <button className="btn-primary flex-1" onClick={finish}>
-                Začít se učit! 🚀
-              </button>
+              <button className="btn-primary flex-1" onClick={() => setStep(3)}>Dál</button>
             </div>
           </div>
         )}
 
+        {step === 3 && (
+          <div className="text-center">
+            <div className="text-5xl mb-4">🩺</div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Diagnostický test</h2>
+            <p className="text-slate-500 text-sm mb-6">
+              Chceš si nejdřív zjistit svou aktuální úroveň? Krátký test (30 otázek) ti ukáže, kde začít.
+              Můžeš ho udělat i později.
+            </p>
+            <button className="btn-primary btn-lg w-full mb-3" onClick={() => {
+              finish().then(() => {
+                window.location.hash = '#/diagnostic';
+              });
+            }}>
+              Chci udělat test
+            </button>
+            <button className="btn-secondary w-full" onClick={finish}>
+              Přeskočit — rovnou se učit 🚀
+            </button>
+          </div>
+        )}
+
         <div className="flex justify-center gap-2 mt-6">
-          {[0, 1, 2].map((i) => (
+          {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
               className={`w-2 h-2 rounded-full transition-all ${

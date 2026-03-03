@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { getStats, getAllSRSStates, getDrillSessions, getExamSessions } from '../db';
 import { formatMinutes, percentOf, getScoreColor } from '../utils';
 import { VOCABULARY } from '../data/vocabulary';
+import { getErrorAnalysis, getModuleLabel, clearErrors, type ErrorAnalysis } from '../errorTracker';
 import type { UserStats, SRSState, DrillSession, ExamSession } from '../types';
 import { DEFAULT_STATS } from '../types';
 
-type TabKey = 'overview' | 'activity' | 'skills' | 'achievements' | 'vocab';
+type TabKey = 'overview' | 'activity' | 'skills' | 'achievements' | 'vocab' | 'errors';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Přehled' },
   { key: 'activity', label: 'Aktivita' },
   { key: 'skills', label: 'Dovednosti' },
+  { key: 'errors', label: 'Chyby' },
   { key: 'achievements', label: 'Úspěchy' },
   { key: 'vocab', label: 'Slovíčka' },
 ];
@@ -49,6 +51,7 @@ export default function Review() {
   const [srsStates, setSrsStates] = useState<SRSState[]>([]);
   const [sessions, setSessions] = useState<DrillSession[]>([]);
   const [examSessions, setExamSessions] = useState<ExamSession[]>([]);
+  const [errorAnalysis, setErrorAnalysis] = useState<ErrorAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   useEffect(() => {
@@ -63,6 +66,7 @@ export default function Review() {
       setSrsStates(srs);
       setSessions(sess.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)));
       setExamSessions(exams.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)));
+      setErrorAnalysis(getErrorAnalysis());
     })();
   }, []);
 
@@ -361,6 +365,78 @@ export default function Review() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ════════════ TAB — Chyby ════════════ */}
+      {activeTab === 'errors' && errorAnalysis && (
+        <div className="space-y-3">
+          {errorAnalysis.totalErrors === 0 ? (
+            <div className="card text-center py-8">
+              <div className="text-4xl mb-3">✅</div>
+              <p className="text-slate-500 dark:text-slate-400">Zatím žádné zaznamenané chyby. Pokračuj v procvičování!</p>
+            </div>
+          ) : (
+            <>
+              <div className="card">
+                <h3 className="section-title">Přehled chyb</h3>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{errorAnalysis.totalErrors}</div>
+                    <div className="text-xs text-slate-500">celkem chyb</div>
+                  </div>
+                  <div className="text-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                    <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{getModuleLabel(errorAnalysis.weakestModule)}</div>
+                    <div className="text-xs text-slate-500">nejslabší oblast</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <h3 className="section-title">Chyby podle modulu</h3>
+                <div className="space-y-2">
+                  {Object.entries(errorAnalysis.byModule)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([mod, count]) => {
+                      const pct = Math.round((count / errorAnalysis.totalErrors) * 100);
+                      return (
+                        <div key={mod}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-slate-700 dark:text-slate-300">{getModuleLabel(mod)}</span>
+                            <span className="text-slate-500">{count}x ({pct}%)</span>
+                          </div>
+                          <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                            <div className="bg-red-400 h-full rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              <div className="card">
+                <h3 className="section-title">Poslední chyby</h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {errorAnalysis.recentErrors.map((e, i) => (
+                    <div key={i} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm">
+                      <div className="text-slate-700 dark:text-slate-200 mb-1">{e.question}</div>
+                      <div className="flex gap-3 text-xs">
+                        <span className="text-red-500">✗ {e.userAnswer}</span>
+                        <span className="text-green-500">✓ {e.correctAnswer}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                className="btn-ghost text-sm text-red-500 w-full"
+                onClick={() => { clearErrors(); setErrorAnalysis(getErrorAnalysis()); }}
+              >
+                Vymazat historii chyb
+              </button>
+            </>
+          )}
         </div>
       )}
 

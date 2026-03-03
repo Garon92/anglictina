@@ -4,6 +4,7 @@ import { NGSL_CHUNK2 } from './ngsl_chunk2';
 import { NGSL_CHUNK3 } from './ngsl_chunk3';
 import { NGSL_CHUNK4 } from './ngsl_chunk4';
 import { VOCAB_EXAMPLES } from './vocabExamples';
+import { VOCAB_EXAMPLES_2 } from './vocabExamples2';
 
 type Pos = VocabWord['partOfSpeech'];
 
@@ -254,7 +255,8 @@ const ngslCompact = [
   ...compactToVocab(NGSL_CHUNK3, 3, 1501),
   ...compactToVocab(NGSL_CHUNK4, 3, 2101),
 ].filter((w) => !richSet.has(w.en.toLowerCase())).map((w) => {
-  const ex = VOCAB_EXAMPLES[w.en.toLowerCase()];
+  const key = w.en.toLowerCase();
+  const ex = VOCAB_EXAMPLES[key] || VOCAB_EXAMPLES_2[key];
   if (ex) return { ...w, example: ex.example, exampleCs: ex.exampleCs };
   return w;
 });

@@ -20,6 +20,10 @@ const Review = lazy(() => import('./pages/Review'));
 const Settings = lazy(() => import('./pages/Settings'));
 const GrammarRef = lazy(() => import('./pages/GrammarRef'));
 const ExamSim = lazy(() => import('./pages/ExamSim'));
+const ConfusablesDrill = lazy(() => import('./pages/ConfusablesDrill'));
+const PrepositionsDrill = lazy(() => import('./pages/PrepositionsDrill'));
+const ConversationTopics = lazy(() => import('./pages/ConversationTopics'));
+const MatchingGame = lazy(() => import('./pages/MatchingGame'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
@@ -92,6 +96,10 @@ export default function App() {
           <Route path="/irregular-verbs" element={<IrregularVerbsDrill />} />
           <Route path="/word-order" element={<WordOrderDrill />} />
           <Route path="/diagnostic" element={<DiagnosticTest />} />
+          <Route path="/confusables" element={<ConfusablesDrill />} />
+          <Route path="/prepositions" element={<PrepositionsDrill />} />
+          <Route path="/conversation" element={<ConversationTopics />} />
+          <Route path="/matching" element={<MatchingGame />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
           <Route path="/grammar-ref" element={<GrammarRef />} />

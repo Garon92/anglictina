@@ -40,6 +40,10 @@ const GrammarCheatsheet = lazy(() => import('./pages/GrammarCheatsheet'));
 const WordFormationDrill = lazy(() => import('./pages/WordFormationDrill'));
 const VocabTopics = lazy(() => import('./pages/VocabTopics'));
 const MixedQuiz = lazy(() => import('./pages/MixedQuiz'));
+const FavoritesQuiz = lazy(() => import('./pages/FavoritesQuiz'));
+const ErrorCorrectionDrill = lazy(() => import('./pages/ErrorCorrectionDrill'));
+const PassiveVoiceDrill = lazy(() => import('./pages/PassiveVoiceDrill'));
+const CustomWords = lazy(() => import('./pages/CustomWords'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
@@ -131,6 +135,10 @@ export default function App() {
           <Route path="/cheatsheet" element={<GrammarCheatsheet />} />
           <Route path="/vocab-topics" element={<VocabTopics />} />
           <Route path="/mixed-quiz" element={<MixedQuiz />} />
+          <Route path="/favorites-quiz" element={<FavoritesQuiz />} />
+          <Route path="/error-correction" element={<ErrorCorrectionDrill />} />
+          <Route path="/passive" element={<PassiveVoiceDrill />} />
+          <Route path="/custom-words" element={<CustomWords />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
           <Route path="/grammar-ref" element={<GrammarRef />} />

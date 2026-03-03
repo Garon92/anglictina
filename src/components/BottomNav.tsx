@@ -18,6 +18,8 @@ const DRILL_ROUTES = [
   { to: '/translation', icon: '🔤', label: 'Překlad' },
   { to: '/idioms', icon: '💎', label: 'Idiomy' },
   { to: '/matching', icon: '🃏', label: 'Pexeso' },
+  { to: '/passive', icon: '🔄', label: 'Trpný rod' },
+  { to: '/error-correction', icon: '❌', label: 'Oprav chybu' },
   { to: '/word-formation', icon: '🔧', label: 'Tvoření slov' },
   { to: '/mixed-quiz', icon: '🎲', label: 'Mix kvíz' },
   { to: '/speed', icon: '⚡', label: 'Rychlovka' },
@@ -36,6 +38,8 @@ const MORE_ROUTES = [
   { to: '/vocab-topics', icon: '📂', label: 'Témata' },
   { to: '/search', icon: '🔍', label: 'Hledání' },
   { to: '/favorites', icon: '⭐', label: 'Oblíbené' },
+  { to: '/favorites-quiz', icon: '💛', label: 'Kvíz oblíbených' },
+  { to: '/custom-words', icon: '📝', label: 'Vlastní slova' },
   { to: '/review', icon: '📊', label: 'Statistiky' },
   { to: '/settings', icon: '⚙️', label: 'Nastavení' },
 ];

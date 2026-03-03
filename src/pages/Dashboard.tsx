@@ -147,6 +147,8 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
         <QuickAction to="/conditionals" icon="🔀" title="Podmínky" desc="If clauses 0-3" color="bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" />
         <QuickAction to="/reported-speech" icon="💬" title="Nepřímá řeč" desc="He said that..." color="bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" />
         <QuickAction to="/sentence-transform" icon="🔄" title="Přeformulace" desc="Key word transform" color="bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300" />
+        <QuickAction to="/passive" icon="🔄" title="Trpný rod" desc="Active → Passive" color="bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300" />
+        <QuickAction to="/error-correction" icon="❌" title="Oprav chybu" desc="Najdi a oprav" color="bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300" />
         <QuickAction to="/word-formation" icon="🔧" title="Tvoření slov" desc="Předpony a přípony" color="bg-lime-50 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300" />
         <QuickAction to="/matching" icon="🃏" title="Pexeso" desc="Spojuj slova" color="bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300" />
       </div>
@@ -173,6 +175,8 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
       <div className="grid grid-cols-2 gap-3">
         <QuickAction to="/search" icon="🔍" title="Hledání" desc="Slovník a vyhledávání" color="bg-slate-50 text-slate-700 dark:bg-slate-700 dark:text-slate-300" />
         <QuickAction to="/favorites" icon="⭐" title="Oblíbené" desc="Uložená slova" color="bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300" />
+        <QuickAction to="/favorites-quiz" icon="💛" title="Kvíz oblíbených" desc="Procvič si uložená" color="bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300" />
+        <QuickAction to="/custom-words" icon="📝" title="Vlastní slova" desc="Tvůj slovníček" color="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" />
         <QuickAction to="/study-plan" icon="📅" title="Studijní plán" desc="Tvůj rozvrh" color="bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300" />
         <QuickAction to="/diagnostic" icon="🩺" title="Diagnostika" desc="Zjisti svou úroveň" color="bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" />
         <QuickAction to="/review" icon="📊" title="Statistiky" desc="Tvůj pokrok" color="bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" />

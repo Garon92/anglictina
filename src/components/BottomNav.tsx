@@ -1,37 +1,141 @@
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
-const tabs = [
-  { to: '/', label: 'Domů', icon: HomeIcon },
-  { to: '/vocab', label: 'Učení', icon: BookIcon },
-  { to: '/review', label: 'Pokrok', icon: ChartIcon },
-  { to: '/settings', label: 'Více', icon: MenuIcon },
+const DRILL_ROUTES = [
+  { to: '/vocab', icon: '📝', label: 'Slovíčka' },
+  { to: '/grammar', icon: '✏️', label: 'Gramatika' },
+  { to: '/reading', icon: '📖', label: 'Čtení' },
+  { to: '/listening', icon: '🎧', label: 'Poslech' },
+  { to: '/irregular-verbs', icon: '🔄', label: 'Neprav. slovesa' },
+  { to: '/word-order', icon: '🧱', label: 'Skládání vět' },
+  { to: '/prepositions', icon: '📌', label: 'Předložky' },
+  { to: '/articles', icon: '📐', label: 'Členy' },
+  { to: '/confusables', icon: '🔀', label: 'Záměnná slova' },
+  { to: '/phrasal-verbs', icon: '🧩', label: 'Fráze' },
+  { to: '/translation', icon: '🔤', label: 'Překlad' },
+  { to: '/idioms', icon: '💎', label: 'Idiomy' },
+  { to: '/matching', icon: '🃏', label: 'Pexeso' },
 ];
 
+const MORE_ROUTES = [
+  { to: '/conversation', icon: '💬', label: 'Konverzace' },
+  { to: '/writing', icon: '✍️', label: 'Psaní' },
+  { to: '/tenses', icon: '⏱️', label: 'Časy' },
+  { to: '/grammar-ref', icon: '📋', label: 'Přehled gram.' },
+  { to: '/exam', icon: '🎯', label: 'Zkouška' },
+  { to: '/diagnostic', icon: '🩺', label: 'Diagnostika' },
+  { to: '/study-plan', icon: '📅', label: 'Studijní plán' },
+  { to: '/review', icon: '📊', label: 'Statistiky' },
+  { to: '/settings', icon: '⚙️', label: 'Nastavení' },
+];
+
+const drillPaths = new Set(DRILL_ROUTES.map((r) => r.to));
+const morePaths = new Set(MORE_ROUTES.map((r) => r.to));
+
 export default function BottomNav() {
+  const [menuOpen, setMenuOpen] = useState<'drill' | 'more' | null>(null);
+  const location = useLocation();
+  const path = location.pathname;
+
+  const isDrillActive = drillPaths.has(path);
+  const isMoreActive = morePaths.has(path);
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 safe-bottom z-50">
-      <div className="max-w-2xl mx-auto flex">
-        {tabs.map((tab) => (
+    <>
+      {/* Overlay menu */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(null)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div
+            className="absolute bottom-16 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 rounded-t-2xl shadow-xl max-h-[60vh] overflow-y-auto safe-bottom animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4">
+              <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+                {menuOpen === 'drill' ? 'Procvičování' : 'Nástroje & nastavení'}
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {(menuOpen === 'drill' ? DRILL_ROUTES : MORE_ROUTES).map((route) => (
+                  <NavLink
+                    key={route.to}
+                    to={route.to}
+                    onClick={() => setMenuOpen(null)}
+                    className={({ isActive }) =>
+                      `flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                        isActive
+                          ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                      }`
+                    }
+                  >
+                    <span className="text-xl">{route.icon}</span>
+                    <span className="text-[10px] font-medium text-center leading-tight">{route.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 safe-bottom z-50">
+        <div className="max-w-2xl mx-auto flex">
           <NavLink
-            key={tab.to}
-            to={tab.to}
-            end={tab.to === '/'}
+            to="/"
+            end
             className={({ isActive }) =>
               `flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
-                isActive ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'
+                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <tab.icon active={isActive} />
-                <span>{tab.label}</span>
+                <HomeIcon active={isActive} />
+                <span>Domů</span>
               </>
             )}
           </NavLink>
-        ))}
-      </div>
-    </nav>
+
+          <button
+            onClick={() => setMenuOpen(menuOpen === 'drill' ? null : 'drill')}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
+              isDrillActive || menuOpen === 'drill' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <BookIcon active={isDrillActive || menuOpen === 'drill'} />
+            <span>Učení</span>
+          </button>
+
+          <NavLink
+            to="/review"
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
+                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <ChartIcon active={isActive} />
+                <span>Pokrok</span>
+              </>
+            )}
+          </NavLink>
+
+          <button
+            onClick={() => setMenuOpen(menuOpen === 'more' ? null : 'more')}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
+              isMoreActive || menuOpen === 'more' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <MenuIcon active={isMoreActive || menuOpen === 'more'} />
+            <span>Více</span>
+          </button>
+        </div>
+      </nav>
+    </>
   );
 }
 

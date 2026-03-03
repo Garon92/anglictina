@@ -24,6 +24,11 @@ const ConfusablesDrill = lazy(() => import('./pages/ConfusablesDrill'));
 const PrepositionsDrill = lazy(() => import('./pages/PrepositionsDrill'));
 const ConversationTopics = lazy(() => import('./pages/ConversationTopics'));
 const MatchingGame = lazy(() => import('./pages/MatchingGame'));
+const ArticlesDrill = lazy(() => import('./pages/ArticlesDrill'));
+const TranslationDrill = lazy(() => import('./pages/TranslationDrill'));
+const IdiomsDrill = lazy(() => import('./pages/IdiomsDrill'));
+const TenseOverview = lazy(() => import('./pages/TenseOverview'));
+const StudyPlan = lazy(() => import('./pages/StudyPlan'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
@@ -100,6 +105,11 @@ export default function App() {
           <Route path="/prepositions" element={<PrepositionsDrill />} />
           <Route path="/conversation" element={<ConversationTopics />} />
           <Route path="/matching" element={<MatchingGame />} />
+          <Route path="/articles" element={<ArticlesDrill />} />
+          <Route path="/translation" element={<TranslationDrill />} />
+          <Route path="/idioms" element={<IdiomsDrill />} />
+          <Route path="/tenses" element={<TenseOverview />} />
+          <Route path="/study-plan" element={<StudyPlan />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
           <Route path="/grammar-ref" element={<GrammarRef />} />

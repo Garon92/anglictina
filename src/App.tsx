@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import Layout from './components/Layout';
+import LoadingSkeleton from './components/LoadingSkeleton';
 import { getSettings } from './db';
 import { initTTS } from './tts';
 import type { UserSettings } from './types';
@@ -88,11 +89,7 @@ export default function App() {
     );
   }
 
-  const fallback = (
-    <div className="page-container flex items-center justify-center min-h-[40vh]">
-      <p className="text-slate-400 dark:text-slate-500 text-sm animate-pulse">Načítám...</p>
-    </div>
-  );
+  const fallback = <LoadingSkeleton />;
 
   if (!settings.onboardingDone) {
     return (

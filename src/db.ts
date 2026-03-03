@@ -215,6 +215,19 @@ export async function importData(json: string): Promise<void> {
   await tx.done;
 }
 
+export async function getDrillStatsByType(): Promise<Record<string, { sessions: number; correct: number; total: number }>> {
+  const db = await getDB();
+  const all = await db.getAll('drillSession');
+  const result: Record<string, { sessions: number; correct: number; total: number }> = {};
+  for (const s of all) {
+    if (!result[s.type]) result[s.type] = { sessions: 0, correct: 0, total: 0 };
+    result[s.type].sessions += 1;
+    result[s.type].correct += s.correctItems;
+    result[s.type].total += s.totalItems;
+  }
+  return result;
+}
+
 export async function clearAllData(): Promise<void> {
   const db = await getDB();
   const tx = db.transaction(

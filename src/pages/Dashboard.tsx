@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getStats, getDueCards, updateStreak, getDrillSessions } from '../db';
+import { getStats, getDueCards, updateStreak, getDrillSessions, getDrillStatsByType } from '../db';
 import { speak } from '../tts';
 import { WORD_OF_THE_DAY } from '../data/vocabulary';
 import { daysUntil, getMotivationalMessage, formatMinutes, todayKey } from '../utils';
@@ -84,6 +84,18 @@ const CATEGORIES: { id: string; label: string; icon: string; items: ActionItem[]
   },
 ];
 
+const ROUTE_TO_DRILL: Record<string, string> = {
+  '/vocab': 'vocab', '/grammar': 'grammar', '/reading': 'reading', '/listening': 'listening',
+  '/conditionals': 'conditionals', '/reported-speech': 'reported_speech', '/passive': 'passive_voice',
+  '/articles': 'articles', '/prepositions': 'prepositions', '/word-order': 'word_order',
+  '/error-correction': 'error_correction', '/sentence-transform': 'sentence_transform',
+  '/word-formation': 'word_formation', '/irregular-verbs': 'vocab', '/confusables': 'confusables',
+  '/phrasal-verbs': 'phrasal_verbs', '/idioms': 'idioms', '/translation': 'translation',
+  '/mixed-quiz': 'mixed', '/speed': 'vocab', '/matching': 'vocab',
+  '/favorites-quiz': 'favorites_quiz', '/custom-words': 'custom_words',
+  '/exam': 'exam', '/diagnostic': 'diagnostic',
+};
+
 function getSmartSuggestions(stats: UserStats, dueCount: number): ActionItem[] {
   const suggestions: ActionItem[] = [];
   const errors = getErrorAnalysis();
@@ -115,18 +127,21 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [openCats, setOpenCats] = useState<Set<string>>(new Set(['core']));
   const [searchQ, setSearchQ] = useState('');
+  const [drillStats, setDrillStats] = useState<Record<string, { sessions: number; correct: number; total: number }>>({});
   const wotd = WORD_OF_THE_DAY();
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    const [s, due, sessions] = await Promise.all([
+    const [s, due, sessions, dStats] = await Promise.all([
       updateStreak(),
       getDueCards(),
       getDrillSessions(todayKey()),
+      getDrillStatsByType(),
     ]);
     setStats(s);
     setDueCount(due.length);
+    setDrillStats(dStats);
     const mins = sessions.reduce((sum, ses) => {
       if (!ses.endedAt) return sum;
       return sum + (ses.endedAt - ses.startedAt) / 60000;
@@ -170,7 +185,7 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
           </Link>
           {stats.streakDays > 0 && (
             <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2.5 py-1 rounded-full text-xs font-bold">
-              🔥 {stats.streakDays}
+              <span className={stats.streakDays >= 3 ? 'animate-fire-pulse inline-block' : ''}>🔥</span> {stats.streakDays}
             </div>
           )}
         </div>
@@ -287,6 +302,15 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
                   <span className="text-lg">{cat.icon}</span>
                   <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{cat.label}</span>
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-full">{cat.items.length}</span>
+                  {(() => {
+                    const active = cat.items.filter((it) => {
+                      const dt = ROUTE_TO_DRILL[it.to];
+                      return dt && drillStats[dt] && drillStats[dt].sessions > 0;
+                    }).length;
+                    return active > 0 ? (
+                      <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">✓ {active}</span>
+                    ) : null;
+                  })()}
                 </div>
                 <svg className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -294,21 +318,30 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
               </button>
               {isOpen && (
                 <div className="px-3 pb-3 grid grid-cols-2 gap-2">
-                  {cat.items.map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 ${item.color}`}>
-                        {item.icon}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-slate-800 dark:text-slate-200 text-xs">{item.title}</div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{item.desc}</div>
-                      </div>
-                    </Link>
-                  ))}
+                  {cat.items.map((item) => {
+                    const drillType = ROUTE_TO_DRILL[item.to];
+                    const ds = drillType ? drillStats[drillType] : undefined;
+                    return (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors relative"
+                      >
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 ${item.color}`}>
+                          {item.icon}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-slate-800 dark:text-slate-200 text-xs">{item.title}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{item.desc}</div>
+                        </div>
+                        {ds && ds.sessions > 0 && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <div className={`w-2 h-2 rounded-full ${ds.total > 0 && ds.correct / ds.total >= 0.7 ? 'bg-green-400' : 'bg-amber-400'}`} />
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

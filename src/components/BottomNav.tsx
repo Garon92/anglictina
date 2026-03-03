@@ -15,6 +15,8 @@ const DRILL_ROUTES = [
   { to: '/translation', icon: '🔤', label: 'Překlad' },
   { to: '/idioms', icon: '💎', label: 'Idiomy' },
   { to: '/matching', icon: '🃏', label: 'Pexeso' },
+  { to: '/speed', icon: '⚡', label: 'Rychlovka' },
+  { to: '/mistakes', icon: '🔁', label: 'Opakuj chyby' },
 ];
 
 const MORE_ROUTES = [
@@ -25,6 +27,8 @@ const MORE_ROUTES = [
   { to: '/exam', icon: '🎯', label: 'Zkouška' },
   { to: '/diagnostic', icon: '🩺', label: 'Diagnostika' },
   { to: '/study-plan', icon: '📅', label: 'Studijní plán' },
+  { to: '/search', icon: '🔍', label: 'Hledání' },
+  { to: '/favorites', icon: '⭐', label: 'Oblíbené' },
   { to: '/review', icon: '📊', label: 'Statistiky' },
   { to: '/settings', icon: '⚙️', label: 'Nastavení' },
 ];

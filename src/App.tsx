@@ -29,6 +29,10 @@ const TranslationDrill = lazy(() => import('./pages/TranslationDrill'));
 const IdiomsDrill = lazy(() => import('./pages/IdiomsDrill'));
 const TenseOverview = lazy(() => import('./pages/TenseOverview'));
 const StudyPlan = lazy(() => import('./pages/StudyPlan'));
+const MistakeDrill = lazy(() => import('./pages/MistakeDrill'));
+const SpeedChallenge = lazy(() => import('./pages/SpeedChallenge'));
+const GlobalSearch = lazy(() => import('./pages/GlobalSearch'));
+const Favorites = lazy(() => import('./pages/Favorites'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
@@ -110,6 +114,10 @@ export default function App() {
           <Route path="/idioms" element={<IdiomsDrill />} />
           <Route path="/tenses" element={<TenseOverview />} />
           <Route path="/study-plan" element={<StudyPlan />} />
+          <Route path="/mistakes" element={<MistakeDrill />} />
+          <Route path="/speed" element={<SpeedChallenge />} />
+          <Route path="/search" element={<GlobalSearch />} />
+          <Route path="/favorites" element={<Favorites />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
           <Route path="/grammar-ref" element={<GrammarRef />} />

@@ -147,8 +147,16 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
         <QuickAction to="/grammar-ref" icon="📋" title="Gram. tabulky" desc="Pravidla a vzory" color="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" />
       </div>
 
-      <h2 className="section-title">Ostatní</h2>
+      <h2 className="section-title">Výzvy</h2>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <QuickAction to="/speed" icon="⚡" title="Rychlovka" desc="20 otázek na čas" color="bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" />
+        <QuickAction to="/mistakes" icon="🔁" title="Opakuj chyby" desc="Drill z tvých chyb" color="bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" />
+      </div>
+
+      <h2 className="section-title">Nástroje</h2>
       <div className="grid grid-cols-2 gap-3">
+        <QuickAction to="/search" icon="🔍" title="Hledání" desc="Slovník a vyhledávání" color="bg-slate-50 text-slate-700 dark:bg-slate-700 dark:text-slate-300" />
+        <QuickAction to="/favorites" icon="⭐" title="Oblíbené" desc="Uložená slova" color="bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300" />
         <QuickAction to="/study-plan" icon="📅" title="Studijní plán" desc="Tvůj rozvrh" color="bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300" />
         <QuickAction to="/diagnostic" icon="🩺" title="Diagnostika" desc="Zjisti svou úroveň" color="bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" />
         <QuickAction to="/review" icon="📊" title="Statistiky" desc="Tvůj pokrok" color="bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" />

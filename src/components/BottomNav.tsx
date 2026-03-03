@@ -84,7 +84,7 @@ export default function BottomNav() {
                     }
                   >
                     <span className="text-xl">{route.icon}</span>
-                    <span className="text-[10px] font-medium text-center leading-tight">{route.label}</span>
+                    <span className="text-xs font-medium text-center leading-tight">{route.label}</span>
                   </NavLink>
                 ))}
               </div>
@@ -101,7 +101,7 @@ export default function BottomNav() {
             end
             className={({ isActive }) =>
               `flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
-                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
+                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`
             }
           >
@@ -116,7 +116,7 @@ export default function BottomNav() {
           <button
             onClick={() => setMenuOpen(menuOpen === 'drill' ? null : 'drill')}
             className={`flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
-              isDrillActive || menuOpen === 'drill' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
+              isDrillActive || menuOpen === 'drill' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             }`}
           >
             <BookIcon active={isDrillActive || menuOpen === 'drill'} />
@@ -127,7 +127,7 @@ export default function BottomNav() {
             to="/review"
             className={({ isActive }) =>
               `flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
-                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
+                isActive ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`
             }
           >
@@ -142,7 +142,7 @@ export default function BottomNav() {
           <button
             onClick={() => setMenuOpen(menuOpen === 'more' ? null : 'more')}
             className={`flex-1 flex flex-col items-center gap-0.5 py-2 pt-2.5 text-xs font-medium transition-colors ${
-              isMoreActive || menuOpen === 'more' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600'
+              isMoreActive || menuOpen === 'more' ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
             }`}
           >
             <MenuIcon active={isMoreActive || menuOpen === 'more'} />

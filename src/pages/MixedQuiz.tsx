@@ -21,72 +21,54 @@ interface QuizQ {
 
 function generateMixedQuiz(count: number): QuizQ[] {
   const questions: QuizQ[] = [];
-
   const vocabPool = shuffleArray(VOCABULARY.filter((w) => w.cs && w.example)).slice(0, count * 2);
+  const gramPool = shuffleArray(GRAMMAR_EXERCISES.filter((e) => e.type === 'mcq' && e.options && e.options.length >= 3));
+  const irregPool = shuffleArray(IRREGULAR_VERBS);
+  const idiomPool = shuffleArray(IDIOMS);
+  const condPool = shuffleArray(CONDITIONAL_EXERCISES.filter((e) => e.type === 'mcq' && e.options));
+
   for (const w of vocabPool.slice(0, Math.ceil(count * 0.25))) {
     const wrongs = shuffleArray(vocabPool.filter((v) => v.id !== w.id)).slice(0, 3).map((v) => v.cs);
+    if (wrongs.length < 3) continue;
     const opts = shuffleArray([w.cs, ...wrongs]);
-    questions.push({
-      module: 'vocab', moduleLabel: 'Slovíčka',
-      question: `Co znamená "${w.en}"?`,
-      options: opts, correctIndex: opts.indexOf(w.cs),
-    });
+    questions.push({ module: 'vocab', moduleLabel: 'Slovíčka', question: `Co znamená "${w.en}"?`, options: opts, correctIndex: opts.indexOf(w.cs) });
   }
-
-  const gramPool = shuffleArray(GRAMMAR_EXERCISES.filter((e) => e.type === 'mcq' && e.options && e.options.length === 4));
   for (const e of gramPool.slice(0, Math.ceil(count * 0.2))) {
-    questions.push({
-      module: 'grammar', moduleLabel: 'Gramatika',
-      question: e.prompt,
-      options: e.options!, correctIndex: e.options!.indexOf(e.answer),
-      explanation: e.explanationCs,
-    });
+    questions.push({ module: 'grammar', moduleLabel: 'Gramatika', question: e.prompt, options: e.options!, correctIndex: e.options!.indexOf(e.answer), explanation: e.explanationCs });
   }
-
-  const irregPool = shuffleArray(IRREGULAR_VERBS);
   for (const v of irregPool.slice(0, Math.ceil(count * 0.15))) {
     const wrongs = shuffleArray(irregPool.filter((iv) => iv.id !== v.id)).slice(0, 3).map((iv) => `${iv.past} / ${iv.pastParticiple}`);
+    if (wrongs.length < 3) continue;
     const correct = `${v.past} / ${v.pastParticiple}`;
     const opts = shuffleArray([correct, ...wrongs]);
-    questions.push({
-      module: 'irregular', moduleLabel: 'Neprav. slovesa',
-      question: `Jaké jsou tvary slovesa "${v.base}"? (past / past participle)`,
-      options: opts, correctIndex: opts.indexOf(correct),
-      explanation: v.meaningCs,
-    });
+    questions.push({ module: 'irregular', moduleLabel: 'Neprav. slovesa', question: `Jaké jsou tvary slovesa "${v.base}"? (past / past participle)`, options: opts, correctIndex: opts.indexOf(correct), explanation: v.meaningCs });
   }
-
-  const idiomPool = shuffleArray(IDIOMS);
   for (const id of idiomPool.slice(0, Math.ceil(count * 0.15))) {
     const wrongs = shuffleArray(idiomPool.filter((i) => i.id !== id.id)).slice(0, 3).map((i) => i.meaningCs);
+    if (wrongs.length < 3) continue;
     const opts = shuffleArray([id.meaningCs, ...wrongs]);
-    questions.push({
-      module: 'idioms', moduleLabel: 'Idiomy',
-      question: `Co znamená "${id.idiom}"?`,
-      options: opts, correctIndex: opts.indexOf(id.meaningCs),
-      explanation: id.example,
-    });
+    questions.push({ module: 'idioms', moduleLabel: 'Idiomy', question: `Co znamená "${id.idiom}"?`, options: opts, correctIndex: opts.indexOf(id.meaningCs), explanation: id.example });
   }
-
-  const condPool = shuffleArray(CONDITIONAL_EXERCISES.filter((e) => e.type === 'mcq' && e.options));
   for (const e of condPool.slice(0, Math.ceil(count * 0.15))) {
-    questions.push({
-      module: 'conditionals', moduleLabel: 'Podmínky',
-      question: e.prompt,
-      options: e.options!, correctIndex: e.options!.indexOf(e.answer),
-      explanation: e.explanationCs,
-    });
+    questions.push({ module: 'conditionals', moduleLabel: 'Podmínky', question: e.prompt, options: e.options!, correctIndex: e.options!.indexOf(e.answer), explanation: e.explanationCs });
+  }
+  for (const w of vocabPool.slice(0, Math.ceil(count * 0.1))) {
+    const wrongs = shuffleArray(vocabPool.filter((v) => v.id !== w.id)).slice(0, 3).map((v) => v.en);
+    if (wrongs.length < 3) continue;
+    const opts = shuffleArray([w.en, ...wrongs]);
+    questions.push({ module: 'vocab', moduleLabel: 'Slovíčka (CZ→EN)', question: `Jak se anglicky řekne "${w.cs}"?`, options: opts, correctIndex: opts.indexOf(w.en) });
   }
 
-  const reverseVocab = shuffleArray(VOCABULARY.filter((w) => w.cs && w.example)).slice(0, count);
-  for (const w of reverseVocab.slice(0, Math.ceil(count * 0.1))) {
-    const wrongs = shuffleArray(reverseVocab.filter((v) => v.id !== w.id)).slice(0, 3).map((v) => v.en);
-    const opts = shuffleArray([w.en, ...wrongs]);
-    questions.push({
-      module: 'vocab', moduleLabel: 'Slovíčka (CZ→EN)',
-      question: `Jak se anglicky řekne "${w.cs}"?`,
-      options: opts, correctIndex: opts.indexOf(w.en),
-    });
+  let padIdx = 0;
+  while (questions.length < count && vocabPool.length >= 4) {
+    const w = vocabPool[padIdx % vocabPool.length];
+    const wrongs = shuffleArray(vocabPool.filter((v) => v.id !== w.id)).slice(0, 3).map((v) => v.cs);
+    if (wrongs.length >= 3) {
+      const opts = shuffleArray([w.cs, ...wrongs]);
+      questions.push({ module: 'vocab', moduleLabel: 'Slovíčka', question: `Co znamená "${w.en}"?`, options: opts, correctIndex: opts.indexOf(w.cs) });
+    }
+    padIdx++;
+    if (padIdx > vocabPool.length * 2) break;
   }
 
   return shuffleArray(questions).slice(0, count);

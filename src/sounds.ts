@@ -1,10 +1,16 @@
 const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
 
 let ctx: AudioContext | null = null;
+let pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new AudioCtx();
   return ctx;
+}
+
+function clearPendingSounds() {
+  for (const id of pendingTimeouts) clearTimeout(id);
+  pendingTimeouts = [];
 }
 
 function playTone(freq: number, duration: number, type: OscillatorType = 'sine', gain = 0.15) {
@@ -30,26 +36,30 @@ function vibrate(pattern: number | number[]) {
 }
 
 export function playCorrect() {
+  clearPendingSounds();
   playTone(523.25, 0.1, 'sine', 0.12);
-  setTimeout(() => playTone(659.25, 0.1, 'sine', 0.12), 100);
-  setTimeout(() => playTone(783.99, 0.15, 'sine', 0.12), 200);
+  pendingTimeouts.push(setTimeout(() => playTone(659.25, 0.1, 'sine', 0.12), 100));
+  pendingTimeouts.push(setTimeout(() => playTone(783.99, 0.15, 'sine', 0.12), 200));
   vibrate(30);
 }
 
 export function playIncorrect() {
+  clearPendingSounds();
   playTone(311.13, 0.15, 'square', 0.08);
-  setTimeout(() => playTone(277.18, 0.25, 'square', 0.08), 150);
+  pendingTimeouts.push(setTimeout(() => playTone(277.18, 0.25, 'square', 0.08), 150));
   vibrate([30, 50, 30]);
 }
 
 export function playClick() {
+  clearPendingSounds();
   playTone(880, 0.05, 'sine', 0.06);
 }
 
 export function playComplete() {
+  clearPendingSounds();
   playTone(523.25, 0.1, 'sine', 0.1);
-  setTimeout(() => playTone(659.25, 0.1, 'sine', 0.1), 120);
-  setTimeout(() => playTone(783.99, 0.1, 'sine', 0.1), 240);
-  setTimeout(() => playTone(1046.50, 0.2, 'sine', 0.1), 360);
+  pendingTimeouts.push(setTimeout(() => playTone(659.25, 0.1, 'sine', 0.1), 120));
+  pendingTimeouts.push(setTimeout(() => playTone(783.99, 0.1, 'sine', 0.1), 240));
+  pendingTimeouts.push(setTimeout(() => playTone(1046.50, 0.2, 'sine', 0.1), 360));
   import('./confetti').then((m) => m.launchConfetti()).catch(() => {});
 }

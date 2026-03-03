@@ -113,7 +113,7 @@ export default function GrammarDrill() {
         <p className="page-subtitle">Vyber si oblast nebo začni mix ze všeho.</p>
 
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 mb-2">Úroveň</h3>
+          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Úroveň</h3>
           <div className="flex gap-2">
             {['all', 'A1', 'A2', 'B1'].map((lvl) => (
               <button
@@ -132,7 +132,7 @@ export default function GrammarDrill() {
         </div>
 
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 mb-2">
+          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
             Témata {selectedCats.length > 0 && `(${selectedCats.length})`}
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -164,11 +164,11 @@ export default function GrammarDrill() {
     return (
       <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Gramatika hotová!</h2>
-        <p className="text-slate-600 mb-1">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Gramatika hotová!</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-1">
           {stats.correct} / {stats.total} správně ({pct}%)
         </p>
-        <p className="text-sm text-slate-400 mb-6">
+        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
           {pct >= 80 ? 'Skvělé, gramatiku zvládáš!' : pct >= 50 ? 'Dobrý základ, pokračuj.' : 'Zkus si projít přehled gramatiky.'}
         </p>
         <div className="flex gap-3">

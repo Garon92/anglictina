@@ -302,6 +302,16 @@ export default function Settings({ settings, onUpdate }: Props) {
         </div>
       </div>
 
+      {/* Keyboard shortcuts */}
+      <div className="card mb-4">
+        <h3 className="section-title">⌨️ Klávesové zkratky</h3>
+        <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1.5">
+          <p><kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">Mezerník</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">Enter</kbd> — ukázat odpověď</p>
+          <p><kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">1</kbd>–<kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">4</kbd> — hodnocení (Slovíčka) nebo výběr možnosti (MCQ)</p>
+          <p><kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">Enter</kbd> — zkontrolovat / další otázka</p>
+        </div>
+      </div>
+
       {/* About */}
       <div className="card mb-4">
         <h3 className="section-title">O aplikaci</h3>

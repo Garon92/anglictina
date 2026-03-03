@@ -94,7 +94,7 @@ export default function ReadingPractice() {
             <button
               key={lvl}
               className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
-                filterLevel === lvl ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-600'
+                filterLevel === lvl ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
               }`}
               onClick={() => setFilterLevel(lvl)}
             >
@@ -106,7 +106,7 @@ export default function ReadingPractice() {
         <div className="mb-4 flex gap-2 flex-wrap">
           <button
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              filterTopic === 'all' ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-600'
+              filterTopic === 'all' ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
             }`}
             onClick={() => setFilterTopic('all')}
           >
@@ -116,7 +116,7 @@ export default function ReadingPractice() {
             <button
               key={topic}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                filterTopic === topic ? 'bg-primary-500 text-white' : 'bg-slate-100 text-slate-600'
+                filterTopic === topic ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
               }`}
               onClick={() => setFilterTopic(topic)}
             >
@@ -135,17 +135,17 @@ export default function ReadingPractice() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-800">{text.title}</h3>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{text.title}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`badge ${
-                      text.level === 'A1' ? 'bg-green-100 text-green-700' :
-                      text.level === 'A2' ? 'bg-blue-100 text-blue-700' :
-                      'bg-purple-100 text-purple-700'
+                      text.level === 'A1' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' :
+                      text.level === 'A2' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' :
+                      'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
                     }`}>{text.level}</span>
-                    <span className="text-xs text-slate-400">{text.questions.length} otázek</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">{text.questions.length} otázek</span>
                   </div>
                 </div>
-                <span className="text-slate-300 text-xl">→</span>
+                <span className="text-slate-300 dark:text-slate-500 text-xl">→</span>
               </div>
             </button>
           ))}
@@ -161,15 +161,15 @@ export default function ReadingPractice() {
 
         <div className="flex items-center gap-2 mb-4">
           <span className={`badge ${
-            selectedText.level === 'A1' ? 'bg-green-100 text-green-700' :
-            selectedText.level === 'A2' ? 'bg-blue-100 text-blue-700' :
-            'bg-purple-100 text-purple-700'
+            selectedText.level === 'A1' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' :
+            selectedText.level === 'A2' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' :
+            'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
           }`}>{selectedText.level}</span>
-          <h2 className="text-xl font-bold text-slate-900">{selectedText.title}</h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedText.title}</h2>
         </div>
 
         <div className="card !p-5 mb-6">
-          <p className="text-slate-700 leading-relaxed whitespace-pre-line">{selectedText.text}</p>
+          <p className="text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">{selectedText.text}</p>
         </div>
 
         <button className="btn-primary btn-lg w-full" onClick={startQuestions}>
@@ -192,7 +192,7 @@ export default function ReadingPractice() {
           </span>
         </div>
 
-        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-6">
+        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
           <div
             className="bg-primary-500 h-full rounded-full transition-all duration-300"
             style={{ width: `${(currentQ / selectedText.questions.length) * 100}%` }}
@@ -201,11 +201,11 @@ export default function ReadingPractice() {
 
         <div className="card !p-6 mb-4">
           {q.type === 'tfns' && (
-            <span className="inline-block mb-2 text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+            <span className="inline-block mb-2 text-xs font-medium px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
               True / False / Not stated
             </span>
           )}
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">{q.question}</h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">{q.question}</h3>
 
           {!showAnswer ? (
             <div className="space-y-2">
@@ -214,8 +214,8 @@ export default function ReadingPractice() {
                   key={i}
                   className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
                     answers[currentQ] === i
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-slate-100 hover:border-slate-200'
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
+                      : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 text-slate-800 dark:text-slate-200'
                   }`}
                   onClick={() => selectAnswer(currentQ, i)}
                 >
@@ -226,21 +226,21 @@ export default function ReadingPractice() {
           ) : (
             <div className="space-y-2">
               {q.options.map((opt, i) => (
-                <div
-                  key={i}
-                  className={`px-4 py-3 rounded-xl border-2 ${
-                    i === q.answerIndex
-                      ? 'border-green-500 bg-green-50'
-                      : answers[currentQ] === i
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-slate-100'
-                  }`}
-                >
-                  {opt} {i === q.answerIndex && ' ✓'}
-                </div>
-              ))}
-              <div className={`mt-3 p-3 rounded-xl ${isCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
-                <p className={`text-sm font-medium ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+              <div
+                key={i}
+                className={`px-4 py-3 rounded-xl border-2 ${
+                  i === q.answerIndex
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                    : answers[currentQ] === i
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+                    : 'border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {opt} {i === q.answerIndex && ' ✓'}
+              </div>
+            ))}
+              <div className={`mt-3 p-3 rounded-xl ${isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
+                <p className={`text-sm font-medium ${isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
                   {isCorrect ? '✅ Správně!' : '❌ Špatně.'}
                 </p>
               </div>
@@ -274,11 +274,11 @@ export default function ReadingPractice() {
     return (
       <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">{selectedText.title}</h2>
-        <p className="text-slate-600 mb-1">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{selectedText.title}</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-1">
           {correct} / {selectedText.questions.length} správně ({pct}%)
         </p>
-        <p className="text-sm text-slate-400 mb-6">
+        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
           {pct >= 80 ? 'Výborné porozumění!' : pct >= 50 ? 'Dobrý výsledek.' : 'Zkus text přečíst znovu.'}
         </p>
         <div className="flex gap-3">

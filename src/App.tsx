@@ -1,12 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
 import { getSettings } from './db';
 import { initTTS } from './tts';
 import type { UserSettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 const VocabDrill = lazy(() => import('./pages/VocabDrill'));
 const GrammarDrill = lazy(() => import('./pages/GrammarDrill'));
 const ReadingPractice = lazy(() => import('./pages/ReadingPractice'));

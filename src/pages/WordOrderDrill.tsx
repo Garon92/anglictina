@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { WORD_ORDER_EXERCISES, WORD_ORDER_CATEGORIES } from '../data/wordOrder';
@@ -17,6 +17,7 @@ function normalize(s: string): string {
 
 export default function WordOrderDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -46,12 +47,14 @@ export default function WordOrderDrill() {
       pool = pool.filter((e) => e.level === selectedLevel);
     }
     const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setScore({ correct: 0, total: 0 });
-    setStartTime(Date.now());
     setupWords(selected[0]);
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setScore({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function setupWords(ex: WordOrderExercise) {

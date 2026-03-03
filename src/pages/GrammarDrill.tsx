@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { GRAMMAR_EXERCISES, GRAMMAR_CATEGORIES, CATEGORY_NAMES } from '../data/grammar';
@@ -12,6 +12,7 @@ type Phase = 'select' | 'drill' | 'result';
 
 export default function GrammarDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -38,11 +39,13 @@ export default function GrammarDrill() {
       pool = pool.filter((e) => e.level === selectedLevel);
     }
     const selected = shuffleArray(pool).slice(0, 15);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setStats({ correct: 0, total: 0 });
-    setStartTime(Date.now());
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setStats({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function checkAnswer() {
@@ -224,20 +227,12 @@ export default function GrammarDrill() {
         </div>
 
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 leading-relaxed">
-          {ex.type === 'cloze' && ex.prompt}
-          {ex.type === 'open_cloze' && (
-            <>
-              <span className="text-sm text-slate-500 dark:text-slate-400 block mb-1">Doplň chybějící slovo:</span>
-              {ex.prompt}
-            </>
+          {(ex.type === 'open_cloze' || ex.type === 'translate') && (
+            <span className="text-sm text-slate-500 dark:text-slate-400 block mb-1">
+              {ex.type === 'open_cloze' ? 'Doplň chybějící slovo:' : 'Přelož do angličtiny:'}
+            </span>
           )}
-          {ex.type === 'mcq' && ex.prompt}
-          {ex.type === 'translate' && (
-            <>
-              <span className="text-sm text-slate-500 dark:text-slate-400 block mb-1">Přelož do angličtiny:</span>
-              {ex.prompt}
-            </>
-          )}
+          {String(ex.prompt ?? '')}
         </h3>
 
         {ex.type === 'mcq' && ex.options && !showResult && (
@@ -303,7 +298,7 @@ export default function GrammarDrill() {
 
         {showResult && (
           <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-            <p className="text-sm text-blue-800 dark:text-blue-300">💡 {ex.explanationCs}</p>
+            <p className="text-sm text-blue-800 dark:text-blue-300">💡 {String(ex.explanationCs ?? '')}</p>
           </div>
         )}
       </div>

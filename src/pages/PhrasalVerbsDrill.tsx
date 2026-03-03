@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { PHRASAL_VERBS, PHRASE_CATEGORIES } from '../data/phrases';
@@ -49,6 +49,7 @@ function buildQuizQuestions(
 
 export default function PhrasalVerbsDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [drillMode, setDrillMode] = useState<DrillMode>('flashcard');
@@ -92,21 +93,20 @@ export default function PhrasalVerbsDrill() {
     if (pool.length === 0) return;
 
     const selected = pickRandom(pool, 15);
-    setItems(selected);
-    setCurrentIndex(0);
-    setStartTime(Date.now());
-    setRevealed(false);
-    setKnownCount(0);
-    setUnknownCount(0);
-    setCorrectCount(0);
-    setSelectedOption(null);
-    setShowResult(false);
-
-    if (drillMode === 'quiz') {
-      setQuestions(buildQuizQuestions(selected, pool));
-    }
-
-    setPhase('drill');
+    const quizQ = drillMode === 'quiz' ? buildQuizQuestions(selected, pool) : [];
+    startTransition(() => {
+      setItems(selected);
+      setCurrentIndex(0);
+      setStartTime(Date.now());
+      setRevealed(false);
+      setKnownCount(0);
+      setUnknownCount(0);
+      setCorrectCount(0);
+      setSelectedOption(null);
+      setShowResult(false);
+      if (drillMode === 'quiz') setQuestions(quizQ);
+      setPhase('drill');
+    });
   }
 
   function handleFlashcardRate(known: boolean) {

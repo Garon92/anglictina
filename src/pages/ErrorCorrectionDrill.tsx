@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import {
@@ -32,6 +32,7 @@ function splitSentenceIntoWords(sentence: string): string[] {
 
 export default function ErrorCorrectionDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [phase, setPhase] = useState<Phase>('select');
@@ -70,12 +71,14 @@ export default function ErrorCorrectionDrill() {
   function startDrill() {
     const pool = filteredPool();
     const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setScore({ correct: 0, total: 0 });
-    setStartTime(Date.now());
     resetStep();
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setScore({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function resetStep() {

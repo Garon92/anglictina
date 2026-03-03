@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import {
@@ -39,6 +39,7 @@ function isAnswerCorrect(
 
 export default function SentenceTransformDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -80,14 +81,16 @@ export default function SentenceTransformDrill() {
   function startDrill() {
     const pool = filteredPool();
     const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setUserInput('');
-    setChecked(false);
-    setIsCorrect(false);
-    setScore({ correct: 0, total: 0 });
-    setStartTime(Date.now());
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setUserInput('');
+      setChecked(false);
+      setIsCorrect(false);
+      setScore({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function checkAnswer() {

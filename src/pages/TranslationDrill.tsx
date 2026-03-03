@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { TRANSLATION_EXERCISES, GRAMMAR_FOCUS_LABELS } from '../data/translations';
@@ -34,6 +34,7 @@ const GRAMMAR_KEYS = Object.keys(GRAMMAR_FOCUS_LABELS);
 
 export default function TranslationDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedFoci, setSelectedFoci] = useState<string[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -61,15 +62,17 @@ export default function TranslationDrill() {
       pool = pool.filter((e) => e.level === selectedLevel);
     }
     const selected = shuffleArray(pool).slice(0, 15);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setUserAnswer('');
-    setShowResult(false);
-    setLastMatch(null);
-    setHintVisible(false);
-    setStats({ correct: 0, total: 0 });
-    setStartTime(Date.now());
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setUserAnswer('');
+      setShowResult(false);
+      setLastMatch(null);
+      setHintVisible(false);
+      setStats({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function doCheck() {

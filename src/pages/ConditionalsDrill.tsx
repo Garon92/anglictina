@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import {
@@ -42,6 +42,7 @@ function normalize(s: string): string {
 
 export default function ConditionalsDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [tab, setTab] = useState<Tab>('drill');
@@ -72,15 +73,17 @@ export default function ConditionalsDrill() {
   function startDrill() {
     const pool = filteredPool();
     const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setChecked(false);
-    setUserAnswer('');
-    setSelectedOption(null);
-    setIsCorrect(false);
-    setScore({ correct: 0, total: 0 });
-    setStartTime(Date.now());
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setChecked(false);
+      setUserAnswer('');
+      setSelectedOption(null);
+      setIsCorrect(false);
+      setScore({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function checkAnswer() {

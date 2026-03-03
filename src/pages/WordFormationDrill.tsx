@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   WORD_FORMATION_EXERCISES,
@@ -37,6 +37,7 @@ function renderSentenceWithBaseWord(sentence: string, baseWord: string) {
 
 export default function WordFormationDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
   const [tabMode, setTabMode] = useState<TabMode>('drill');
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
@@ -66,13 +67,15 @@ export default function WordFormationDrill() {
       pool = pool.filter((e) => e.level === 'B1');
     }
     const selected = shuffleArray(pool).slice(0, 15);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setUserAnswer('');
-    setShowResult(false);
-    setStats({ correct: 0, total: 0 });
-    setStartTime(Date.now());
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setUserAnswer('');
+      setShowResult(false);
+      setStats({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function checkAnswer() {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { PREPOSITION_EXERCISES, PREPOSITION_CATEGORIES } from '../data/prepositions';
@@ -17,6 +17,7 @@ interface AnswerRecord {
 
 export default function PrepositionsDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
@@ -50,13 +51,15 @@ export default function PrepositionsDrill() {
     const pool = getFilteredPool();
     if (pool.length === 0) return;
     const selected = shuffleArray(pool).slice(0, 20);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setAnswered(false);
-    setAnswers([]);
-    setStartTime(Date.now());
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setSelectedOption(null);
+      setAnswered(false);
+      setAnswers([]);
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function handleOptionClick(option: string) {

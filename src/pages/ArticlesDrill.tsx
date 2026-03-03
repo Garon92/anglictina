@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, Fragment, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { ARTICLE_EXERCISES, ARTICLE_RULES } from '../data/articles';
@@ -25,6 +25,7 @@ const DRILL_COUNT = 20;
 
 export default function ArticlesDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [tab, setTab] = useState<Tab>('drill');
@@ -58,13 +59,15 @@ export default function ArticlesDrill() {
   function startDrill() {
     const pool = filteredPool();
     const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    setExercises(selected);
-    setCurrentIndex(0);
-    setGapAnswers(new Array(selected[0]?.gaps.length ?? 0).fill(null));
-    setChecked(false);
-    setStats({ correct: 0, total: 0 });
-    setStartTime(Date.now());
-    setPhase('drill');
+    startTransition(() => {
+      setExercises(selected);
+      setCurrentIndex(0);
+      setGapAnswers(new Array(selected[0]?.gaps.length ?? 0).fill(null));
+      setChecked(false);
+      setStats({ correct: 0, total: 0 });
+      setStartTime(Date.now());
+      setPhase('drill');
+    });
   }
 
   function setGapAnswer(gapIndex: number, value: ArticleOption) {

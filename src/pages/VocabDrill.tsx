@@ -11,6 +11,7 @@ import { playCorrect, playIncorrect, playComplete } from '../sounds';
 import { toggleFavorite, isFavorite } from '../favorites';
 import SoundToggle from '../components/SoundToggle';
 import { setSoundEnabled, isSoundEnabled } from '../sounds';
+import { useSettings } from '../App';
 import type { UserSettings, SRSState, VocabWord } from '../types';
 
 interface CardItem {
@@ -19,7 +20,8 @@ interface CardItem {
   isNew: boolean;
 }
 
-export default function VocabDrill({ settings }: { settings: UserSettings }) {
+export default function VocabDrill() {
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [cards, setCards] = useState<CardItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);

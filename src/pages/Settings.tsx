@@ -5,14 +5,11 @@ import { downloadFile } from '../utils';
 import { getAvailableVoices, setVoiceByName, speak, getCurrentVoiceName } from '../tts';
 import { VOCABULARY } from '../data/vocabulary';
 import { usePwaInstall } from '../hooks/usePwaInstall';
+import { useSettings } from '../App';
 import type { UserSettings } from '../types';
 
-interface Props {
-  settings: UserSettings;
-  onUpdate: (s: UserSettings) => void;
-}
-
-export default function Settings({ settings, onUpdate }: Props) {
+export default function Settings() {
+  const { settings, updateSettings: onUpdate } = useSettings();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [showConfirmReset, setShowConfirmReset] = useState(false);

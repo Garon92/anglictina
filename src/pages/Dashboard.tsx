@@ -10,6 +10,7 @@ import { DEFAULT_STATS } from '../types';
 import DailyChallenge from '../components/DailyChallenge';
 import WeeklyMiniGraph from '../components/WeeklyMiniGraph';
 import { computeLevel } from './Review';
+import { useSettings } from '../App';
 
 interface ActionItem {
   to: string; icon: string; title: string; desc: string; color: string;
@@ -124,7 +125,8 @@ function getSmartSuggestions(stats: UserStats, dueCount: number): ActionItem[] {
   return suggestions.slice(0, 3);
 }
 
-export default function Dashboard({ settings }: { settings: UserSettings }) {
+export default function Dashboard() {
+  const { settings } = useSettings();
   const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
   const [dueCount, setDueCount] = useState(0);
   const [todayMinutes, setTodayMinutes] = useState(0);

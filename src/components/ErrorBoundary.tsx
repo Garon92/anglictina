@@ -40,7 +40,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 className="btn-secondary"
                 onClick={() => {
                   this.setState({ hasError: false, error: null });
-                  window.location.hash = '#/';
+                  window.location.href = import.meta.env.BASE_URL;
                 }}
               >
                 Zpět na hlavní

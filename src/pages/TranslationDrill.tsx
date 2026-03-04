@@ -47,6 +47,15 @@ export default function TranslationDrill() {
   const [stats, setStats] = useState({ correct: 0, total: 0 });
   const [startTime, setStartTime] = useState(0);
 
+  const ex = phase === 'drill' ? exercises[currentIndex] : undefined;
+
+  const keyMap = useMemo((): Record<string, () => void> => {
+    if (!ex || phase !== 'drill') return {};
+    if (showResult) return { Enter: nextExercise, ' ': nextExercise };
+    return {};
+  }, [ex, phase, showResult, currentIndex]);
+  useKeyboard(keyMap, phase === 'drill');
+
   function toggleFocus(focus: string) {
     setSelectedFoci((prev) =>
       prev.includes(focus) ? prev.filter((f) => f !== focus) : [...prev, focus],
@@ -226,15 +235,6 @@ export default function TranslationDrill() {
   }
 
   /* ── Drill phase ───────────────────────────────────────────────── */
-
-  const ex = exercises[currentIndex];
-
-  const keyMap = useMemo((): Record<string, () => void> => {
-    if (!ex || phase !== 'drill') return {};
-    if (showResult) return { Enter: nextExercise, ' ': nextExercise };
-    return {};
-  }, [ex, phase, showResult, currentIndex]);
-  useKeyboard(keyMap, phase === 'drill');
 
   if (!ex) return null;
 

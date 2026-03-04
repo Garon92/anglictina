@@ -24,6 +24,21 @@ export default function GrammarDrill() {
   const [stats, setStats] = useState({ correct: 0, total: 0 });
   const [startTime, setStartTime] = useState(0);
 
+  const ex = phase === 'drill' ? exercises[currentIndex] : undefined;
+
+  const keyMap = useMemo(() => {
+    if (!ex || phase !== 'drill') return {};
+    if (showResult) return { Enter: nextExercise, ' ': nextExercise };
+    if (ex.type === 'mcq' && ex.options) {
+      const map: Record<string, () => void> = {};
+      ex.options.forEach((_, i) => { map[String(i + 1)] = () => setSelectedOption(i); });
+      map['Enter'] = () => { if (selectedOption !== null) checkAnswer(); };
+      return map;
+    }
+    return {};
+  }, [ex, phase, showResult, selectedOption]);
+  useKeyboard(keyMap, phase === 'drill');
+
   function toggleCat(cat: string) {
     setSelectedCats((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
@@ -180,21 +195,6 @@ export default function GrammarDrill() {
       </div>
     );
   }
-
-  const ex = exercises[currentIndex];
-
-  const keyMap = useMemo(() => {
-    if (!ex || phase !== 'drill') return {};
-    if (showResult) return { Enter: nextExercise, ' ': nextExercise };
-    if (ex.type === 'mcq' && ex.options) {
-      const map: Record<string, () => void> = {};
-      ex.options.forEach((_, i) => { map[String(i + 1)] = () => setSelectedOption(i); });
-      map['Enter'] = () => { if (selectedOption !== null) checkAnswer(); };
-      return map;
-    }
-    return {};
-  }, [ex, phase, showResult, selectedOption]);
-  useKeyboard(keyMap, phase === 'drill');
 
   if (!ex) return null;
 

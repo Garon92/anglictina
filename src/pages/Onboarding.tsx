@@ -143,7 +143,7 @@ export default function Onboarding({ onComplete }: Props) {
             </p>
             <button className="btn-primary btn-lg w-full mb-3" onClick={() => {
               finish().then(() => {
-                window.location.href = import.meta.env.BASE_URL + 'diagnostic';
+                window.location.hash = '#/diagnostic';
               });
             }}>
               Chci udělat test

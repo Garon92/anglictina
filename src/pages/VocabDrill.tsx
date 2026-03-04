@@ -6,8 +6,11 @@ import { speak, stopSpeaking } from '../tts';
 import { VOCABULARY } from '../data/vocabulary';
 import { shuffleArray } from '../utils';
 import { useKeyboard } from '../hooks/useKeyboard';
+import { useSwipe } from '../hooks/useSwipe';
 import { playCorrect, playIncorrect, playComplete } from '../sounds';
 import { toggleFavorite, isFavorite } from '../favorites';
+import SoundToggle from '../components/SoundToggle';
+import { setSoundEnabled, isSoundEnabled } from '../sounds';
 import type { UserSettings, SRSState, VocabWord } from '../types';
 
 interface CardItem {
@@ -25,6 +28,8 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
   const [loading, setLoading] = useState(true);
   const [finished, setFinished] = useState(false);
   const [startTime] = useState(Date.now());
+  const [lastGrade, setLastGrade] = useState<{ index: number; grade: number } | null>(null);
+  const [localSoundEnabled, setLocalSoundEnabled] = useState(isSoundEnabled());
 
   useEffect(() => {
     loadCards();
@@ -90,6 +95,7 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
       responseMs: 0,
     });
 
+    setLastGrade({ index: currentIndex, grade });
     setSessionStats((prev) => ({
       correct: prev.correct + (grade >= 2 ? 1 : 0),
       total: prev.total + 1,
@@ -102,6 +108,23 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
       setRevealed(false);
     }
   }, [current, currentIndex, cards.length]);
+
+  const handleUndo = useCallback(() => {
+    if (!lastGrade || lastGrade.index >= currentIndex) return;
+    setCurrentIndex(lastGrade.index);
+    setRevealed(true);
+    setSessionStats((prev) => ({
+      correct: prev.correct - (lastGrade.grade >= 2 ? 1 : 0),
+      total: prev.total - 1,
+    }));
+    setLastGrade(null);
+  }, [lastGrade, currentIndex]);
+
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: revealed ? () => handleGrade(0) : undefined,
+    onSwipeRight: revealed ? () => handleGrade(3) : undefined,
+    onSwipeUp: !revealed ? handleReveal : undefined,
+  });
 
   const keyMap = useMemo((): Record<string, () => void> => {
     if (!current) return {};
@@ -187,9 +210,17 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
     <div className="page-container">
       <div className="flex items-center justify-between mb-4">
         <button className="btn-ghost text-sm" onClick={() => navigate('/')}>← Zpět</button>
-        <span className="text-sm text-slate-500 font-medium">
-          {currentIndex + 1} / {cards.length}
-        </span>
+        <div className="flex items-center gap-2">
+          {lastGrade && (
+            <button className="text-xs text-slate-400 hover:text-primary-500 transition-colors" onClick={handleUndo} title="Vrátit poslední hodnocení">
+              ↩ Zpět
+            </button>
+          )}
+          <SoundToggle enabled={localSoundEnabled} onToggle={() => { const next = !localSoundEnabled; setLocalSoundEnabled(next); setSoundEnabled(next); }} />
+          <span className="text-sm text-slate-500 font-medium">
+            {currentIndex + 1} / {cards.length}
+          </span>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -201,7 +232,7 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
       </div>
 
       {/* Card */}
-      <div className="card !p-6 sm:!p-8 text-center mb-6 min-h-[280px] flex flex-col justify-center">
+      <div className="card !p-6 sm:!p-8 text-center mb-6 min-h-[280px] flex flex-col justify-center" {...swipeHandlers}>
         {current.isNew && (
           <div className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 mx-auto mb-3">Nové slovo</div>
         )}

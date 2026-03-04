@@ -4,6 +4,7 @@ import { saveSettings, exportAllData, importData, clearAllData } from '../db';
 import { downloadFile } from '../utils';
 import { getAvailableVoices, setVoiceByName, speak, getCurrentVoiceName } from '../tts';
 import { VOCABULARY } from '../data/vocabulary';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 import type { UserSettings } from '../types';
 
 interface Props {
@@ -17,6 +18,7 @@ export default function Settings({ settings, onUpdate }: Props) {
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const { canInstall, install } = usePwaInstall();
 
   useEffect(() => {
     const v = getAvailableVoices();
@@ -156,6 +158,47 @@ export default function Settings({ settings, onUpdate }: Props) {
               {val === 'light' ? '☀️' : val === 'dark' ? '🌙' : '🔄'} {label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Font size */}
+      <div className="card mb-4">
+        <h3 className="section-title">Velikost písma</h3>
+        <div className="flex gap-2">
+          {([['small', 'Malé', 'A'], ['medium', 'Střední', 'A'], ['large', 'Velké', 'A']] as const).map(([val, label, letter]) => (
+            <button
+              key={val}
+              className={`flex-1 px-3 py-2 rounded-xl font-medium transition-all flex flex-col items-center gap-0.5 ${
+                settings.fontSize === val
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+              }`}
+              onClick={() => update({ fontSize: val })}
+            >
+              <span className={val === 'small' ? 'text-xs' : val === 'large' ? 'text-xl' : 'text-base'}>{letter}</span>
+              <span className="text-[10px]">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sound toggle */}
+      <div className="card mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="section-title !mb-0">Zvuky</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Zvuky správných/špatných odpovědí</p>
+          </div>
+          <button
+            className={`w-12 h-7 rounded-full transition-colors ${
+              settings.soundEnabled ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'
+            }`}
+            onClick={() => update({ soundEnabled: !settings.soundEnabled })}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-1 ${
+              settings.soundEnabled ? 'translate-x-5' : ''
+            }`} />
+          </button>
         </div>
       </div>
 
@@ -311,6 +354,21 @@ export default function Settings({ settings, onUpdate }: Props) {
           <p><kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">Enter</kbd> — zkontrolovat / další otázka</p>
         </div>
       </div>
+
+      {/* PWA install */}
+      {canInstall && (
+        <div className="card mb-4 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border-primary-200 dark:border-primary-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-sm text-primary-800 dark:text-primary-300">Nainstaluj si appku</h3>
+              <p className="text-xs text-primary-600 dark:text-primary-400">Funguje i offline, jako nativní apka</p>
+            </div>
+            <button className="btn-primary text-sm !py-2 !px-4" onClick={install}>
+              Instalovat
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* About */}
       <div className="card mb-4">

@@ -130,7 +130,7 @@ export interface ReviewLog {
 export interface DrillSession {
   id?: number;
   date: string;
-  type: 'vocab' | 'grammar' | 'reading' | 'listening' | 'mixed' | 'diagnostic' | 'exam' | 'phrasal_verbs' | 'word_order' | 'prepositions' | 'confusables' | 'articles' | 'translation' | 'idioms' | 'word_formation';
+  type: 'vocab' | 'grammar' | 'reading' | 'listening' | 'mixed' | 'diagnostic' | 'exam' | 'phrasal_verbs' | 'word_order' | 'prepositions' | 'confusables' | 'articles' | 'translation' | 'idioms' | 'word_formation' | 'czech_errors' | 'conditionals' | 'reported_speech' | 'passive_voice' | 'error_correction' | 'sentence_transform' | 'favorites_quiz' | 'custom_words';
   startedAt: number;
   endedAt?: number;
   totalItems: number;
@@ -166,6 +166,8 @@ export interface UserSettings {
   ttsVoice: string;
   onboardingDone: boolean;
   theme: 'light' | 'dark' | 'auto';
+  fontSize: 'small' | 'medium' | 'large';
+  soundEnabled: boolean;
 }
 
 export interface UserStats {
@@ -191,6 +193,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   ttsVoice: '',
   onboardingDone: false,
   theme: 'auto',
+  fontSize: 'medium',
+  soundEnabled: true,
 };
 
 export const DEFAULT_STATS: UserStats = {

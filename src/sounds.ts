@@ -2,6 +2,15 @@ const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
 
 let ctx: AudioContext | null = null;
 let pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+let _soundEnabled = true;
+
+export function setSoundEnabled(enabled: boolean) {
+  _soundEnabled = enabled;
+}
+
+export function isSoundEnabled(): boolean {
+  return _soundEnabled;
+}
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new AudioCtx();
@@ -14,6 +23,7 @@ function clearPendingSounds() {
 }
 
 function playTone(freq: number, duration: number, type: OscillatorType = 'sine', gain = 0.15) {
+  if (!_soundEnabled) return;
   try {
     const c = getCtx();
     const osc = c.createOscillator();
@@ -32,6 +42,7 @@ function playTone(freq: number, duration: number, type: OscillatorType = 'sine',
 }
 
 function vibrate(pattern: number | number[]) {
+  if (!_soundEnabled) return;
   try { navigator?.vibrate?.(pattern); } catch { /* unsupported */ }
 }
 

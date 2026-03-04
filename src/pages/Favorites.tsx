@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { getFavorites, removeFavorite, type FavoriteItem } from '../favorites';
 import { speak } from '../tts';
 
+function copyToClipboard(text: string): Promise<void> {
+  return navigator.clipboard.writeText(text);
+}
+
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   vocab: { label: 'Slovíčko', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
   idiom: { label: 'Idiom', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
@@ -15,6 +19,7 @@ export default function Favorites() {
   const navigate = useNavigate();
   const [items, setItems] = useState<FavoriteItem[]>([]);
   const [filter, setFilter] = useState<string>('all');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setItems(getFavorites().sort((a, b) => b.addedAt - a.addedAt));
@@ -31,7 +36,22 @@ export default function Favorites() {
   return (
     <div className="page-container">
       <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
-      <h1 className="page-title">Oblíbené</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="page-title !mb-0">Oblíbené</h1>
+        {items.length > 0 && (
+          <button
+            className="btn-ghost text-xs flex items-center gap-1"
+            onClick={async () => {
+              const text = filtered.map((i) => `${i.text} — ${i.translation}`).join('\n');
+              await copyToClipboard(text);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            {copied ? '✓ Zkopírováno' : '📋 Kopírovat'}
+          </button>
+        )}
+      </div>
       <p className="page-subtitle">Tvoje uložené slova a fráze ({items.length})</p>
 
       {types.length > 1 && (

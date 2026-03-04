@@ -2,8 +2,10 @@ import { Routes, Route } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import LoadingSkeleton from './components/LoadingSkeleton';
+import OfflineBanner from './components/OfflineBanner';
 import { getSettings } from './db';
 import { initTTS } from './tts';
+import { setSoundEnabled } from './sounds';
 import type { UserSettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
@@ -45,6 +47,7 @@ const FavoritesQuiz = lazy(() => import('./pages/FavoritesQuiz'));
 const ErrorCorrectionDrill = lazy(() => import('./pages/ErrorCorrectionDrill'));
 const PassiveVoiceDrill = lazy(() => import('./pages/PassiveVoiceDrill'));
 const CustomWords = lazy(() => import('./pages/CustomWords'));
+const CzechErrorsDrill = lazy(() => import('./pages/CzechErrorsDrill'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function applyTheme(theme: 'light' | 'dark' | 'auto') {
@@ -52,6 +55,14 @@ function applyTheme(theme: 'light' | 'dark' | 'auto') {
     theme === 'dark' ||
     (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.classList.toggle('dark', isDark);
+}
+
+function applyFontSize(size: 'small' | 'medium' | 'large') {
+  const root = document.documentElement;
+  root.classList.remove('text-sm', 'text-base', 'text-lg');
+  if (size === 'small') root.style.fontSize = '14px';
+  else if (size === 'large') root.style.fontSize = '18px';
+  else root.style.fontSize = '16px';
 }
 
 export default function App() {
@@ -62,6 +73,8 @@ export default function App() {
     getSettings().then((s) => {
       setSettings(s);
       applyTheme(s.theme);
+      applyFontSize(s.fontSize);
+      setSoundEnabled(s.soundEnabled);
       initTTS(s.ttsVoice).then(() => setLoading(false));
     });
   }, []);
@@ -75,6 +88,14 @@ export default function App() {
       return () => mq.removeEventListener('change', handler);
     }
   }, [settings.theme]);
+
+  useEffect(() => {
+    applyFontSize(settings.fontSize);
+  }, [settings.fontSize]);
+
+  useEffect(() => {
+    setSoundEnabled(settings.soundEnabled);
+  }, [settings.soundEnabled]);
 
   if (loading) {
     return (
@@ -101,6 +122,7 @@ export default function App() {
 
   return (
     <Layout>
+      <OfflineBanner />
       <Suspense fallback={fallback}>
         <Routes>
           <Route path="/" element={<Dashboard settings={settings} />} />
@@ -136,6 +158,7 @@ export default function App() {
           <Route path="/error-correction" element={<ErrorCorrectionDrill />} />
           <Route path="/passive" element={<PassiveVoiceDrill />} />
           <Route path="/custom-words" element={<CustomWords />} />
+          <Route path="/czech-errors" element={<CzechErrorsDrill />} />
           <Route path="/review" element={<Review />} />
           <Route path="/settings" element={<Settings settings={settings} onUpdate={setSettings} />} />
           <Route path="/grammar-ref" element={<GrammarRef />} />

@@ -8,6 +8,7 @@ import { getErrorAnalysis } from '../errorTracker';
 import type { UserSettings, UserStats } from '../types';
 import { DEFAULT_STATS } from '../types';
 import DailyChallenge from '../components/DailyChallenge';
+import WeeklyMiniGraph from '../components/WeeklyMiniGraph';
 import { computeLevel } from './Review';
 
 interface ActionItem {
@@ -48,6 +49,7 @@ const CATEGORIES: { id: string; label: string; icon: string; items: ActionItem[]
       { to: '/translation', icon: '🔤', title: 'Překlad', desc: 'CZ → EN věty', color: 'bg-stone-50 text-stone-700 dark:bg-stone-900/30 dark:text-stone-300' },
       { to: '/vocab-topics', icon: '📂', title: 'Témata', desc: '20 maturitních témat', color: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
       { to: '/custom-words', icon: '📝', title: 'Vlastní slova', desc: 'Tvůj slovníček', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+      { to: '/czech-errors', icon: '🇨🇿', title: 'Chyby Čechů', desc: 'Typické české chyby', color: 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
     ],
   },
   {
@@ -93,6 +95,7 @@ const ROUTE_TO_DRILL: Record<string, string> = {
   '/phrasal-verbs': 'phrasal_verbs', '/idioms': 'idioms', '/translation': 'translation',
   '/mixed-quiz': 'mixed', '/speed': 'vocab', '/matching': 'vocab',
   '/favorites-quiz': 'favorites_quiz', '/custom-words': 'custom_words',
+  '/czech-errors': 'czech_errors',
   '/exam': 'exam', '/diagnostic': 'diagnostic',
 };
 
@@ -267,6 +270,9 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
           </button>
         </div>
       </div>
+
+      {/* Weekly activity graph */}
+      <WeeklyMiniGraph />
 
       {/* Daily challenge */}
       <DailyChallenge />

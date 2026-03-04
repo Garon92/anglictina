@@ -49,6 +49,7 @@ export default function DiagnosticTest() {
   const [fillInput, setFillInput] = useState('');
   const [feedback, setFeedback] = useState<{ correct: boolean; correctAnswer: string } | null>(null);
   const [lastDiagnostic, setLastDiagnostic] = useState<{ date: string; level: Level } | null>(null);
+  const [allScores, setAllScores] = useState<{ date: string; score: number; maxScore: number }[]>([]);
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,6 +65,7 @@ export default function DiagnosticTest() {
           date: last.date,
           level: DIAGNOSTIC_SCORING.getLevel(last.score),
         });
+        setAllScores(stats.diagnosticScores);
       }
     });
     return () => {
@@ -163,12 +165,29 @@ export default function DiagnosticTest() {
             Test má {totalQuestions} otázek se stoupající obtížností. Na konci se dozvíš svou úroveň (A1/A2/B1).
           </p>
 
-          {lastDiagnostic && (
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-3 text-sm text-gray-600 dark:text-gray-300">
-              Poslední test: {lastDiagnostic.date} —{' '}
-              <span className={`font-bold ${LEVEL_COLORS[lastDiagnostic.level].text}`}>
-                {lastDiagnostic.level}
-              </span>
+          {allScores.length > 0 && (
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-3 space-y-2">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Historie testů</p>
+              {allScores.slice(-5).map((s, i) => {
+                const lvl = DIAGNOSTIC_SCORING.getLevel(s.score);
+                const pct = Math.round((s.score / s.maxScore) * 100);
+                const prev = i > 0 ? allScores.slice(-5)[i - 1] : null;
+                const diff = prev ? s.score - prev.score : 0;
+                return (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-300">{s.date}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold ${LEVEL_COLORS[lvl].text}`}>{lvl}</span>
+                      <span className="text-gray-500">{pct}%</span>
+                      {diff !== 0 && (
+                        <span className={`text-xs font-medium ${diff > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {diff > 0 ? '+' : ''}{diff}b
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -332,6 +351,19 @@ export default function DiagnosticTest() {
             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">
               {totalScore}/{DIAGNOSTIC_SCORING.maxPoints} bodů
             </p>
+            {allScores.length > 1 && (() => {
+              const prevScore = allScores[allScores.length - 2];
+              const diff = totalScore - prevScore.score;
+              const prevLevel = DIAGNOSTIC_SCORING.getLevel(prevScore.score);
+              return (
+                <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  Oproti minule ({prevScore.date}, {prevLevel}):{' '}
+                  <span className={`font-bold ${diff > 0 ? 'text-green-500' : diff < 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                    {diff > 0 ? '+' : ''}{diff} bodů
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Breakdown by level */}

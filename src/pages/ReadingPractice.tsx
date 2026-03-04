@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { READING_TEXTS } from '../data/reading';
@@ -8,6 +8,7 @@ type Phase = 'select' | 'reading' | 'questions' | 'result';
 
 export default function ReadingPractice() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedText, setSelectedText] = useState<ReadingText | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
@@ -26,15 +27,17 @@ export default function ReadingPractice() {
   const topics = [...new Set(READING_TEXTS.map((t) => t.topic))];
 
   function selectText(text: ReadingText) {
-    setSelectedText(text);
-    setAnswers(new Array(text.questions.length).fill(null));
-    setCurrentQ(0);
-    setStartTime(Date.now());
-    setPhase('reading');
+    startTransition(() => {
+      setSelectedText(text);
+      setAnswers(new Array(text.questions.length).fill(null));
+      setCurrentQ(0);
+      setStartTime(Date.now());
+      setPhase('reading');
+    });
   }
 
   function startQuestions() {
-    setPhase('questions');
+    startTransition(() => setPhase('questions'));
   }
 
   function selectAnswer(qIndex: number, optIndex: number) {
@@ -79,7 +82,7 @@ export default function ReadingPractice() {
       tags: ['reading', selectedText.topic],
     });
 
-    setPhase('result');
+    startTransition(() => setPhase('result'));
   }
 
   if (phase === 'select') {
@@ -157,7 +160,7 @@ export default function ReadingPractice() {
   if (phase === 'reading' && selectedText) {
     return (
       <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => setPhase('select')}>← Zpět</button>
+        <button className="btn-ghost text-sm mb-4" onClick={() => startTransition(() => setPhase('select'))}>← Zpět</button>
 
         <div className="flex items-center gap-2 mb-4">
           <span className={`badge ${
@@ -186,7 +189,7 @@ export default function ReadingPractice() {
     return (
       <div className="page-container">
         <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => setPhase('reading')}>← Text</button>
+          <button className="btn-ghost text-sm" onClick={() => startTransition(() => setPhase('reading'))}>← Text</button>
           <span className="text-sm text-slate-500 font-medium">
             {currentQ + 1} / {selectedText.questions.length}
           </span>
@@ -283,7 +286,7 @@ export default function ReadingPractice() {
         </p>
         <div className="flex gap-3">
           <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
-          <button className="btn-primary" onClick={() => { setPhase('select'); setSelectedText(null); }}>
+          <button className="btn-primary" onClick={() => startTransition(() => { setPhase('select'); setSelectedText(null); })}>
             Další text
           </button>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { IRREGULAR_VERBS, type IrregularVerb } from '../data/irregularVerbs';
@@ -86,6 +86,7 @@ const DRILL_COUNT = 20;
 
 export default function IrregularVerbsDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedLevel, setSelectedLevel] = useState<Level>('all');
@@ -120,20 +121,22 @@ export default function IrregularVerbsDrill() {
     if (pool.length === 0) return;
 
     const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    setItems(selected);
-    setCurrentIndex(0);
-    setStartTime(Date.now());
-    setRevealed(false);
-    setKnownCount(0);
-    setCorrectCount(0);
-    setUserInput('');
-    setFeedback(null);
+    startTransition(() => {
+      setItems(selected);
+      setCurrentIndex(0);
+      setStartTime(Date.now());
+      setRevealed(false);
+      setKnownCount(0);
+      setCorrectCount(0);
+      setUserInput('');
+      setFeedback(null);
 
-    if (selectedMode === 'quiz') {
-      setQuestions(shuffleArray(buildQuizQuestions(selected)));
-    }
+      if (selectedMode === 'quiz') {
+        setQuestions(shuffleArray(buildQuizQuestions(selected)));
+      }
 
-    setPhase(selectedMode);
+      setPhase(selectedMode);
+    });
   }
 
   function handleFlashcardRate(known: boolean) {
@@ -252,7 +255,7 @@ export default function IrregularVerbsDrill() {
           <button
             className="btn-primary btn-lg w-full"
             disabled={pool.length === 0}
-            onClick={() => setPhase('table')}
+            onClick={() => startTransition(() => setPhase('table'))}
           >
             {pool.length === 0 ? 'Žádná slovesa pro tento filtr' : `Zobrazit tabulku (${pool.length} sloves)`}
           </button>

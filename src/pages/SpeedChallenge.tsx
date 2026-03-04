@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { VOCABULARY } from '../data/vocabulary';
@@ -45,6 +45,7 @@ function generateQuestions(): SpeedQuestion[] {
 
 export default function SpeedChallenge() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
   const [phase, setPhase] = useState<'intro' | 'game' | 'result'>('intro');
   const [questions] = useState(generateQuestions);
   const [current, setCurrent] = useState(0);
@@ -116,10 +117,12 @@ export default function SpeedChallenge() {
   }
 
   function startGame() {
-    setPhase('game');
-    setStartTime(Date.now());
-    questionStart.current = Date.now();
-    setTimeLeft(10);
+    startTransition(() => {
+      setPhase('game');
+      setStartTime(Date.now());
+      questionStart.current = Date.now();
+      setTimeLeft(10);
+    });
   }
 
   if (phase === 'intro') {

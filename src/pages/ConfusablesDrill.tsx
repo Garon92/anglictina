@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { CONFUSABLE_PAIRS, CONFUSABLE_CATEGORIES } from '../data/confusables';
@@ -17,6 +17,7 @@ interface QuizItem {
 
 export default function ConfusablesDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -57,9 +58,11 @@ export default function ConfusablesDrill() {
     if (pairs.length === 0) return;
 
     if (mode === 'reference') {
-      setExpandedId(null);
-      setSearch('');
-      setPhase('reference');
+      startTransition(() => {
+        setExpandedId(null);
+        setSearch('');
+        setPhase('reference');
+      });
       return;
     }
 
@@ -73,13 +76,15 @@ export default function ConfusablesDrill() {
     );
 
     const shuffled = shuffleArray(allExercises).slice(0, 20);
-    setQuizItems(shuffled);
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setAnswered(false);
-    setCorrectCount(0);
-    setStartTime(Date.now());
-    setPhase('quiz');
+    startTransition(() => {
+      setQuizItems(shuffled);
+      setCurrentIndex(0);
+      setSelectedOption(null);
+      setAnswered(false);
+      setCorrectCount(0);
+      setStartTime(Date.now());
+      setPhase('quiz');
+    });
   }
 
   function handleOptionClick(option: string) {

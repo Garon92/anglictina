@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStats, saveStats } from '../db';
 import { DIAGNOSTIC_QUESTIONS, DIAGNOSTIC_SCORING } from '../data/diagnostic';
@@ -43,6 +43,7 @@ function getCorrectAnswer(q: DiagnosticQuestion): string {
 
 export default function DiagnosticTest() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
   const [phase, setPhase] = useState<Phase>('intro');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -100,7 +101,7 @@ export default function DiagnosticTest() {
   }
 
   async function finishTest(finalAnswers: Answer[]) {
-    setPhase('results');
+    startTransition(() => setPhase('results'));
     if (saved) return;
     const totalScore = finalAnswers.reduce((sum, a) => sum + a.points, 0);
     const stats = await getStats();
@@ -192,7 +193,7 @@ export default function DiagnosticTest() {
           )}
 
           <button
-            onClick={() => setPhase('test')}
+            onClick={() => startTransition(() => setPhase('test'))}
             className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg transition-colors"
           >
             Začít test
@@ -422,7 +423,7 @@ export default function DiagnosticTest() {
           <div className="flex gap-3">
             {incorrectAnswers.length > 0 && (
               <button
-                onClick={() => setPhase('review')}
+                onClick={() => startTransition(() => setPhase('review'))}
                 className="flex-1 py-3 rounded-xl border-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
               >
                 Zobrazit chyby ({incorrectAnswers.length})
@@ -450,7 +451,7 @@ export default function DiagnosticTest() {
               Chyby ({incorrectAnswers.length})
             </h1>
             <button
-              onClick={() => setPhase('results')}
+              onClick={() => startTransition(() => setPhase('results'))}
               className="text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
             >
               ← Zpět na výsledky
@@ -489,7 +490,7 @@ export default function DiagnosticTest() {
           })}
 
           <button
-            onClick={() => setPhase('results')}
+            onClick={() => startTransition(() => setPhase('results'))}
             className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-colors"
           >
             Zpět na výsledky

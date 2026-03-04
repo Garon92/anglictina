@@ -195,8 +195,8 @@ export default function Dashboard({ settings }: { settings: UserSettings }) {
       </div>
 
       {/* Exam countdown */}
-      {examDays > 0 && (
-        <div className="card mb-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 !p-3">
+      {examDays > 0 && settings.showCountdown && (
+        <div className="card mb-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 !p-3 relative">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-primary-100 text-[10px] font-medium">Do maturity</div>

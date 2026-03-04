@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { IDIOMS, COLLOCATIONS, IDIOM_CATEGORIES } from '../data/idioms';
@@ -94,6 +94,7 @@ function buildQuizQuestions(): QuizQuestion[] {
 
 export default function IdiomsDrill() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [tab, setTab] = useState<Tab>('idioms');
@@ -138,13 +139,15 @@ export default function IdiomsDrill() {
 
   function startQuiz() {
     const qs = buildQuizQuestions();
-    setQuestions(qs);
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setAnswered(false);
-    setCorrectCount(0);
-    setStartTime(Date.now());
-    setPhase('quiz');
+    startTransition(() => {
+      setQuestions(qs);
+      setCurrentIndex(0);
+      setSelectedOption(null);
+      setAnswered(false);
+      setCorrectCount(0);
+      setStartTime(Date.now());
+      setPhase('quiz');
+    });
   }
 
   function handleAnswer() {

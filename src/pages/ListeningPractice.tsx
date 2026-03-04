@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { LISTENING_EXERCISES } from '../data/listening';
@@ -56,6 +56,7 @@ function SlowPlayButton({ onClick }: { onClick: () => void }) {
 
 export default function ListeningPractice() {
   const navigate = useNavigate();
+  const [, startTransition] = useTransition();
 
   const [phase, setPhase] = useState<Phase>('select');
   const [filterLevel, setFilterLevel] = useState<string>('all');
@@ -78,15 +79,17 @@ export default function ListeningPractice() {
 
   function startExercise(ex: ListeningExercise) {
     const shuffled = shuffleArray(ex.questions);
-    setExercise(ex);
-    setQuestions(shuffled);
-    setCurrentQ(0);
-    setAnswers(new Array(shuffled.length).fill(null));
-    setShowAnswer(false);
-    setHasPlayed(false);
-    setFillInput('');
-    setStartTime(Date.now());
-    setPhase('exercise');
+    startTransition(() => {
+      setExercise(ex);
+      setQuestions(shuffled);
+      setCurrentQ(0);
+      setAnswers(new Array(shuffled.length).fill(null));
+      setShowAnswer(false);
+      setHasPlayed(false);
+      setFillInput('');
+      setStartTime(Date.now());
+      setPhase('exercise');
+    });
   }
 
   function handlePlay() {
@@ -179,7 +182,7 @@ export default function ListeningPractice() {
       tags: ['listening', exercise.type, exercise.topic],
     });
 
-    setPhase('result');
+    startTransition(() => setPhase('result'));
   }
 
   // ─── SELECT PHASE ──────────────────────────────────────────────────
@@ -260,7 +263,7 @@ export default function ListeningPractice() {
     return (
       <div className="page-container">
         <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>← Zpět</button>
+          <button className="btn-ghost text-sm" onClick={() => startTransition(() => setPhase('select'))}>← Zpět</button>
           <span className="text-sm text-slate-500 font-medium">
             {currentQ + 1} / {questions.length}
           </span>
@@ -450,10 +453,10 @@ export default function ListeningPractice() {
           <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
           <button
             className="btn-primary"
-            onClick={() => {
+            onClick={() => startTransition(() => {
               setPhase('select');
               setExercise(null);
-            }}
+            })}
           >
             Další cvičení
           </button>

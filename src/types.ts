@@ -168,6 +168,7 @@ export interface UserSettings {
   theme: 'light' | 'dark' | 'auto';
   fontSize: 'small' | 'medium' | 'large';
   soundEnabled: boolean;
+  showCountdown: boolean;
 }
 
 export interface UserStats {
@@ -182,7 +183,7 @@ export interface UserStats {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   locale: 'cs-CZ',
-  examDate: '2027-05-05',
+  examDate: '2028-05-05',
   goalScore: 60,
   minutesPerDay: 25,
   newCardsPerDay: 8,
@@ -195,6 +196,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'auto',
   fontSize: 'medium',
   soundEnabled: true,
+  showCountdown: true,
 };
 
 export const DEFAULT_STATS: UserStats = {

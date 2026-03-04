@@ -274,35 +274,28 @@ export default function VocabDrill({ settings }: { settings: UserSettings }) {
         )}
       </div>
 
-      {/* Grade buttons */}
+      {/* Grade buttons — simple 2-button mode */}
       {revealed && (
-        <div className="space-y-2">
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mb-2">
-            Jak dobře jsi to věděl/a? <span className="hidden sm:inline text-xs text-slate-400">(klávesy 1-4)</span>
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {[3, 2, 1, 0].map((grade) => {
-              const { label, emoji } = getGradeLabel(grade);
-              return (
-                <button
-                  key={grade}
-                  className={`py-3 rounded-xl text-center transition-all active:scale-95 ${
-                    grade === 3
-                      ? 'bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/50 dark:hover:bg-green-900/70 dark:text-green-300'
-                      : grade === 2
-                      ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-900/50 dark:hover:bg-amber-900/70 dark:text-amber-300'
-                      : grade === 1
-                      ? 'bg-orange-100 hover:bg-orange-200 text-orange-800 dark:bg-orange-900/50 dark:hover:bg-orange-900/70 dark:text-orange-300'
-                      : 'bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-900/50 dark:hover:bg-red-900/70 dark:text-red-300'
-                  }`}
-                  onClick={() => handleGrade(grade)}
-                >
-                  <div className="text-lg">{emoji}</div>
-                  <div className="text-xs font-medium mt-0.5">{label}</div>
-                </button>
-              );
-            })}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              className="py-4 rounded-xl text-center transition-all active:scale-95 bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-900/50 dark:hover:bg-red-900/70 dark:text-red-300"
+              onClick={() => handleGrade(0)}
+            >
+              <div className="text-2xl">😕</div>
+              <div className="text-sm font-semibold mt-1">Neumím</div>
+            </button>
+            <button
+              className="py-4 rounded-xl text-center transition-all active:scale-95 bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/50 dark:hover:bg-green-900/70 dark:text-green-300"
+              onClick={() => handleGrade(3)}
+            >
+              <div className="text-2xl">😊</div>
+              <div className="text-sm font-semibold mt-1">Umím</div>
+            </button>
           </div>
+          <p className="text-center text-[10px] text-slate-400 dark:text-slate-500">
+            Swipe doleva/doprava nebo klávesy 1-4 pro přesné hodnocení
+          </p>
         </div>
       )}
     </div>

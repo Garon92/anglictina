@@ -19,20 +19,29 @@ function buildQuiz(errors: ErrorEntry[]): QuizItem[] {
   }
 
   const items = shuffleArray([...unique.values()]).slice(0, 20);
+  const allAnswers = [...new Set(errors.map((e) => e.correctAnswer))];
 
   return items.map((error) => {
-    const wrongOptions = shuffleArray(
+    const sameModuleWrongs = shuffleArray(
       errors
         .filter((e) => e.correctAnswer !== error.correctAnswer && e.module === error.module)
         .map((e) => e.correctAnswer)
-    ).slice(0, 2);
+    );
+    const crossModuleWrongs = shuffleArray(
+      allAnswers.filter((a) => a !== error.correctAnswer)
+    );
 
-    while (wrongOptions.length < 3) {
-      wrongOptions.push(wrongOptions.length === 0 ? error.userAnswer : `(${wrongOptions.length + 1})`);
+    const wrongSet = new Set<string>();
+    for (const w of sameModuleWrongs) { if (wrongSet.size >= 3) break; wrongSet.add(w); }
+    for (const w of crossModuleWrongs) { if (wrongSet.size >= 3) break; wrongSet.add(w); }
+    if (error.userAnswer && error.userAnswer !== error.correctAnswer) {
+      wrongSet.add(error.userAnswer);
     }
 
-    const allOptions = [error.correctAnswer, ...wrongOptions.slice(0, 3)];
-    const shuffled = shuffleArray(allOptions);
+    const wrongOptions = shuffleArray([...wrongSet]).slice(0, 3);
+    const allOptions = [error.correctAnswer, ...wrongOptions];
+    const deduped = [...new Set(allOptions)];
+    const shuffled = shuffleArray(deduped);
     return {
       error,
       options: shuffled,

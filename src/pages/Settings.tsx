@@ -76,15 +76,31 @@ export default function Settings({ settings, onUpdate }: Props) {
       <div className="card mb-4">
         <h3 className="section-title">Učení</h3>
 
-        <label className="block mb-4">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Datum maturity</span>
-          <input
-            type="date"
-            className="input mt-1"
-            value={settings.examDate}
-            onChange={(e) => update({ examDate: e.target.value })}
-          />
-        </label>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm text-slate-600 dark:text-slate-300">Zobrazit odpočet do maturity</span>
+          <button
+            className={`w-12 h-7 rounded-full transition-colors ${
+              settings.showCountdown ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'
+            }`}
+            onClick={() => update({ showCountdown: !settings.showCountdown })}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-1 ${
+              settings.showCountdown ? 'translate-x-5' : ''
+            }`} />
+          </button>
+        </div>
+
+        {settings.showCountdown && (
+          <label className="block mb-4">
+            <span className="text-sm text-slate-600 dark:text-slate-300">Datum maturity</span>
+            <input
+              type="date"
+              className="input mt-1"
+              value={settings.examDate}
+              onChange={(e) => update({ examDate: e.target.value })}
+            />
+          </label>
+        )}
 
         <label className="block mb-4">
           <span className="text-sm text-slate-600 dark:text-slate-300">Cílové skóre ({settings.goalScore} bodů)</span>

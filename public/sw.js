@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anglictina-v3';
+const CACHE_NAME = 'anglictina-v4';
 
 const OFFLINE_PAGE = `<!DOCTYPE html>
 <html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">

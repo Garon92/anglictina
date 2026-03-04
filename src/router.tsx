@@ -1,4 +1,4 @@
-import { createHashRouter } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 
 function lazyPage(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
@@ -10,7 +10,8 @@ function lazyPage(importFn: () => Promise<{ default: React.ComponentType<any> }>
   };
 }
 
-export const router = createHashRouter([
+export const router = createBrowserRouter(
+  [
     {
       path: '/',
       Component: App,
@@ -56,4 +57,6 @@ export const router = createHashRouter([
         { path: 'exam', ...lazyPage(() => import('./pages/ExamSim')) },
       ],
     },
-  ]);
+  ],
+  { basename: '/anglictina' }
+);

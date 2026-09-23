@@ -7,9 +7,8 @@ import { VOCABULARY } from '../data/vocabulary';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { useSettings } from '../App';
 import { useSettings as useKitSettings } from '../lib/useKitSettings';
-import { setSettings as setKitSettings, toast, KIT_VERSION } from '../kit';
+import { openSettingsDialog, setSettings as setKitSettings, toast, KIT_VERSION, SETTINGS_LABELS } from '../kit';
 import { safeConfirm } from '../lib/confirm';
-import { useAppName } from '../lib/name';
 import { resetAppLocalData } from '../lib/reset';
 import { dayKey } from '../lib/dates';
 import type { UserSettings } from '../types';
@@ -18,7 +17,6 @@ import { PageHeader } from '../components/ui';
 export default function Settings() {
   const { settings, updateSettings } = useSettings();
   const kit = useKitSettings();
-  const [appName, setAppName] = useAppName();
   const fileRef = useRef<HTMLInputElement>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(() => getAvailableVoices());
   const { canInstall, install } = usePwaInstall();
@@ -81,7 +79,20 @@ export default function Settings() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Nastavení" subtitle="Cíle učení, vzhled, výslovnost a záloha dat." back="/" backLabel="Dnes" icon="⚙️" />
+      <PageHeader title="Nastavení" subtitle="Cíle učení, výslovnost a záloha dat." back="/" backLabel="Dnes" icon="⚙️" />
+
+      <button
+        type="button"
+        className="card mb-4 flex min-h-[44px] w-full items-center gap-3 !p-4 text-left transition-colors hover:border-accent"
+        onClick={() => openSettingsDialog({ appId: 'anglictina' })}
+      >
+        <span className="text-2xl" aria-hidden="true">🎨</span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-black text-fg">Zvuky, vzhled a jméno</span>
+          <span className="block text-sm text-muted">Stejné jako ⚙ v horní liště — i velikost písma.</span>
+        </span>
+        <span className="text-muted" aria-hidden="true">›</span>
+      </button>
 
       <Section title="Cíle">
         <Row label="Zobrazovat odpočet do maturity">
@@ -98,49 +109,13 @@ export default function Settings() {
         <Slider label="Nejvíc opakování denně" value={settings.maxReviewsPerDay} min={20} max={300} step={10} onChange={(v) => update({ maxReviewsPerDay: v })} />
       </Section>
 
-      <Section title="Tato aplikace">
-        <label className="block">
-          <span className="g92-label">Jak ti mám říkat? (nepovinné)</span>
-          <input className="input mt-1" value={appName} maxLength={40} placeholder="Tvoje jméno" autoComplete="given-name" onChange={(e) => setAppName(e.target.value)} />
-          <span className="g92-hint mt-1 block">Jméno se zobrazuje jen v Angličtině (ostatní aplikace v menu mají vlastní).</span>
-        </label>
-        <div>
-          <span className="g92-label">Velikost písma</span>
-          <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-label="Velikost písma">
-            {([['small', 'Menší'], ['medium', 'Střední'], ['large', 'Větší']] as const).map(([v, l]) => (
-              <button key={v} type="button" className="g92-chip" aria-pressed={settings.fontSize === v} onClick={() => update({ fontSize: v })}>{l}</button>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Zvuky a vzhled" note="Platí pro všechny aplikace v menu garon92 (stejné jako v ⚙ v menu).">
-        <Row label="Zvuky">
-          <input type="checkbox" role="switch" className="g92-toggle" checked={kit.sound} onChange={(e) => setKitSettings({ sound: e.target.checked })} aria-label="Zvuky" />
-        </Row>
-        <Slider label="Hlasitost" value={Math.round(kit.volume * 100)} min={0} max={100} step={5} suffix=" %" onChange={(v) => setKitSettings({ volume: v / 100 })} />
-        <div>
-          <span className="g92-label">Vzhled</span>
-          <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-label="Vzhled">
-            {([['auto', 'Auto'], ['light', '☀️ Světlý'], ['dark', '🌙 Tmavý']] as const).map(([v, l]) => (
-              <button key={v} type="button" className="g92-chip" aria-pressed={kit.theme === v} onClick={() => setKitSettings({ theme: v })}>{l}</button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="g92-label">Animace (Auto = podle zařízení)</span>
-          <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-label="Animace">
-            {([['auto', 'Auto'], ['on', 'Méně'], ['off', 'Všechny']] as const).map(([v, l]) => (
-              <button key={v} type="button" className="g92-chip" aria-pressed={kit.reducedMotion === v} onClick={() => setKitSettings({ reducedMotion: v })}>{l}</button>
-            ))}
-          </div>
-        </div>
-      </Section>
-
       <Section title="Výslovnost">
-        <Row label="Po otočení kartičky přečíst slovo">
-          <input type="checkbox" role="switch" className="g92-toggle" checked={settings.ttsEnabled} onChange={(e) => update({ ttsEnabled: e.target.checked })} aria-label="Automaticky číst slovíčka" />
-        </Row>
+        <div>
+          <Row label={SETTINGS_LABELS.voice}>
+            <input type="checkbox" role="switch" className="g92-toggle" checked={kit.voice} onChange={(e) => setKitSettings({ voice: e.target.checked })} aria-label={SETTINGS_LABELS.voice} />
+          </Row>
+          <span className="g92-hint mt-1 block">Po otočení kartičky se slovo samo přečte. Tlačítka 🔊 fungují vždy.</span>
+        </div>
         {voices.length > 0 ? (
           <label className="block">
             <span className="g92-label">Hlas</span>

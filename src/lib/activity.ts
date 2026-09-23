@@ -1,5 +1,5 @@
-import { recordActivity } from '../kit';
-import { getAllSRSStates, getStats, getExamSessions, currentStreak } from '../db';
+import { countLabel, recordActivity } from '../kit';
+import { getAllSRSStates, getStats, getExamSessions, currentStreak, kvGet } from '../db';
 import { daily, minutesOnDay } from '../progress';
 import { dayKey } from './dates';
 
@@ -10,21 +10,30 @@ import { dayKey } from './dates';
  */
 export async function reportActivity(): Promise<void> {
   try {
-    const [srs, stats, exams, minutes] = await Promise.all([getAllSRSStates('vocab'), getStats(), getExamSessions(), minutesOnDay(dayKey())]);
+    const [srs, stats, exams, minutes, pendingExam] = await Promise.all([
+      getAllSRSStates('vocab'),
+      getStats(),
+      getExamSessions(),
+      minutesOnDay(dayKey()),
+      kvGet<{ id: string }>('exam:current'),
+    ]);
     const learned = srs.filter((s) => s.totalReviews > 0).length;
     const lastExam = exams
       .filter((e) => e.mode === 'full')
       .sort((a, b) => b.startedAt - a.startedAt)[0];
     const streak = currentStreak(stats);
-    const note = lastExam
-      ? `Poslední test: ${lastExam.scoreTotal} b`
-      : streak > 1
-        ? `Série ${streak} dní`
-        : undefined;
+    const note = pendingExam
+      ? 'Rozpracovaný test'
+      : lastExam
+        ? `Poslední test: ${countLabel(lastExam.scoreTotal, 'bod', 'body', 'bodů')}`
+        : streak > 1
+          ? `Série ${countLabel(streak, 'den', 'dny', 'dní')}`
+          : undefined;
     recordActivity('anglictina', {
       progress: Math.min(1, minutes / Math.max(1, daily.goal())),
-      metric: { label: 'Slovíček', value: learned },
+      metric: { value: learned, unit: ['slovíčko', 'slovíčka', 'slovíček'] },
       note: note ?? null,
+      href: pendingExam ? '/anglictina/exam' : null,
     });
   } catch {
     /* activity is best-effort */

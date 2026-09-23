@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { toast } from '../kit';
+import { onDialogChange, toast } from '../kit';
 import { safeConfirm } from '../lib/confirm';
 import { setActiveSession, enterFocusMode } from '../lib/activeSession';
 import { stopSpeaking } from '../tts';
@@ -14,19 +14,25 @@ import { EXAM_SETS } from './sets';
 
 type View = { kind: 'loading' } | { kind: 'run'; run: ExamRun } | { kind: 'done'; run: ExamRun; score: ExamScore } | { kind: 'missing' };
 
-function useRemaining(deadline: number | null): number | null {
+/** Seconds left; frozen while the run is paused (`frozenMs`, e.g. a dialog is open). */
+function useRemaining(deadline: number | null, frozenMs?: number): number | null {
   const [now, setNow] = useState(() => Date.now());
+  const frozen = frozenMs !== undefined;
   useEffect(() => {
-    if (!deadline) return;
+    if (!deadline || frozen) return;
     const tick = () => setNow(Date.now());
+    const first = window.setTimeout(tick, 0);
     const t = window.setInterval(tick, 1000);
     document.addEventListener('visibilitychange', tick);
     return () => {
+      window.clearTimeout(first);
       window.clearInterval(t);
       document.removeEventListener('visibilitychange', tick);
     };
-  }, [deadline]);
-  return deadline ? Math.max(0, Math.round((deadline - now) / 1000)) : null;
+  }, [deadline, frozen]);
+  if (!deadline) return null;
+  if (frozenMs !== undefined) return Math.max(0, Math.round(frozenMs / 1000));
+  return Math.max(0, Math.round((deadline - now) / 1000));
 }
 
 function fmt(sec: number): string {
@@ -124,6 +130,15 @@ export default function ExamRunner() {
     setView((v) => (v.kind === 'run' ? { kind: 'run', run: fn(v.run) } : v));
   }, []);
 
+  // The clock stops while a dialog (help, settings, confirmations) covers the test (C-05).
+  useEffect(() => {
+    if (!running) return;
+    return onDialogChange((open) => {
+      if (submitting.current) return;
+      update((r) => (open ? pauseRun(r) : resumeRun(r)));
+    });
+  }, [running, update]);
+
   const submit = useCallback(async (r: ExamRun, reason?: 'timeout') => {
     if (submitting.current) return;
     submitting.current = true;
@@ -141,7 +156,7 @@ export default function ExamRunner() {
     }
   }, []);
 
-  const remaining = useRemaining(run?.timed ? run.deadline : null);
+  const remaining = useRemaining(run?.timed ? run.deadline : null, run?.remainingMs);
   useEffect(() => {
     if (run && remaining === 0) void submit(run, 'timeout');
   }, [remaining, run, submit]);

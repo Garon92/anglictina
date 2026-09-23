@@ -1,9 +1,11 @@
 /**
  * The practice session / exam that is currently running (at most one).
- * - Layout hides the tab bar while one is active (focus mode) and asks before leaving it
- *   (in-app navigation, browser Back within the app, the app bar's "‹ Menu").
+ * - Layout hides the tab bar while one is active (focus mode) and asks before leaving it:
+ *   in-app navigation and browser Back within the app (react-router blocker), and the app bar's
+ *   "Menu" (kit v0.7 leave guard → the family "Odejít do menu?" dialog).
  * - `finalize` is called when the learner confirms leaving (saves the partial session).
  */
+import { confirmLeave as kitConfirmLeave } from '../kit';
 import { safeConfirm } from './confirm';
 
 export interface ActiveSession {
@@ -14,6 +16,8 @@ export interface ActiveSession {
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Text of the "Odejít do menu?" dialog (leaving the app via the app bar). */
+  menuMessage?: string;
   /** Save what has been done so far. */
   finalize: () => Promise<void> | void;
 }
@@ -67,17 +71,21 @@ export function isFocusMode(): boolean {
 /**
  * Ask whether it's OK to leave the running session. Resolves true when there is nothing to
  * protect or the learner confirmed (the partial session is saved first).
+ * `to: 'menu'` = leaving the app via the app bar (family wording: Zůstat / Odejít).
  */
-export async function confirmLeave(): Promise<boolean> {
+export async function confirmLeave(to: 'app' | 'menu' = 'app'): Promise<boolean> {
   const s = current;
   if (!s) return true;
   if (s.confirm) {
-    const ok = await safeConfirm({
-      title: s.title ?? 'Ukončit cvičení?',
-      message: s.message ?? 'Dosavadní odpovědi se uloží do statistik.',
-      confirmLabel: s.confirmLabel ?? 'Ukončit',
-      cancelLabel: s.cancelLabel ?? 'Pokračovat',
-    });
+    const ok =
+      to === 'menu'
+        ? await kitConfirmLeave({ message: s.menuMessage ?? s.message ?? 'Dosavadní odpovědi se uloží do statistik.' })
+        : await safeConfirm({
+            title: s.title ?? 'Ukončit cvičení?',
+            message: s.message ?? 'Dosavadní odpovědi se uloží do statistik.',
+            confirmLabel: s.confirmLabel ?? 'Ukončit',
+            cancelLabel: s.cancelLabel ?? 'Pokračovat',
+          });
     if (!ok) return false;
   }
   try {

@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS } from '../types';
 import { setAppName } from '../lib/name';
 import { daysUntil, czechPlural } from '../lib/dates';
 import { registerHelp } from '../components/HelpDialog';
+import { LABELS, setSettingsSection } from '../kit';
 
 interface Props {
   onComplete: (s: UserSettings) => void;
@@ -29,8 +30,9 @@ export default function Onboarding({ onComplete }: Props) {
   }));
   const update = (patch: Partial<UserSettings>) => setSettings((s) => ({ ...s, ...patch }));
   const days = daysUntil(settings.examDate);
-  // The appbar "?" works from the first screen too (C-11).
+  // The appbar "?" and ⚙ work from the first screen too (C-11); the name is asked right here.
   useEffect(() => registerHelp(), []);
+  useEffect(() => setSettingsSection({ nameMode: 'hidden', showVoice: true }), []);
 
   async function finish(goTo?: string) {
     const final = { ...settings, onboardingDone: true };
@@ -42,7 +44,7 @@ export default function Onboarding({ onComplete }: Props) {
 
   return (
     <div className="g92-app">
-      <g92-appbar app="anglictina" no-settings />
+      <g92-appbar app="anglictina" keys />
       <main className="m-auto w-full max-w-lg p-4 py-10">
         <div className="card !p-6 shadow-3 sm:!p-8">
           {step === 0 && (
@@ -75,7 +77,7 @@ export default function Onboarding({ onComplete }: Props) {
                 />
                 <span className="g92-hint mt-1 block">Jméno uvidíš jen v Angličtině.</span>
               </label>
-              <button type="button" className="btn-primary btn-lg mt-6 w-full" onClick={() => setStep(1)}>Pojďme na to</button>
+              <button type="button" className="btn-primary btn-lg mt-6 w-full" onClick={() => setStep(1)}>{LABELS.intro}</button>
             </div>
           )}
 

@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { VOCABULARY } from '../data/vocabulary';
 import { GRAMMAR_EXERCISES } from '../data/grammar';
 import { buildOptions, shuffleArray, uniqueBy } from '../utils';
-import { createStore } from '../kit';
+import { createStore, isDialogOpen } from '../kit';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { StatTile } from '../components/ui';
 import {
@@ -183,7 +183,7 @@ export default function SpeedChallenge() {
       lastTick = now;
       if (document.hidden) return; // paused (see above)
       // An open dialog (e.g. "Ukončit cvičení?") also stops the clock.
-      if (document.querySelector('dialog[open]')) {
+      if (isDialogOpen()) {
         deadline.current += dt;
         return;
       }

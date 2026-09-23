@@ -12,7 +12,7 @@ import { createDaily } from './kit/streak';
  * Counts MINUTES of practice — the same daily goal the learner sets in onboarding / Nastavení
  * and sees in the ring on "Dnes" (one goal, one unit).
  */
-export const daily = createDaily('anglictina', { goal: 25 });
+export const daily = createDaily('anglictina', { goal: 25, unit: ['minuta', 'minuty', 'minut'] });
 
 /** Keep the kit daily goal in sync with settings.minutesPerDay. */
 export function setDailyGoalMinutes(minutes: number) {

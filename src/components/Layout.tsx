@@ -5,10 +5,12 @@ import OfflineBanner from './OfflineBanner';
 import { stopSpeaking } from '../tts';
 import { registerHelp } from './HelpDialog';
 import { getDueMistakes, onSessionRecorded, onMilestone, recoverPendingSessions } from '../progress';
-import { sfx, toast, UI_ICONS } from '../kit';
+import { setLeaveGuard, sfx, toast, UI_ICONS } from '../kit';
 import { reportActivity } from '../lib/activity';
 import { confirmLeave, getActiveSession, isFocusMode, subscribeActiveSession } from '../lib/activeSession';
 import { routeTitle } from '../lib/titles';
+import { registerSettingsSection } from '../lib/settingsSection';
+import { useSettings } from '../App';
 
 /** Routes that take over the whole screen (no tab bar / side nav). */
 function isFocusRoute(pathname: string) {
@@ -21,7 +23,6 @@ export default function Layout({ children }: { children?: ReactNode }) {
   const [mistakesDue, setMistakesDue] = useState(0);
   const focusMode = useSyncExternalStore(subscribeActiveSession, isFocusMode, () => false);
   const focus = focusMode || isFocusRoute(pathname);
-  const appbarRef = useRef<HTMLElement>(null);
 
   useEffect(() => registerHelp(), []);
 
@@ -50,37 +51,24 @@ export default function Layout({ children }: { children?: ReactNode }) {
     };
   }, [blocker]);
 
-  // ── …and the app bar's "‹ Menu" (leaves the SPA) ──
+  // ── …and the app bar's "Menu" (leaves the app): kit v0.7 leave guard ──
+  useEffect(() => setLeaveGuard(() => confirmLeave('menu')), []);
+
+  // ── ⚙ opens the kit settings dialog with this app's part + "Další nastavení…" (C-11) ──
+  const { settings, updateSettings } = useSettings();
+  const latest = useRef({ settings, updateSettings });
   useEffect(() => {
-    const bar = appbarRef.current;
-    if (!bar) return;
-    const onClick = (e: MouseEvent) => {
-      if (!getActiveSession()) return;
-      const back = e.composedPath().find((el): el is HTMLAnchorElement => el instanceof HTMLAnchorElement && (el.getAttribute('part') ?? '').split(' ').includes('back'));
-      if (!back) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const href = back.href;
-      void confirmLeave().then((ok) => {
-        if (ok) location.href = href;
-      });
-    };
-    // Future kit contract (v0.7): a cancelable `g92-back` event.
-    const onBack = (e: Event) => {
-      if (!getActiveSession()) return;
-      e.preventDefault();
-      const href = (e as CustomEvent<{ href?: string }>).detail?.href ?? '/menu/';
-      void confirmLeave().then((ok) => {
-        if (ok) location.href = href;
-      });
-    };
-    bar.addEventListener('click', onClick, true);
-    bar.addEventListener('g92-back', onBack);
-    return () => {
-      bar.removeEventListener('click', onClick, true);
-      bar.removeEventListener('g92-back', onBack);
-    };
-  }, []);
+    latest.current = { settings, updateSettings };
+  }, [settings, updateSettings]);
+  useEffect(
+    () =>
+      registerSettingsSection({
+        getFontSize: () => latest.current.settings.fontSize,
+        setFontSize: (fontSize) => latest.current.updateSettings({ ...latest.current.settings, fontSize }),
+        openMore: () => navigate('/settings'),
+      }),
+    [navigate],
+  );
 
   // Small celebrations: daily goal reached, streak milestones.
   useEffect(
@@ -119,14 +107,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
 
   return (
     <div className={`g92-app app-shell${focus ? ' app-shell--focus' : ''}`}>
-      <g92-appbar
-        ref={appbarRef}
-        app="anglictina"
-        ong92-settings={(e: CustomEvent) => {
-          e.preventDefault();
-          navigate('/settings');
-        }}
-      >
+      <g92-appbar app="anglictina" keys>
         {!focus && pathname !== '/search' && (
           <button
             slot="actions"

@@ -8,6 +8,7 @@ import type { UserSettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
 import { getSettings as getKitSettings, setSettings as setKitSettings, SETTINGS_KEY } from './kit';
 import { appStore } from './lib/appStore';
+import { useSettings as useKitSettings } from './lib/useKitSettings';
 import { reportActivity } from './lib/activity';
 import { setDailyGoalMinutes } from './progress';
 
@@ -51,6 +52,16 @@ function migrateAppearance(s: UserSettings) {
   if (Object.keys(patch).length > 0) setKitSettings(patch);
 }
 
+/**
+ * Automatic read-aloud now follows the family "Předčítání" (g92 `voice`, kit v0.7). Carry over an
+ * explicit "off" from the old in-app switch once.
+ */
+function migrateVoice(s: UserSettings) {
+  if (appStore.get('voiceMigrated')) return;
+  appStore.set('voiceMigrated', true);
+  if (s.ttsEnabled === false && getKitSettings().voice) setKitSettings({ voice: false });
+}
+
 export default function App() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
 
@@ -60,6 +71,7 @@ export default function App() {
       .then((s) => {
         if (!alive) return;
         migrateAppearance(s);
+        migrateVoice(s);
         applyFontSize(s.fontSize);
         setSettings(s);
         void initTTS(s.ttsVoice);
@@ -88,9 +100,11 @@ export default function App() {
     void saveSettings(s);
   }, []);
 
+  // `ttsEnabled` (auto read-aloud) mirrors the shared g92 "Předčítání" switch.
+  const voice = useKitSettings().voice;
   const ctx = useMemo(
-    () => ({ settings: settings ?? DEFAULT_SETTINGS, updateSettings }),
-    [settings, updateSettings],
+    () => ({ settings: { ...(settings ?? DEFAULT_SETTINGS), ttsEnabled: voice }, updateSettings }),
+    [settings, voice, updateSettings],
   );
 
   if (!settings) return <SplashScreen />;

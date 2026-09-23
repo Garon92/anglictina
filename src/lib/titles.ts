@@ -1,6 +1,5 @@
+import { appTitle } from '../kit';
 import { getModuleByPath } from '../modules';
-
-const APP = 'Angličtina';
 
 const STATIC: Record<string, string> = {
   '/': 'Dnes',
@@ -13,10 +12,10 @@ const STATIC: Record<string, string> = {
   '/mistakes': 'Opakování chyb',
 };
 
-/** Document title for a route, e.g. "Členy · Angličtina". */
+/** Document title for a route (kit family format), e.g. "Členy · Angličtina – Příprava na maturitu". */
 export function routeTitle(pathname: string): string {
   const p = pathname.replace(/\/+$/, '') || '/';
-  if (p === '/') return `${APP} – příprava na maturitu`;
+  if (p === '/') return appTitle('anglictina');
   const name = STATIC[p] ?? getModuleByPath(p)?.title ?? (p.startsWith('/exam/history') ? 'Výsledek testu' : null);
-  return name ? `${name} · ${APP}` : APP;
+  return appTitle('anglictina', name ?? undefined);
 }

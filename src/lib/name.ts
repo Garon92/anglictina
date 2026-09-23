@@ -1,20 +1,35 @@
-import { useStoreValue } from '../kit/react/hooks';
-import { appStore } from './appStore';
+import { useSyncExternalStore } from 'react';
+import { getAppPlayerName, getPlayerName, getSettingsSnapshot, setAppPlayerName, subscribeSettings } from '../kit';
+
+export const APP_ID = 'anglictina';
 
 /**
- * The learner's name — stored for THIS app only (`g92:anglictina:name`). The shared g92
- * "playerName" is the family default used by the kids' apps, so we never read it for the
- * greeting and never overwrite it from here.
+ * Names (kit v0.7, C-08): the family default `g92:settings.playerName` belongs to the menu; this app
+ * only ever writes its own override `g92:anglictina:name` (a teenager using the family tablet).
+ * The greeting reads `getPlayerName(APP_ID)` = own name, else the family name.
  */
 export function getAppName(): string {
-  return appStore.get('name');
+  return getAppPlayerName(APP_ID) ?? '';
 }
 
 export function setAppName(name: string) {
-  appStore.set('name', name.trim().slice(0, 40));
+  setAppPlayerName(APP_ID, name);
 }
 
+const subscribe = (fn: () => void) => subscribeSettings(() => fn());
+
+/** Name to greet with (own override or the family default). */
+export function useGreetingName(): string {
+  return useSyncExternalStore(subscribe, () => getPlayerName(APP_ID), () => '');
+}
+
+/** This app's own name override ('' = none) + setter. */
 export function useAppName(): [string, (v: string) => void] {
-  const [name, set] = useStoreValue(appStore, 'name');
-  return [name, (v: string) => set(v.slice(0, 40))];
+  const name = useSyncExternalStore(subscribe, getAppName, () => '');
+  return [name, setAppName];
+}
+
+/** The family default name (read-only here). */
+export function useFamilyName(): string {
+  return useSyncExternalStore(subscribe, () => getSettingsSnapshot().playerName, () => '');
 }

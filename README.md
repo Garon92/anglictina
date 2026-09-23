@@ -25,8 +25,9 @@ Součást rodiny aplikací [garon92.github.io](https://garon92.github.io/menu/) 
   vytištěné oficiální testy.
 - **Pokrok** — úroveň a XP, série, kalendář aktivity, dovednosti podle částí maturity, stav slovíček
   a předpověď opakování, vývoj skóre v testech, úspěchy.
-- **Nastavení** — cíle, datum maturity, motiv (sdílený pro všechny aplikace), velikost písma, hlas a rychlost
-  výslovnosti, záloha a obnova dat (JSON), export slovíček pro Anki.
+- **⚙ Nastavení** (v horní liště) — společný dialog všech aplikací: zvuky, předčítání, vzhled, animace,
+  jméno jen pro Angličtinu a velikost písma. Řádek **Další nastavení…** vede na stránku s cíli, datem
+  maturity, hlasem a rychlostí výslovnosti, zálohou a obnovou dat (JSON) a exportem slovíček pro Anki.
 
 ## Vývoj
 
@@ -69,7 +70,8 @@ nemažou. ID slovíček jsou stabilní — při úpravách `data/ngsl_chunk*.ts`
 ## Nasazení
 
 Push do `main` spustí `.github/workflows/deploy.yml` (Node 24 → testy → build → GitHub Pages přes
-`actions/deploy-pages`). `404.html` = kopie `index.html`, aby fungovaly přímé odkazy na podstránky.
+`actions/deploy-pages`). Build zapíše pro každou podstránku vlastní `index.html` (`scripts/postbuild.mjs`,
+přímé odkazy vrací HTTP 200) a `404.html` = kopie aplikace (kit `g92NotFoundPage`) pro neznámé adresy.
 
 ## Licence obsahu
 

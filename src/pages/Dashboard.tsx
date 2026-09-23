@@ -10,7 +10,7 @@ import { dayKey, daysUntil, lastDays, czechPlural, parseDayKey, DAY_NAMES_SHORT 
 
 import type { DrillSession, ExamSession } from '../types';
 import { Ring, ProgressBar } from '../components/ui';
-import { useAppName } from '../lib/name';
+import { useGreetingName } from '../lib/name';
 import { getModule, sessionModule, type ModuleDef } from '../modules';
 import { greeting } from '../kit/cz';
 import { attemptLabel, skillPct } from '../exam/history';
@@ -56,7 +56,7 @@ function weekMinutes(sessions: DrillSession[]): { day: string; minutes: number }
 
 export default function Dashboard() {
   const { settings } = useSettings();
-  const [appName] = useAppName();
+  const appName = useGreetingName();
   const [data, setData] = useState<DashData | null>(null);
 
   const load = useCallback(async () => {

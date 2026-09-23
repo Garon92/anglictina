@@ -1005,9 +1005,3 @@
   }
 }
 
-/* Toasts sit above the bottom tab bar on phones/tablets. */
-@media (max-width: 1023px) {
-  body:has(.app-tabbar) .g92-toasts {
-    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
-  }
-}

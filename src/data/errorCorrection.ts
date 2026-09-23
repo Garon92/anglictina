@@ -30,7 +30,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I went to the cinema yesterday.',
     category: 'tenses',
     level: 'A2',
-    explanationCs: '„Yesterday" značí minulost – potřebujeme minulý čas „went" (go – went – gone), ne přítomný „go".',
+    explanationCs: '„Yesterday“ značí minulost – potřebujeme minulý čas „went“ (go – went – gone), ne přítomný „go“.',
   },
   {
     id: 'ec_02',
@@ -40,7 +40,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She has lived here for three years.',
     category: 'tenses',
     level: 'B1',
-    explanationCs: '„Since" se používá s konkrétním bodem v čase (since 2020), „for" s délkou trvání (for three years). Česky říkáme „už tři roky" i „od roku 2020", proto Češi tyto předložky pletou.',
+    explanationCs: '„Since“ se používá s konkrétním bodem v čase (since 2020), „for“ s délkou trvání (for three years). Česky říkáme „už tři roky“ i „od roku 2020“, proto Češi tyto předložky pletou.',
   },
   {
     id: 'ec_03',
@@ -60,7 +60,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I have been living in Prague for ten years.',
     category: 'tenses',
     level: 'B1',
-    explanationCs: 'Děj začal v minulosti a trvá dodnes → present perfect continuous (nebo present perfect „have lived"). Průběhový přítomný čas vyjadřuje jen aktuální dočasnou situaci.',
+    explanationCs: 'Děj začal v minulosti a trvá dodnes → present perfect continuous (nebo present perfect „have lived“). Průběhový přítomný čas vyjadřuje jen aktuální dočasnou situaci.',
   },
   {
     id: 'ec_05',
@@ -70,7 +70,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'We will go swimming if the weather is nice.',
     category: 'tenses',
     level: 'B1',
-    explanationCs: 'Po „if" v první podmínkové větě nepoužíváme „will". Používáme přítomný čas, i když mluvíme o budoucnosti. Čeština budoucí čas po „jestli" používá.',
+    explanationCs: 'Po „if“ v první podmínkové větě nepoužíváme „will“. Používáme přítomný čas, i když mluvíme o budoucnosti. Čeština budoucí čas po „jestli“ používá.',
   },
   {
     id: 'ec_06',
@@ -80,7 +80,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He played football every day last summer.',
     category: 'tenses',
     level: 'A2',
-    explanationCs: '„Last summer" jasně ukazuje na minulost. I když „every day" normálně patří k přítomnému času, „last summer" posouvá vše do minulosti.',
+    explanationCs: '„Last summer“ jasně ukazuje na minulost. I když „every day“ normálně patří k přítomnému času, „last summer“ posouvá vše do minulosti.',
   },
   {
     id: 'ec_07',
@@ -100,7 +100,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Look! The children are playing in the garden.',
     category: 'tenses',
     level: 'A2',
-    explanationCs: '„Look!" signalizuje děj probíhající právě teď – potřebujeme průběhový čas (present continuous). Čeština nemá toto rozlišení.',
+    explanationCs: '„Look!“ signalizuje děj probíhající právě teď – potřebujeme průběhový čas (present continuous). Čeština nemá toto rozlišení.',
   },
   {
     id: 'ec_09',
@@ -110,7 +110,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'By the time we arrived, the concert had already started.',
     category: 'tenses',
     level: 'B1',
-    explanationCs: '„By the time" + past simple vyžaduje v hlavní větě past perfect, protože koncert začal PŘED naším příchodem.',
+    explanationCs: '„By the time“ + past simple vyžaduje v hlavní větě past perfect, protože koncert začal PŘED naším příchodem.',
   },
 
   // ===== articles (9) =====
@@ -122,7 +122,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She is the best student in the class.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Před superlativem (best, most, biggest…) vždy stojí člen „the". V češtině členy neexistují, tak na to Češi zapomínají.',
+    explanationCs: 'Před superlativem (best, most, biggest…) vždy stojí člen „the“. V češtině členy neexistují, tak na to Češi zapomínají.',
   },
   {
     id: 'ec_11',
@@ -132,7 +132,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I usually have breakfast at seven.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Před názvy jídel (breakfast, lunch, dinner) se člen nepoužívá, pokud nemluvíme o konkrétním jídle. Češi „the" přidávají zbytečně.',
+    explanationCs: 'Před názvy jídel (breakfast, lunch, dinner) se člen nepoužívá, pokud nemluvíme o konkrétním jídle. Češi „the“ přidávají zbytečně.',
   },
   {
     id: 'ec_12',
@@ -142,7 +142,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'My brother is a doctor.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Před povoláním musí stát neurčitý člen „a/an". V češtině říkáme „je doktor" bez členu, proto ho Češi vynechávají.',
+    explanationCs: 'Před povoláním musí stát neurčitý člen „a/an“. V češtině říkáme „je doktor“ bez členu, proto ho Češi vynechávají.',
   },
   {
     id: 'ec_13',
@@ -152,7 +152,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'The sun is shining and the sky is blue.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Jedinečné věci, které existují jen jednou (the sun, the moon, the sky, the world), mají vždy určitý člen „the".',
+    explanationCs: 'Jedinečné věci, které existují jen jednou (the sun, the moon, the sky, the world), mají vždy určitý člen „the“.',
   },
   {
     id: 'ec_14',
@@ -162,7 +162,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'We went to the Alps last winter.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Pohoří, souostroví a řeky mají vždy člen „the" (the Alps, the Himalayas, the Thames). Navíc „Alps" je množné číslo, takže „a" nelze.',
+    explanationCs: 'Pohoří, souostroví a řeky mají vždy člen „the“ (the Alps, the Himalayas, the Thames). Navíc „Alps“ je množné číslo, takže „a“ nelze.',
   },
   {
     id: 'ec_15',
@@ -172,7 +172,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Life is beautiful.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Abstraktní a nepočitatelná podstatná jména v obecném významu nemají člen. „Life" obecně = bez členu.',
+    explanationCs: 'Abstraktní a nepočitatelná podstatná jména v obecném významu nemají člen. „Life“ obecně = bez členu.',
   },
   {
     id: 'ec_16',
@@ -182,7 +182,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He gave me a useful tip.',
     category: 'articles',
     level: 'A2',
-    explanationCs: '„Useful" začíná zvukem /juː/, což je souhláskový zvuk – proto „a", ne „an". Rozhoduje zvuk, ne písmeno.',
+    explanationCs: '„Useful“ začíná zvukem /juː/, což je souhláskový zvuk – proto „a“, ne „an“. Rozhoduje zvuk, ne písmeno.',
   },
   {
     id: 'ec_17',
@@ -192,7 +192,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She plays the violin very well.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Před hudebními nástroji s „play" používáme člen „the" (play the piano, the guitar, the violin).',
+    explanationCs: 'Před hudebními nástroji s „play“ používáme člen „the“ (play the piano, the guitar, the violin).',
   },
   {
     id: 'ec_18',
@@ -202,7 +202,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I need to go to bed early tonight.',
     category: 'articles',
     level: 'A2',
-    explanationCs: 'Ustálené vazby jako „go to bed", „go to school", „go to work" se používají bez členu, protože vyjadřují účel, ne místo.',
+    explanationCs: 'Ustálené vazby jako „go to bed“, „go to school“, „go to work“ se používají bez členu, protože vyjadřují účel, ne místo.',
   },
 
   // ===== prepositions (9) =====
@@ -214,7 +214,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I am interested in modern art.',
     category: 'prepositions',
     level: 'A2',
-    explanationCs: 'Správná vazba je „interested IN". Češi často volí špatnou předložku, protože v češtině je „zajímat se O" (= about/on).',
+    explanationCs: 'Správná vazba je „interested IN“. Češi často volí špatnou předložku, protože v češtině je „zajímat se O“ (= about/on).',
   },
   {
     id: 'ec_20',
@@ -224,7 +224,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She depends on her parents.',
     category: 'prepositions',
     level: 'B1',
-    explanationCs: 'Správná vazba je „depend ON" (záviset NA někom/něčem), nikdy „depend from".',
+    explanationCs: 'Správná vazba je „depend ON“ (záviset NA někom/něčem), nikdy „depend from“.',
   },
   {
     id: 'ec_21',
@@ -234,7 +234,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'We arrived at the airport at six.',
     category: 'prepositions',
     level: 'A2',
-    explanationCs: '„Arrive" se pojí s „at" (menší místo) nebo „in" (město/země), nikdy s „to". Čeština říká „přijeli jsme NA", proto Češi píšou „to".',
+    explanationCs: '„Arrive“ se pojí s „at“ (menší místo) nebo „in“ (město/země), nikdy s „to“. Čeština říká „přijeli jsme NA“, proto Češi píšou „to“.',
   },
   {
     id: 'ec_22',
@@ -244,7 +244,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He is married to a teacher.',
     category: 'prepositions',
     level: 'A2',
-    explanationCs: 'Správná vazba je „married TO". V češtině říkáme „ženatý S", proto Češi překládají doslova jako „with".',
+    explanationCs: 'Správná vazba je „married TO“. V češtině říkáme „ženatý S“, proto Češi překládají doslova jako „with“.',
   },
   {
     id: 'ec_23',
@@ -254,7 +254,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I will meet you on Monday in the morning.',
     category: 'prepositions',
     level: 'A2',
-    explanationCs: 'Říkáme „in the morning / afternoon / evening", ale „at night". Před částmi dne je „in", ne „at".',
+    explanationCs: 'Říkáme „in the morning / afternoon / evening“, ale „at night“. Před částmi dne je „in“, ne „at“.',
   },
   {
     id: 'ec_24',
@@ -264,7 +264,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She is afraid of spiders.',
     category: 'prepositions',
     level: 'A2',
-    explanationCs: 'Správná vazba je „afraid OF". Čeština říká „bát se (čeho)" – genitiv, ale anglicky je to vždy „of".',
+    explanationCs: 'Správná vazba je „afraid OF“. Čeština říká „bát se (čeho)“ – genitiv, ale anglicky je to vždy „of“.',
   },
   {
     id: 'ec_25',
@@ -274,7 +274,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I am waiting for you in front of the school.',
     category: 'prepositions',
     level: 'A2',
-    explanationCs: '„Wait" vyžaduje předložku „for" – „wait for someone". Čeština říká „čekat koho" bez předložky, takže Češi „for" vynechávají.',
+    explanationCs: '„Wait“ vyžaduje předložku „for“ – „wait for someone“. Čeština říká „čekat koho“ bez předložky, takže Češi „for“ vynechávají.',
   },
   {
     id: 'ec_26',
@@ -284,7 +284,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He listened to the radio all morning.',
     category: 'prepositions',
     level: 'A2',
-    explanationCs: '„Listen" vyžaduje „to" – „listen to something". Čeština říká „poslouchat co" přímo, proto Češi „to" vynechávají.',
+    explanationCs: '„Listen“ vyžaduje „to“ – „listen to something“. Čeština říká „poslouchat co“ přímo, proto Češi „to“ vynechávají.',
   },
   {
     id: 'ec_27',
@@ -294,7 +294,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'The book is different from the film.',
     category: 'prepositions',
     level: 'B1',
-    explanationCs: 'Správná vazba je „different FROM" (nebo „different to" v britské angličtině). Nikdy ne „different of".',
+    explanationCs: 'Správná vazba je „different FROM“ (nebo „different to“ v britské angličtině). Nikdy ne „different of“.',
   },
 
   // ===== word_order (9) =====
@@ -306,7 +306,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I like chocolate very much.',
     category: 'word_order',
     level: 'A2',
-    explanationCs: 'V angličtině příslovečné určení míry stojí po předmětu: „like something very much". V češtině je pořadí volnější.',
+    explanationCs: 'V angličtině příslovečné určení míry stojí po předmětu: „like something very much“. V češtině je pořadí volnější.',
   },
   {
     id: 'ec_29',
@@ -316,7 +316,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She speaks English very well.',
     category: 'word_order',
     level: 'A2',
-    explanationCs: 'Příslovce způsobu stojí po předmětu: „speaks English very well", ne mezi slovesem a předmětem.',
+    explanationCs: 'Příslovce způsobu stojí po předmětu: „speaks English very well“, ne mezi slovesem a předmětem.',
   },
   {
     id: 'ec_30',
@@ -326,7 +326,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She is always late for school.',
     category: 'word_order',
     level: 'A2',
-    explanationCs: 'Příslovce frekvence (always, never, often) stojí PŘED hlavním slovesem, ale PO slovese „be". V češtině je pořadí volné.',
+    explanationCs: 'Příslovce frekvence (always, never, often) stojí PŘED hlavním slovesem, ale PO slovese „be“. V češtině je pořadí volné.',
   },
   {
     id: 'ec_31',
@@ -336,7 +336,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I don\'t know where the station is.',
     category: 'word_order',
     level: 'B1',
-    explanationCs: 'V nepřímé otázce (po „know/wonder/tell me") je PŘÍMÝ slovosled (podmět + sloveso), ne otázkový.',
+    explanationCs: 'V nepřímé otázce (po „know/wonder/tell me“) je PŘÍMÝ slovosled (podmět + sloveso), ne otázkový.',
   },
   {
     id: 'ec_32',
@@ -346,7 +346,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I\'m sure that he can help you.',
     category: 'word_order',
     level: 'B1',
-    explanationCs: 'V oznamovací vedlejší větě (po „that") je přímý slovosled: podmět + sloveso. Inverze je jen v otázkách.',
+    explanationCs: 'V oznamovací vedlejší větě (po „that“) je přímý slovosled: podmět + sloveso. Inverze je jen v otázkách.',
   },
   {
     id: 'ec_33',
@@ -356,7 +356,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Never have I seen such a beautiful sunset.',
     category: 'word_order',
     level: 'B1',
-    explanationCs: 'Po záporných příslovcích na začátku věty (never, rarely, seldom) je povinná inverze: „Never have I…". Bez inverze musí „never" stát za pomocným slovesem: „I have never seen…".',
+    explanationCs: 'Po záporných příslovcích na začátku věty (never, rarely, seldom) je povinná inverze: „Never have I…“. Bez inverze musí „never“ stát za pomocným slovesem: „I have never seen…“.',
   },
   {
     id: 'ec_34',
@@ -366,7 +366,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She gave me a present.',
     category: 'word_order',
     level: 'A2',
-    explanationCs: 'Při dvou předmětech: „give + nepřímý předmět + přímý předmět" BEZ „to" (She gave me a present), nebo „give + přímý předmět + to + nepřímý" (She gave a present to me).',
+    explanationCs: 'Při dvou předmětech: „give + nepřímý předmět + přímý předmět“ BEZ „to“ (She gave me a present), nebo „give + přímý předmět + to + nepřímý“ (She gave a present to me).',
   },
   {
     id: 'ec_35',
@@ -386,7 +386,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Can you tell me what time it is?',
     category: 'word_order',
     level: 'B1',
-    explanationCs: '„Can you tell me…" je nepřímá otázka – používáme přímý slovosled (podmět + sloveso), ne otázkový.',
+    explanationCs: '„Can you tell me…“ je nepřímá otázka – používáme přímý slovosled (podmět + sloveso), ne otázkový.',
   },
 
   // ===== agreement (9) =====
@@ -398,7 +398,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Everyone has their own opinion.',
     category: 'agreement',
     level: 'A2',
-    explanationCs: '„Everyone" je gramaticky jednotné číslo – pojí se s „has", ne „have". V češtině „každý" je také singulár, ale Češi často chybují u anglického tvaru.',
+    explanationCs: '„Everyone“ je gramaticky jednotné číslo – pojí se s „has“, ne „have“. V češtině „každý“ je také singulár, ale Češi často chybují u anglického tvaru.',
   },
   {
     id: 'ec_38',
@@ -408,7 +408,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'The news is very shocking today.',
     category: 'agreement',
     level: 'B1',
-    explanationCs: '„News" vypadá jako množné číslo, ale je to nepočitatelné podstatné jméno – pojí se s „is".',
+    explanationCs: '„News“ vypadá jako množné číslo, ale je to nepočitatelné podstatné jméno – pojí se s „is“.',
   },
   {
     id: 'ec_39',
@@ -418,7 +418,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Mathematics is my favourite subject.',
     category: 'agreement',
     level: 'B1',
-    explanationCs: 'Názvy oborů končící na „-ics" (mathematics, physics, politics) jsou jednotné číslo: „Mathematics is…".',
+    explanationCs: 'Názvy oborů končící na „-ics“ (mathematics, physics, politics) jsou jednotné číslo: „Mathematics is…“.',
   },
   {
     id: 'ec_40',
@@ -428,7 +428,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'There are many people in the park.',
     category: 'agreement',
     level: 'A2',
-    explanationCs: '„People" je množné číslo – musíme použít „are". „There is" se pojí s jednotným číslem, „there are" s množným.',
+    explanationCs: '„People“ je množné číslo – musíme použít „are“. „There is“ se pojí s jednotným číslem, „there are“ s množným.',
   },
   {
     id: 'ec_41',
@@ -438,7 +438,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Neither of them is coming to the party.',
     category: 'agreement',
     level: 'B1',
-    explanationCs: '„Neither" je formálně jednotné číslo a pojí se s „is". V neformální angličtině se „are" toleruje, ale v písemném projevu je správné „is".',
+    explanationCs: '„Neither“ je formálně jednotné číslo a pojí se s „is“. V neformální angličtině se „are“ toleruje, ale v písemném projevu je správné „is“.',
   },
   {
     id: 'ec_42',
@@ -448,7 +448,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'My family has decided that they are moving to London.',
     category: 'agreement',
     level: 'B1',
-    explanationCs: '„They" je množné zájmeno a vždy se pojí s „are". I když „family" může být singulár, „they" nikdy nemůže mít „is".',
+    explanationCs: '„They“ je množné zájmeno a vždy se pojí s „are“. I když „family“ může být singulár, „they“ nikdy nemůže mít „is“.',
   },
   {
     id: 'ec_43',
@@ -458,7 +458,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Each of the students has a textbook.',
     category: 'agreement',
     level: 'B1',
-    explanationCs: '„Each" je vždy jednotné číslo, i když po něm následuje „of the students". Sloveso musí být „has".',
+    explanationCs: '„Each“ je vždy jednotné číslo, i když po něm následuje „of the students“. Sloveso musí být „has“.',
   },
   {
     id: 'ec_44',
@@ -468,7 +468,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'The furniture in both rooms is old.',
     category: 'agreement',
     level: 'B1',
-    explanationCs: '„Furniture" je nepočitatelné podstatné jméno – vždy jednotné číslo s „is". Čeština říká „nábytek je", ale Češi se spletou kvůli „rooms".',
+    explanationCs: '„Furniture“ je nepočitatelné podstatné jméno – vždy jednotné číslo s „is“. Čeština říká „nábytek je“, ale Češi se spletou kvůli „rooms“.',
   },
   {
     id: 'ec_45',
@@ -478,7 +478,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'One of my friends lives in Berlin.',
     category: 'agreement',
     level: 'A2',
-    explanationCs: 'Podmět je „one" (jednotné číslo), ne „friends". Proto sloveso musí být „lives" s koncovkou -s.',
+    explanationCs: 'Podmět je „one“ (jednotné číslo), ne „friends“. Proto sloveso musí být „lives“ s koncovkou -s.',
   },
 
   // ===== spelling (8) =====
@@ -490,7 +490,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I am very excited about the trip.',
     category: 'spelling',
     level: 'A2',
-    explanationCs: '„Exited" znamená „vyšel/odešel". Správně je „excited" (nadšený) – pozor na chybějící „c".',
+    explanationCs: '„Exited“ znamená „vyšel/odešel“. Správně je „excited“ (nadšený) – pozor na chybějící „c“.',
   },
   {
     id: 'ec_47',
@@ -500,7 +500,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She has a beautiful garden.',
     category: 'spelling',
     level: 'A2',
-    explanationCs: 'Přípona „-ful" se píše vždy s jedním „l": beautiful, careful, wonderful.',
+    explanationCs: 'Přípona „-ful“ se píše vždy s jedním „l“: beautiful, careful, wonderful.',
   },
   {
     id: 'ec_48',
@@ -510,7 +510,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'The children were very noisy and their teacher was bored of it.',
     category: 'spelling',
     level: 'B1',
-    explanationCs: '„Boring" = nudný (vlastnost věci), „bored" = znuděný (stav osoby). Koncovka -ED popisuje pocit, -ING popisuje vlastnost.',
+    explanationCs: '„Boring“ = nudný (vlastnost věci), „bored“ = znuděný (stav osoby). Koncovka -ED popisuje pocit, -ING popisuje vlastnost.',
   },
   {
     id: 'ec_49',
@@ -520,7 +520,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'We received your letter yesterday.',
     category: 'spelling',
     level: 'A2',
-    explanationCs: 'Pravidlo „i before e except after c" – po „c" píšeme „ei": receive, deceive, ceiling.',
+    explanationCs: 'Pravidlo „i before e except after c“ – po „c“ píšeme „ei“: receive, deceive, ceiling.',
   },
   {
     id: 'ec_50',
@@ -530,7 +530,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'The trip was an interesting experience.',
     category: 'spelling',
     level: 'A2',
-    explanationCs: '„Interested" = mající zájem (osoba), „interesting" = zajímavý (věc/zážitek). Zážitek je „interesting", ne „interested".',
+    explanationCs: '„Interested“ = mající zájem (osoba), „interesting“ = zajímavý (věc/zážitek). Zážitek je „interesting“, ne „interested“.',
   },
   {
     id: 'ec_51',
@@ -540,7 +540,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He made a terrible mistake.',
     category: 'spelling',
     level: 'A2',
-    explanationCs: 'Správný pravopis je „terrible" – bez „a" uprostřed. Přípona je „-ible", ne „-iable".',
+    explanationCs: 'Správný pravopis je „terrible“ – bez „a“ uprostřed. Přípona je „-ible“, ne „-iable“.',
   },
   {
     id: 'ec_52',
@@ -550,7 +550,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I am used to getting up early.',
     category: 'spelling',
     level: 'B1',
-    explanationCs: '„Be used to" + gerundium (-ing). „To" je zde předložka, ne součást infinitivu. Češi si to pletou s „used to + infinitiv" (dříve jsem…).',
+    explanationCs: '„Be used to“ + gerundium (-ing). „To“ je zde předložka, ne součást infinitivu. Češi si to pletou s „used to + infinitiv“ (dříve jsem…).',
   },
   {
     id: 'ec_53',
@@ -560,7 +560,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I look forward to seeing you soon.',
     category: 'spelling',
     level: 'B1',
-    explanationCs: '„Look forward to" + gerundium (-ing). „To" je zde předložka, takže po ní následuje -ing tvar, ne infinitiv.',
+    explanationCs: '„Look forward to“ + gerundium (-ing). „To“ je zde předložka, takže po ní následuje -ing tvar, ne infinitiv.',
   },
 
   // ===== modals (9) =====
@@ -572,7 +572,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'You must finish your homework.',
     category: 'modals',
     level: 'A2',
-    explanationCs: 'Po modálních slovesech (must, can, should…) následuje holý infinitiv BEZ „to". V češtině říkáme „musíš dokončit", takže „to" se zdá přirozené.',
+    explanationCs: 'Po modálních slovesech (must, can, should…) následuje holý infinitiv BEZ „to“. V češtině říkáme „musíš dokončit“, takže „to“ se zdá přirozené.',
   },
   {
     id: 'ec_55',
@@ -582,7 +582,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She can speak three languages.',
     category: 'modals',
     level: 'A2',
-    explanationCs: 'Po „can" nikdy nepoužíváme „to". Modální slovesa se přímo pojí s infinitivem bez „to".',
+    explanationCs: 'Po „can“ nikdy nepoužíváme „to“. Modální slovesa se přímo pojí s infinitivem bez „to“.',
   },
   {
     id: 'ec_56',
@@ -592,7 +592,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'You mustn\'t park here.',
     category: 'modals',
     level: 'A2',
-    explanationCs: 'Modální slovesa tvoří zápor přímo: „mustn\'t", ne „don\'t must". Pomocné „do" se s modálními slovesy nepoužívá.',
+    explanationCs: 'Modální slovesa tvoří zápor přímo: „mustn\'t“, ne „don\'t must“. Pomocné „do“ se s modálními slovesy nepoužívá.',
   },
   {
     id: 'ec_57',
@@ -602,7 +602,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He should go to the doctor.',
     category: 'modals',
     level: 'A2',
-    explanationCs: 'Po „should" (i po všech modálních slovesech) je sloveso vždy v základním tvaru bez koncovky -s/-es.',
+    explanationCs: 'Po „should“ (i po všech modálních slovesech) je sloveso vždy v základním tvaru bez koncovky -s/-es.',
   },
   {
     id: 'ec_58',
@@ -612,7 +612,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Do I have to pay for the tickets? No, you don\'t have to.',
     category: 'modals',
     level: 'B1',
-    explanationCs: '„Mustn\'t" = nesmíš (zákaz). „Don\'t have to" / „needn\'t" = nemusíš (není to nutné). Češi se pletou, protože „must" = muset, a tak „mustn\'t" svádí k překladu „nemusíš".',
+    explanationCs: '„Mustn\'t“ = nesmíš (zákaz). „Don\'t have to“ / „needn\'t“ = nemusíš (není to nutné). Češi se pletou, protože „must“ = muset, a tak „mustn\'t“ svádí k překladu „nemusíš“.',
   },
   {
     id: 'ec_59',
@@ -622,7 +622,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'The lights are on and her car is outside, so she must be at home.',
     category: 'modals',
     level: 'B1',
-    explanationCs: '„Must" vyjadřuje logický úsudek (určitě je doma). „Can" se pro odhad v kladné větě nepoužívá (v záporu ano: She can\'t be at work).',
+    explanationCs: '„Must“ vyjadřuje logický úsudek (určitě je doma). „Can“ se pro odhad v kladné větě nepoužívá (v záporu ano: She can\'t be at work).',
   },
   {
     id: 'ec_60',
@@ -632,7 +632,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'You needn\'t worry about the exam.',
     category: 'modals',
     level: 'B1',
-    explanationCs: '„Needn\'t" je modální sloveso – po něm následuje holý infinitiv bez „to". (Ale „don\'t need to" s „to" je také správně.)',
+    explanationCs: '„Needn\'t“ je modální sloveso – po něm následuje holý infinitiv bez „to“. (Ale „don\'t need to“ s „to“ je také správně.)',
   },
   {
     id: 'ec_61',
@@ -642,7 +642,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'When I was five, I could already read.',
     category: 'modals',
     level: 'A2',
-    explanationCs: '„Can" je přítomný čas. Pro minulost (when I was five) potřebujeme „could" – „v pěti letech jsem už uměl číst".',
+    explanationCs: '„Can“ je přítomný čas. Pro minulost (when I was five) potřebujeme „could“ – „v pěti letech jsem už uměl číst“.',
   },
   {
     id: 'ec_62',
@@ -652,7 +652,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'You should have gone to the doctor.',
     category: 'modals',
     level: 'B1',
-    explanationCs: 'Po „should have" následuje minulé příčestí (past participle): „gone", ne minulý čas „went".',
+    explanationCs: 'Po „should have“ následuje minulé příčestí (past participle): „gone“, ne minulý čas „went“.',
   },
 
   // ===== mixed (8) =====
@@ -664,7 +664,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He told me that he was tired.',
     category: 'mixed',
     level: 'A2',
-    explanationCs: '„Say" nemá nepřímý předmět (neříkáme „said me"). „Tell" má: „tell someone". Čeština „řekl mi" se překládá jako „told me".',
+    explanationCs: '„Say“ nemá nepřímý předmět (neříkáme „said me“). „Tell“ má: „tell someone“. Čeština „řekl mi“ se překládá jako „told me“.',
   },
   {
     id: 'ec_64',
@@ -674,7 +674,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I agree with you.',
     category: 'mixed',
     level: 'A2',
-    explanationCs: '„Agree" je sloveso, ne přídavné jméno – nepoužívá se s „am/is/are". Správně je „I agree", ne „I am agree".',
+    explanationCs: '„Agree“ je sloveso, ne přídavné jméno – nepoužívá se s „am/is/are“. Správně je „I agree“, ne „I am agree“.',
   },
   {
     id: 'ec_65',
@@ -684,7 +684,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'She suggested that I go to the doctor.',
     category: 'mixed',
     level: 'B1',
-    explanationCs: '„Suggest" se nepojí s „someone to do". Správně: „suggest + that + podmět + sloveso" nebo „suggest + -ing".',
+    explanationCs: '„Suggest“ se nepojí s „someone to do“. Správně: „suggest + that + podmět + sloveso“ nebo „suggest + -ing“.',
   },
   {
     id: 'ec_66',
@@ -694,7 +694,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'How long have you been waiting?',
     category: 'mixed',
     level: 'B1',
-    explanationCs: '„How long" samo znamená „jak dlouho" – slovo „time" se nepřidává. „How long time" je doslovný překlad z češtiny („jak dlouhou dobu").',
+    explanationCs: '„How long“ samo znamená „jak dlouho“ – slovo „time“ se nepřidává. „How long time“ je doslovný překlad z češtiny („jak dlouhou dobu“).',
   },
   {
     id: 'ec_67',
@@ -704,7 +704,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Despite the rain, we went for a walk.',
     category: 'mixed',
     level: 'B1',
-    explanationCs: '„Despite" se používá BEZ „of". „In spite of" má „of", ale „despite" nikdy. Češi mísí obě vazby dohromady.',
+    explanationCs: '„Despite“ se používá BEZ „of“. „In spite of“ má „of“, ale „despite“ nikdy. Češi mísí obě vazby dohromady.',
   },
   {
     id: 'ec_68',
@@ -714,7 +714,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'I am looking forward to meeting you.',
     category: 'mixed',
     level: 'B1',
-    explanationCs: '„Look forward to" + gerundium (-ing). Slovo „to" je zde předložka, ne část infinitivu, proto po něm jde -ing tvar.',
+    explanationCs: '„Look forward to“ + gerundium (-ing). Slovo „to“ je zde předložka, ne část infinitivu, proto po něm jde -ing tvar.',
   },
   {
     id: 'ec_69',
@@ -724,7 +724,7 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'He explained to me how to use the app.',
     category: 'mixed',
     level: 'B1',
-    explanationCs: '„Explain" vyžaduje „to" před osobou: „explain something to someone", ne „explain someone something". Čeština říká „vysvětlil mi" bez předložky.',
+    explanationCs: '„Explain“ vyžaduje „to“ před osobou: „explain something to someone“, ne „explain someone something“. Čeština říká „vysvětlil mi“ bez předložky.',
   },
   {
     id: 'ec_70',
@@ -734,6 +734,6 @@ export const ERROR_CORRECTIONS: ErrorCorrectionExercise[] = [
     correctedSentence: 'Most of the students passed the exam.',
     category: 'mixed',
     level: 'B1',
-    explanationCs: 'Ve významu „většina" se „most" používá bez členu: „most students" nebo „most of the students". „The most" patří jen do 3. stupně (the most beautiful).',
+    explanationCs: 'Ve významu „většina“ se „most“ používá bez členu: „most students“ nebo „most of the students“. „The most“ patří jen do 3. stupně (the most beautiful).',
   },
 ];

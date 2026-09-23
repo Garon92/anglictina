@@ -42,7 +42,7 @@ export const CONDITIONAL_TYPES: ConditionalType[] = [
     nameCs: 'První kondicionál',
     formula: 'If + present simple, will + infinitive',
     usage: 'Real, possible situations in the future. The condition is likely to happen.',
-    usageCs: 'Reálné, pravděpodobné situace v budoucnosti. Podmínka se může splnit. V podmínce je přítomný čas prostý, v hlavní větě „will".',
+    usageCs: 'Reálné, pravděpodobné situace v budoucnosti. Podmínka se může splnit. V podmínce je přítomný čas prostý, v hlavní větě „will“.',
     examples: [
       { en: 'If it rains tomorrow, I will stay at home.', cs: 'Jestli bude zítra pršet, zůstanu doma.' },
       { en: 'If you study hard, you will pass the exam.', cs: 'Když se budeš pilně učit, zkoušku uděláš.' },
@@ -57,7 +57,7 @@ export const CONDITIONAL_TYPES: ConditionalType[] = [
     nameCs: 'Druhý kondicionál',
     formula: 'If + past simple, would + infinitive',
     usage: 'Hypothetical, unlikely or imaginary present/future situations.',
-    usageCs: 'Nereálné, nepravděpodobné nebo smyšlené situace v přítomnosti/budoucnosti. V podmínce je minulý čas prostý, v hlavní větě „would". U slovesa „be" se ve formální angličtině používá „were" pro všechny osoby.',
+    usageCs: 'Nereálné, nepravděpodobné nebo smyšlené situace v přítomnosti/budoucnosti. V podmínce je minulý čas prostý, v hlavní větě „would“. U slovesa „be“ se ve formální angličtině používá „were“ pro všechny osoby.',
     examples: [
       { en: 'If I were rich, I would travel the world.', cs: 'Kdybych byl bohatý, cestoval bych po světě.' },
       { en: 'If she had more time, she would learn French.', cs: 'Kdyby měla víc času, učila by se francouzsky.' },
@@ -72,7 +72,7 @@ export const CONDITIONAL_TYPES: ConditionalType[] = [
     nameCs: 'Třetí kondicionál',
     formula: 'If + past perfect, would have + past participle',
     usage: 'Unreal situations in the past. Imagining a different past outcome.',
-    usageCs: 'Nereálné situace v minulosti – představujeme si, co by se bývalo stalo jinak. V podmínce je předminulý čas (had + příčestí), v hlavní větě „would have" + příčestí.',
+    usageCs: 'Nereálné situace v minulosti – představujeme si, co by se bývalo stalo jinak. V podmínce je předminulý čas (had + příčestí), v hlavní větě „would have“ + příčestí.',
     examples: [
       { en: 'If I had studied harder, I would have passed the exam.', cs: 'Kdybych se býval víc učil, udělal bych tu zkoušku.' },
       { en: 'If she had taken an umbrella, she wouldn\'t have got wet.', cs: 'Kdyby si bývala vzala deštník, nepromokla by.' },
@@ -111,7 +111,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If you ___ (heat) ice, it melts.',
     answer: 'heat',
-    explanationCs: 'Nultý kondicionál – obě části jsou v přítomném čase prostém. „Heat" je správný tvar.',
+    explanationCs: 'Nultý kondicionál – obě části jsou v přítomném čase prostém. „Heat“ je správný tvar.',
   },
   {
     id: 'cond_0_02',
@@ -120,7 +120,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'Water ___ (freeze) if the temperature is below zero.',
     answer: 'freezes',
-    explanationCs: 'Nultý kondicionál – podmět „water" je 3. osoba jednotného čísla, proto „freezes".',
+    explanationCs: 'Nultý kondicionál – podmět „water“ je 3. osoba jednotného čísla, proto „freezes“.',
   },
   {
     id: 'cond_0_03',
@@ -129,7 +129,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If you ___ (not/eat) enough, you feel tired.',
     answer: "don't eat",
-    explanationCs: 'Nultý kondicionál – záporný tvar v přítomném čase prostém: „don\'t eat".',
+    explanationCs: 'Nultý kondicionál – záporný tvar v přítomném čase prostém: „don\'t eat“.',
   },
   {
     id: 'cond_0_04',
@@ -138,7 +138,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If you ___ (press) this button, the machine starts.',
     answer: 'press',
-    explanationCs: 'Nultý kondicionál – obecný fakt. „You" + základní tvar „press".',
+    explanationCs: 'Nultý kondicionál – obecný fakt. „You“ + základní tvar „press“.',
   },
   {
     id: 'cond_0_05',
@@ -147,7 +147,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'Plants ___ (die) if they ___ (not/get) enough sunlight.',
     answer: 'die ... don\'t get',
-    explanationCs: 'Nultý kondicionál – oba tvary jsou v přítomném čase prostém. „Plants die" a „they don\'t get".',
+    explanationCs: 'Nultý kondicionál – oba tvary jsou v přítomném čase prostém. „Plants die“ a „they don\'t get“.',
   },
   {
     id: 'cond_0_06',
@@ -156,7 +156,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If it ___ (rain), the streets get wet.',
     answer: 'rains',
-    explanationCs: 'Nultý kondicionál – „it" je 3. osoba → „rains".',
+    explanationCs: 'Nultý kondicionál – „it“ je 3. osoba → „rains“.',
   },
 
   // mcq (6)
@@ -188,7 +188,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'Metal ___ if you heat it.',
     answer: 'expands',
     options: ['expands', 'had expanded', 'would expand', 'expanded'],
-    explanationCs: 'Nultý kondicionál – fyzikální zákon. „Metal expands" je přítomný čas prostý.',
+    explanationCs: 'Nultý kondicionál – fyzikální zákon. „Metal expands“ je přítomný čas prostý.',
   },
   {
     id: 'cond_0_10',
@@ -271,7 +271,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If it ___ (rain) tomorrow, we will stay inside.',
     answer: 'rains',
-    explanationCs: 'První kondicionál – v podmínce (if-větě) je přítomný čas prostý, ne „will". Proto „rains".',
+    explanationCs: 'První kondicionál – v podmínce (if-větě) je přítomný čas prostý, ne „will“. Proto „rains“.',
   },
   {
     id: 'cond_1_02',
@@ -280,7 +280,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If you ___ (study) hard, you will pass the test.',
     answer: 'study',
-    explanationCs: 'První kondicionál – v podmínce přítomný čas prostý: „study".',
+    explanationCs: 'První kondicionál – v podmínce přítomný čas prostý: „study“.',
   },
   {
     id: 'cond_1_03',
@@ -289,7 +289,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'She ___ (not/come) to the party if you don\'t invite her.',
     answer: "won't come",
-    explanationCs: 'První kondicionál – hlavní věta s „will" v záporu: „won\'t come".',
+    explanationCs: 'První kondicionál – hlavní věta s „will“ v záporu: „won\'t come“.',
   },
   {
     id: 'cond_1_04',
@@ -298,7 +298,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If we ___ (leave) now, we will catch the train.',
     answer: 'leave',
-    explanationCs: 'První kondicionál – podmínka v přítomném čase prostém: „leave".',
+    explanationCs: 'První kondicionál – podmínka v přítomném čase prostém: „leave“.',
   },
   {
     id: 'cond_1_05',
@@ -307,7 +307,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'I ___ (help) you if you ask me nicely.',
     answer: 'will help',
-    explanationCs: 'První kondicionál – hlavní věta obsahuje „will" + infinitiv: „will help".',
+    explanationCs: 'První kondicionál – hlavní věta obsahuje „will“ + infinitiv: „will help“.',
   },
   {
     id: 'cond_1_06',
@@ -316,7 +316,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If he ___ (not/hurry), he will miss the bus.',
     answer: "doesn't hurry",
-    explanationCs: 'První kondicionál – v podmínce záporný přítomný čas: „doesn\'t hurry".',
+    explanationCs: 'První kondicionál – v podmínce záporný přítomný čas: „doesn\'t hurry“.',
   },
 
   // mcq (6)
@@ -328,7 +328,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If you eat too much, you ___ feel sick.',
     answer: 'will',
     options: ['will', 'would', 'are', 'did'],
-    explanationCs: 'První kondicionál – reálná možnost v budoucnosti → „will" v hlavní větě.',
+    explanationCs: 'První kondicionál – reálná možnost v budoucnosti → „will“ v hlavní větě.',
   },
   {
     id: 'cond_1_08',
@@ -338,7 +338,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If I ___ enough money, I will buy a new phone.',
     answer: 'have',
     options: ['have', 'will have', 'had', 'would have'],
-    explanationCs: 'První kondicionál – v podmínce vždy přítomný čas prostý, ne „will".',
+    explanationCs: 'První kondicionál – v podmínce vždy přítomný čas prostý, ne „will“.',
   },
   {
     id: 'cond_1_09',
@@ -368,7 +368,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If the weather ___ nice, we will have a picnic.',
     answer: 'is',
     options: ['is', 'will be', 'was', 'would be'],
-    explanationCs: 'První kondicionál – podmínka v přítomném čase: „is".',
+    explanationCs: 'První kondicionál – podmínka v přítomném čase: „is“.',
   },
   {
     id: 'cond_1_12',
@@ -378,7 +378,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If you don\'t water my flowers next week, they ___.',
     answer: 'will die',
     options: ['will die', 'would die', 'die', 'died'],
-    explanationCs: 'První kondicionál – konkrétní reálná hrozba v budoucnosti (next week) → „will die" v hlavní větě. (Obecnou pravdu by vyjádřil nultý kondicionál: „If you don\'t water flowers, they die.")',
+    explanationCs: 'První kondicionál – konkrétní reálná hrozba v budoucnosti (next week) → „will die“ v hlavní větě. (Obecnou pravdu by vyjádřil nultý kondicionál: „If you don\'t water flowers, they die.“)',
   },
 
   // match_type (4)
@@ -389,7 +389,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If you finish your homework, I will take you to the cinema.',
     answer: '1',
-    explanationCs: 'Podmínka v přítomném čase + „will" v hlavní větě → první kondicionál.',
+    explanationCs: 'Podmínka v přítomném čase + „will“ v hlavní větě → první kondicionál.',
   },
   {
     id: 'cond_1_14',
@@ -407,7 +407,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'Unless you apologize, she won\'t forgive you.',
     answer: '1',
-    explanationCs: '„Unless" = „if not". Přítomný čas + won\'t → první kondicionál.',
+    explanationCs: '„Unless“ = „if not“. Přítomný čas + won\'t → první kondicionál.',
   },
   {
     id: 'cond_1_16',
@@ -431,7 +431,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If I ___ (be) you, I would accept the offer.',
     answer: 'were',
-    explanationCs: 'Druhý kondicionál – u slovesa „be" se v podmínce používá „were" pro všechny osoby.',
+    explanationCs: 'Druhý kondicionál – u slovesa „be“ se v podmínce používá „were“ pro všechny osoby.',
   },
   {
     id: 'cond_2_02',
@@ -440,7 +440,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If she ___ (have) more free time, she would read more books.',
     answer: 'had',
-    explanationCs: 'Druhý kondicionál – v podmínce minulý čas prostý: „had".',
+    explanationCs: 'Druhý kondicionál – v podmínce minulý čas prostý: „had“.',
   },
   {
     id: 'cond_2_03',
@@ -449,7 +449,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'I ___ (travel) around the world if I won the lottery.',
     answer: 'would travel',
-    explanationCs: 'Druhý kondicionál – v hlavní větě „would" + infinitiv: „would travel".',
+    explanationCs: 'Druhý kondicionál – v hlavní větě „would“ + infinitiv: „would travel“.',
   },
   {
     id: 'cond_2_04',
@@ -458,7 +458,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If they ___ (live) closer to school, they wouldn\'t need a car.',
     answer: 'lived',
-    explanationCs: 'Druhý kondicionál – nereálná situace v přítomnosti, podmínka v minulém čase: „lived".',
+    explanationCs: 'Druhý kondicionál – nereálná situace v přítomnosti, podmínka v minulém čase: „lived“.',
   },
   {
     id: 'cond_2_05',
@@ -467,7 +467,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If I ___ (know) the answer, I would tell you.',
     answer: 'knew',
-    explanationCs: 'Druhý kondicionál – podmínka v minulém čase prostém: „knew".',
+    explanationCs: 'Druhý kondicionál – podmínka v minulém čase prostém: „knew“.',
   },
   {
     id: 'cond_2_06',
@@ -476,7 +476,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'She ___ (not/be) so stressed if she didn\'t work so many hours.',
     answer: "wouldn't be",
-    explanationCs: 'Druhý kondicionál – hlavní věta v záporu: „wouldn\'t be".',
+    explanationCs: 'Druhý kondicionál – hlavní věta v záporu: „wouldn\'t be“.',
   },
 
   // mcq (6)
@@ -488,7 +488,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If I ___ a million dollars, I would donate half to charity.',
     answer: 'had',
     options: ['had', 'have', 'will have', 'would have'],
-    explanationCs: 'Druhý kondicionál – nereálná podmínka v přítomnosti → minulý čas „had".',
+    explanationCs: 'Druhý kondicionál – nereálná podmínka v přítomnosti → minulý čas „had“.',
   },
   {
     id: 'cond_2_08',
@@ -498,7 +498,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If she were taller, she ___ a model.',
     answer: 'would be',
     options: ['would be', 'will be', 'is', 'was'],
-    explanationCs: 'Druhý kondicionál – hlavní věta s „would" + infinitiv.',
+    explanationCs: 'Druhý kondicionál – hlavní věta s „would“ + infinitiv.',
   },
   {
     id: 'cond_2_09',
@@ -508,7 +508,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If I were you, I ___ to the doctor.',
     answer: 'would go',
     options: ['would go', 'will go', 'go', 'went'],
-    explanationCs: 'Druhý kondicionál – typická rada: „If I were you, I would…".',
+    explanationCs: 'Druhý kondicionál – typická rada: „If I were you, I would…“.',
   },
   {
     id: 'cond_2_10',
@@ -518,7 +518,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'What ___ you do if you found a wallet on the street?',
     answer: 'would',
     options: ['would', 'will', 'do', 'did'],
-    explanationCs: 'Druhý kondicionál – hypotetická otázka → „would" v hlavní větě.',
+    explanationCs: 'Druhý kondicionál – hypotetická otázka → „would“ v hlavní větě.',
   },
   {
     id: 'cond_2_11',
@@ -528,7 +528,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If he ___ English better, he would get a promotion.',
     answer: 'spoke',
     options: ['spoke', 'speaks', 'will speak', 'would speak'],
-    explanationCs: 'Druhý kondicionál – nereálná přítomnost → minulý čas „spoke" v podmínce.',
+    explanationCs: 'Druhý kondicionál – nereálná přítomnost → minulý čas „spoke“ v podmínce.',
   },
   {
     id: 'cond_2_12',
@@ -538,7 +538,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If we had a garden, we ___ a dog.',
     answer: 'would get',
     options: ['would get', 'will get', 'get', 'got'],
-    explanationCs: 'Druhý kondicionál – nemáme zahradu (nereálná situace) → „would get".',
+    explanationCs: 'Druhý kondicionál – nemáme zahradu (nereálná situace) → „would get“.',
   },
 
   // match_type (4)
@@ -558,7 +558,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'A2',
     prompt: 'If I were the president, I would change the law.',
     answer: '2',
-    explanationCs: '„If I were" + „would" → hypotetická situace v přítomnosti → druhý kondicionál.',
+    explanationCs: '„If I were“ + „would“ → hypotetická situace v přítomnosti → druhý kondicionál.',
   },
   {
     id: 'cond_2_15',
@@ -576,7 +576,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If people could fly, there would be no traffic jams.',
     answer: '2',
-    explanationCs: '„Could" (minulý tvar „can") + „would" → nereálná představa → druhý kondicionál.',
+    explanationCs: '„Could“ (minulý tvar „can“) + „would“ → nereálná představa → druhý kondicionál.',
   },
 
   // ═══════════════════════════════════════════════════════════
@@ -591,7 +591,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If I ___ (know) about the meeting, I would have attended.',
     answer: 'had known',
-    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had known".',
+    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had known“.',
   },
   {
     id: 'cond_3_02',
@@ -600,7 +600,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'She ___ (not/miss) the flight if she had left home earlier.',
     answer: "wouldn't have missed",
-    explanationCs: 'Třetí kondicionál – hlavní věta v záporu: „wouldn\'t have missed".',
+    explanationCs: 'Třetí kondicionál – hlavní věta v záporu: „wouldn\'t have missed“.',
   },
   {
     id: 'cond_3_03',
@@ -609,7 +609,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If they ___ (arrive) on time, they would have seen the opening ceremony.',
     answer: 'had arrived',
-    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had arrived".',
+    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had arrived“.',
   },
   {
     id: 'cond_3_04',
@@ -618,7 +618,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'We ___ (win) the match if we had trained more.',
     answer: 'would have won',
-    explanationCs: 'Třetí kondicionál – hlavní věta: „would have" + příčestí minulé: „would have won".',
+    explanationCs: 'Třetí kondicionál – hlavní věta: „would have“ + příčestí minulé: „would have won“.',
   },
   {
     id: 'cond_3_05',
@@ -627,7 +627,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If he ___ (not/eat) the old fish, he wouldn\'t have been ill.',
     answer: "hadn't eaten",
-    explanationCs: 'Třetí kondicionál – záporná podmínka v předminulém čase: „hadn\'t eaten".',
+    explanationCs: 'Třetí kondicionál – záporná podmínka v předminulém čase: „hadn\'t eaten“.',
   },
   {
     id: 'cond_3_06',
@@ -636,7 +636,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If you ___ (tell) me the truth, I would have helped you.',
     answer: 'had told',
-    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had told".',
+    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had told“.',
   },
 
   // mcq (6)
@@ -648,7 +648,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If I ___ the email, I would have replied.',
     answer: 'had seen',
     options: ['had seen', 'saw', 'have seen', 'would see'],
-    explanationCs: 'Třetí kondicionál – minulá nereálná situace → „had seen" (předminulý čas).',
+    explanationCs: 'Třetí kondicionál – minulá nereálná situace → „had seen“ (předminulý čas).',
   },
   {
     id: 'cond_3_08',
@@ -658,7 +658,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If she had taken the medicine, she ___ better the next day.',
     answer: 'would have felt',
     options: ['would have felt', 'will feel', 'would feel', 'felt'],
-    explanationCs: 'Třetí kondicionál – minulá podmínka i minulý výsledek („the next day" = následující den v minulosti) → „would have" + příčestí minulé.',
+    explanationCs: 'Třetí kondicionál – minulá podmínka i minulý výsledek („the next day“ = následující den v minulosti) → „would have“ + příčestí minulé.',
   },
   {
     id: 'cond_3_09',
@@ -668,7 +668,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'We ___ lost if we had followed the map.',
     answer: "wouldn't have got",
     options: ["wouldn't have got", "won't get", "didn't get", "wouldn't get"],
-    explanationCs: 'Třetí kondicionál – záporná hlavní věta v minulosti: „wouldn\'t have got".',
+    explanationCs: 'Třetí kondicionál – záporná hlavní věta v minulosti: „wouldn\'t have got“.',
   },
   {
     id: 'cond_3_10',
@@ -678,7 +678,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If you ___ me, I would have come to your wedding.',
     answer: 'had invited',
     options: ['had invited', 'invited', 'have invited', 'would invite'],
-    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had invited".',
+    explanationCs: 'Třetí kondicionál – podmínka v předminulém čase: „had invited“.',
   },
   {
     id: 'cond_3_11',
@@ -688,7 +688,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If they had saved more money, they ___ a bigger house last year.',
     answer: 'could have bought',
     options: ['could have bought', 'can buy', 'could buy', 'will buy'],
-    explanationCs: 'Třetí kondicionál – „could have" + příčestí → možnost v minulosti (last year), která se nestala.',
+    explanationCs: 'Třetí kondicionál – „could have“ + příčestí → možnost v minulosti (last year), která se nestala.',
   },
   {
     id: 'cond_3_12',
@@ -698,7 +698,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If he ___ harder at school, he would have got into university.',
     answer: 'had worked',
     options: ['had worked', 'worked', 'has worked', 'would work'],
-    explanationCs: 'Třetí kondicionál – minulá nereálná podmínka → předminulý čas „had worked".',
+    explanationCs: 'Třetí kondicionál – minulá nereálná podmínka → předminulý čas „had worked“.',
   },
 
   // match_type (4)
@@ -718,7 +718,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If she had worn a coat, she wouldn\'t have caught a cold.',
     answer: '3',
-    explanationCs: '„Had worn" + „wouldn\'t have caught" → třetí kondicionál.',
+    explanationCs: '„Had worn“ + „wouldn\'t have caught“ → třetí kondicionál.',
   },
   {
     id: 'cond_3_15',
@@ -736,7 +736,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'If he hadn\'t broken his leg, he would have played in the final.',
     answer: '3',
-    explanationCs: '„Hadn\'t broken" + „would have played" → nereálná minulost → třetí kondicionál.',
+    explanationCs: '„Hadn\'t broken“ + „would have played“ → nereálná minulost → třetí kondicionál.',
   },
 
   // ═══════════════════════════════════════════════════════════
@@ -769,7 +769,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     level: 'B1',
     prompt: 'He is a careless driver. If he ___ (be) more careful, he wouldn\'t have crashed the car last week.',
     answer: 'were|was',
-    explanationCs: 'Smíšený kondicionál – trvalá přítomná vlastnost (je neopatrný → if he were more careful) → minulý výsledek (wouldn\'t have crashed last week). Ve formální angličtině „were", hovorově i „was".',
+    explanationCs: 'Smíšený kondicionál – trvalá přítomná vlastnost (je neopatrný → if he were more careful) → minulý výsledek (wouldn\'t have crashed last week). Ve formální angličtině „were“, hovorově i „was“.',
   },
   {
     id: 'cond_m_04',
@@ -808,7 +808,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If I had listened to my parents, I ___ in trouble now.',
     answer: "wouldn't be",
     options: ["wouldn't be", "wouldn't have been", "won't be", "am not"],
-    explanationCs: 'Smíšený kondicionál – minulá podmínka → přítomný výsledek: „wouldn\'t be" (ne „wouldn\'t have been").',
+    explanationCs: 'Smíšený kondicionál – minulá podmínka → přítomný výsledek: „wouldn\'t be“ (ne „wouldn\'t have been“).',
   },
   {
     id: 'cond_m_08',
@@ -848,7 +848,7 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     prompt: 'If I had eaten breakfast, I ___ so hungry right now.',
     answer: "wouldn't be",
     options: ["wouldn't be", "wouldn't have been", "won't be", "am not"],
-    explanationCs: 'Smíšený kondicionál – minulá podmínka → přítomný stav: „wouldn\'t be … right now".',
+    explanationCs: 'Smíšený kondicionál – minulá podmínka → přítomný stav: „wouldn\'t be … right now“.',
   },
   {
     id: 'cond_m_12',

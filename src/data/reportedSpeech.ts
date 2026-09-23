@@ -26,7 +26,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Přítomný čas prostý → Minulý čas prostý',
     directExample: '"I like chocolate."',
     reportedExample: 'She said she liked chocolate.',
-    explanationCs: 'Při převodu přímé řeči na nepřímou se přítomný čas prostý mění na minulý čas prostý. „like" se změní na „liked". Pokud výrok stále platí, posun času není povinný (She said she likes chocolate), ale v testech a v těchto cvičeních časy vždy posouváme.',
+    explanationCs: 'Při převodu přímé řeči na nepřímou se přítomný čas prostý mění na minulý čas prostý. „like“ se změní na „liked“. Pokud výrok stále platí, posun času není povinný (She said she likes chocolate), ale v testech a v těchto cvičeních časy vždy posouváme.',
   },
   {
     id: 'rs_rule_02',
@@ -42,7 +42,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Minulý čas prostý → Předminulý čas',
     directExample: '"I saw the film yesterday."',
     reportedExample: 'She said she had seen the film the day before.',
-    explanationCs: 'Minulý čas prostý se mění na předminulý čas (had + příčestí minulé). „saw" → „had seen". Pozor: „yesterday" → „the day before".',
+    explanationCs: 'Minulý čas prostý se mění na předminulý čas (had + příčestí minulé). „saw“ → „had seen“. Pozor: „yesterday“ → „the day before“.',
   },
   {
     id: 'rs_rule_04',
@@ -50,7 +50,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Předpřítomný čas → Předminulý čas',
     directExample: '"I have finished my homework."',
     reportedExample: 'He said he had finished his homework.',
-    explanationCs: 'Předpřítomný čas (have/has + příčestí) se mění na předminulý čas (had + příčestí). „Have" i „has" se mění na „had". Předminulý čas (had + příčestí) už zůstává beze změny.',
+    explanationCs: 'Předpřítomný čas (have/has + příčestí) se mění na předminulý čas (had + příčestí). „Have“ i „has“ se mění na „had“. Předminulý čas (had + příčestí) už zůstává beze změny.',
   },
   {
     id: 'rs_rule_05',
@@ -58,7 +58,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Will → Would',
     directExample: '"I will help you."',
     reportedExample: 'She said she would help me.',
-    explanationCs: '„Will" se v nepřímé řeči mění na „would". Pozor i na změnu zájmen: „you" → „me".',
+    explanationCs: '„Will“ se v nepřímé řeči mění na „would“. Pozor i na změnu zájmen: „you“ → „me“.',
   },
   {
     id: 'rs_rule_06',
@@ -66,7 +66,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Can → Could',
     directExample: '"I can swim very well."',
     reportedExample: 'He said he could swim very well.',
-    explanationCs: '„Can" se v nepřímé řeči mění na „could".',
+    explanationCs: '„Can“ se v nepřímé řeči mění na „could“.',
   },
   {
     id: 'rs_rule_07',
@@ -74,7 +74,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'May → Might, Must → Had to',
     directExample: '"You must leave now."',
     reportedExample: 'She said I had to leave then.',
-    explanationCs: '„May" se mění na „might", „must" na „had to" („must" může zůstat i beze změny, ale v těchto cvičeních ho měníme). Pozor: „now" → „then".',
+    explanationCs: '„May“ se mění na „might“, „must“ na „had to“ („must“ může zůstat i beze změny, ale v těchto cvičeních ho měníme). Pozor: „now“ → „then“.',
   },
   {
     id: 'rs_rule_08',
@@ -98,7 +98,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Zjišťovací otázky → if / whether',
     directExample: '"Do you like pizza?"',
     reportedExample: 'He asked me if I liked pizza.',
-    explanationCs: 'Zjišťovací otázky (ano/ne) se převádějí pomocí „if" nebo „whether". Slovosled se mění na oznamovací (bez inverze). „Do you like" → „if I liked".',
+    explanationCs: 'Zjišťovací otázky (ano/ne) se převádějí pomocí „if“ nebo „whether“. Slovosled se mění na oznamovací (bez inverze). „Do you like“ → „if I liked“.',
   },
   {
     id: 'rs_rule_11',
@@ -106,7 +106,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Doplňovací otázky → tázací slovo + oznamovací slovosled',
     directExample: '"Where do you live?"',
     reportedExample: 'She asked me where I lived.',
-    explanationCs: 'U doplňovacích otázek (who, what, where, when, why, how) zůstává tázací slovo, ale slovosled se mění na oznamovací. Nepoužíváme „do/does/did" v nepřímé řeči.',
+    explanationCs: 'U doplňovacích otázek (who, what, where, when, why, how) zůstává tázací slovo, ale slovosled se mění na oznamovací. Nepoužíváme „do/does/did“ v nepřímé řeči.',
   },
   {
     id: 'rs_rule_12',
@@ -114,7 +114,7 @@ export const REPORTED_SPEECH_RULES: ReportedSpeechRule[] = [
     titleCs: 'Rozkazy a žádosti → told / asked + to + infinitiv',
     directExample: '"Close the window!"',
     reportedExample: 'She told me to close the window.',
-    explanationCs: 'Rozkazy převádíme pomocí „told + osoba + to + infinitiv". Žádosti pomocí „asked + osoba + to + infinitiv". Záporné: „told / asked + not to + infinitiv".',
+    explanationCs: 'Rozkazy převádíme pomocí „told + osoba + to + infinitiv“. Žádosti pomocí „asked + osoba + to + infinitiv“. Záporné: „told / asked + not to + infinitiv“.',
   },
 ];
 
@@ -132,7 +132,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I like football."',
     prompt: 'He said: "I like football." → He said …',
     answer: 'He said he liked football.',
-    explanationCs: 'Present simple → past simple: „like" → „liked". Zájmeno „I" → „he".',
+    explanationCs: 'Present simple → past simple: „like“ → „liked“. Zájmeno „I“ → „he“.',
   },
   {
     id: 'rs_tr_02',
@@ -142,7 +142,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I am tired."',
     prompt: 'She said: "I am tired." → She said …',
     answer: 'She said she was tired.',
-    explanationCs: '„Am" se mění na „was". Zájmeno „I" → „she".',
+    explanationCs: '„Am“ se mění na „was“. Zájmeno „I“ → „she“.',
   },
   {
     id: 'rs_tr_03',
@@ -152,7 +152,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"We are going to the cinema."',
     prompt: 'They said: "We are going to the cinema." → They said …',
     answer: 'They said they were going to the cinema.',
-    explanationCs: 'Present continuous → past continuous: „are going" → „were going". „We" → „they".',
+    explanationCs: 'Present continuous → past continuous: „are going“ → „were going“. „We“ → „they“.',
   },
   {
     id: 'rs_tr_04',
@@ -162,7 +162,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I saw the match yesterday."',
     prompt: 'He said: "I saw the match yesterday." → He said …',
     answer: 'He said he had seen the match the day before.',
-    explanationCs: 'Past simple → past perfect: „saw" → „had seen". „Yesterday" → „the day before".',
+    explanationCs: 'Past simple → past perfect: „saw“ → „had seen“. „Yesterday“ → „the day before“.',
   },
   {
     id: 'rs_tr_05',
@@ -172,7 +172,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I have already eaten lunch."',
     prompt: 'She said: "I have already eaten lunch." → She said …',
     answer: 'She said she had already eaten lunch.',
-    explanationCs: 'Present perfect → past perfect: „have eaten" → „had eaten". Zájmeno „I" → „she".',
+    explanationCs: 'Present perfect → past perfect: „have eaten“ → „had eaten“. Zájmeno „I“ → „she“.',
   },
   {
     id: 'rs_tr_06',
@@ -182,7 +182,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I will call you tomorrow."',
     prompt: 'He said: "I will call you tomorrow." → He said …',
     answer: 'He said he would call me the next day.|He said he would call me the following day.',
-    explanationCs: '„Will" → „would". „You" → „me". „Tomorrow" → „the next day" (nebo „the following day").',
+    explanationCs: '„Will“ → „would“. „You“ → „me“. „Tomorrow“ → „the next day“ (nebo „the following day“).',
   },
   {
     id: 'rs_tr_07',
@@ -192,7 +192,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I can\'t come today."',
     prompt: 'She said: "I can\'t come today." → She said …',
     answer: 'She said she couldn\'t come that day.',
-    explanationCs: '„Can\'t" → „couldn\'t". „Today" → „that day". „I" → „she".',
+    explanationCs: '„Can\'t“ → „couldn\'t“. „Today“ → „that day“. „I“ → „she“.',
   },
   {
     id: 'rs_tr_08',
@@ -202,7 +202,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I must finish this report now."',
     prompt: 'He said: "I must finish this report now." → He said …',
     answer: 'He said he had to finish that report then.',
-    explanationCs: '„Must" → „had to". „This" → „that". „Now" → „then". „I" → „he".',
+    explanationCs: '„Must“ → „had to“. „This“ → „that“. „Now“ → „then“. „I“ → „he“.',
   },
   {
     id: 'rs_tr_09',
@@ -212,7 +212,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"We were living in London last year."',
     prompt: 'They said: "We were living in London last year." → They said …',
     answer: 'They said they had been living in London the year before.|They said they had been living in London the previous year.',
-    explanationCs: 'Past continuous → past perfect continuous: „were living" → „had been living". „Last year" → „the year before" (nebo „the previous year").',
+    explanationCs: 'Past continuous → past perfect continuous: „were living“ → „had been living“. „Last year“ → „the year before“ (nebo „the previous year“).',
   },
   {
     id: 'rs_tr_10',
@@ -222,7 +222,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"My sister loves dancing."',
     prompt: 'She said: "My sister loves dancing." → She said …',
     answer: 'She said her sister loved dancing.',
-    explanationCs: '„My" → „her". „Loves" → „loved" (present simple → past simple).',
+    explanationCs: '„My“ → „her“. „Loves“ → „loved“ (present simple → past simple).',
   },
   {
     id: 'rs_tr_11',
@@ -232,7 +232,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I may go to the party."',
     prompt: 'He said: "I may go to the party." → He said …',
     answer: 'He said he might go to the party.',
-    explanationCs: '„May" → „might". „I" → „he".',
+    explanationCs: '„May“ → „might“. „I“ → „he“.',
   },
   {
     id: 'rs_tr_12',
@@ -254,7 +254,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Do you like coffee?"',
     prompt: 'He asked me: "Do you like coffee?" → He asked me …',
     answer: 'He asked me if I liked coffee.',
-    explanationCs: 'Zjišťovací otázka → „if" + oznamovací slovosled. „Do you like" → „if I liked".',
+    explanationCs: 'Zjišťovací otázka → „if“ + oznamovací slovosled. „Do you like“ → „if I liked“.',
   },
   {
     id: 'rs_tr_14',
@@ -264,7 +264,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Where do you live?"',
     prompt: 'She asked me: "Where do you live?" → She asked me …',
     answer: 'She asked me where I lived.',
-    explanationCs: 'Doplňovací otázka – „where" zůstává, ale slovosled se mění na oznamovací.',
+    explanationCs: 'Doplňovací otázka – „where“ zůstává, ale slovosled se mění na oznamovací.',
   },
   {
     id: 'rs_tr_15',
@@ -274,7 +274,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Have you ever been to London?"',
     prompt: 'He asked me: "Have you ever been to London?" → He asked me …',
     answer: 'He asked me if I had ever been to London.',
-    explanationCs: '„Have you been" → „if I had been". Present perfect → past perfect.',
+    explanationCs: '„Have you been“ → „if I had been“. Present perfect → past perfect.',
   },
   {
     id: 'rs_tr_16',
@@ -284,7 +284,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"What are you doing here?"',
     prompt: 'She asked me: "What are you doing here?" → She asked me …',
     answer: 'She asked me what I was doing there.',
-    explanationCs: '„Are you doing" → „I was doing" (oznam. slovosled). „Here" → „there".',
+    explanationCs: '„Are you doing“ → „I was doing“ (oznam. slovosled). „Here“ → „there“.',
   },
   {
     id: 'rs_tr_17',
@@ -294,7 +294,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Can you help me?"',
     prompt: 'He asked me: "Can you help me?" → He asked me …',
     answer: 'He asked me if I could help him.',
-    explanationCs: '„Can you" → „if I could". „Me" → „him".',
+    explanationCs: '„Can you“ → „if I could“. „Me“ → „him“.',
   },
 
   // --- commands (5) ---
@@ -306,7 +306,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Open the window!"',
     prompt: 'The teacher said: "Open the window!" → The teacher told us …',
     answer: 'The teacher told us to open the window.',
-    explanationCs: 'Rozkaz → „told + osoba + to + infinitiv".',
+    explanationCs: 'Rozkaz → „told + osoba + to + infinitiv“.',
   },
   {
     id: 'rs_tr_19',
@@ -316,7 +316,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Don\'t run in the corridor!"',
     prompt: 'The teacher said: "Don\'t run in the corridor!" → The teacher told us …',
     answer: 'The teacher told us not to run in the corridor.',
-    explanationCs: 'Záporný rozkaz → „told + osoba + not to + infinitiv".',
+    explanationCs: 'Záporný rozkaz → „told + osoba + not to + infinitiv“.',
   },
   {
     id: 'rs_tr_20',
@@ -326,7 +326,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Please sit down."',
     prompt: 'She said: "Please sit down." → She asked me …',
     answer: 'She asked me to sit down.',
-    explanationCs: 'Zdvořilá žádost → „asked + osoba + to + infinitiv".',
+    explanationCs: 'Zdvořilá žádost → „asked + osoba + to + infinitiv“.',
   },
   {
     id: 'rs_tr_21',
@@ -336,7 +336,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Don\'t forget to bring your textbook!"',
     prompt: 'He said: "Don\'t forget to bring your textbook!" → He told me …',
     answer: 'He told me not to forget to bring my textbook.',
-    explanationCs: '„Don\'t forget" → „told me not to forget". „Your" → „my".',
+    explanationCs: '„Don\'t forget“ → „told me not to forget“. „Your“ → „my“.',
   },
   {
     id: 'rs_tr_22',
@@ -346,7 +346,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Please don\'t make so much noise."',
     prompt: 'She said: "Please don\'t make so much noise." → She asked us …',
     answer: 'She asked us not to make so much noise.',
-    explanationCs: 'Záporná žádost → „asked + osoba + not to + infinitiv".',
+    explanationCs: 'Záporná žádost → „asked + osoba + not to + infinitiv“.',
   },
 
   // --- mixed (3) ---
@@ -358,7 +358,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I bought this jacket here last week."',
     prompt: 'He said: "I bought this jacket here last week." → He said …',
     answer: 'He said he had bought that jacket there the week before.|He said he had bought that jacket there the previous week.',
-    explanationCs: '„Bought" → „had bought". „This" → „that". „Here" → „there". „Last week" → „the week before".',
+    explanationCs: '„Bought“ → „had bought“. „This“ → „that“. „Here“ → „there“. „Last week“ → „the week before“.',
   },
   {
     id: 'rs_tr_24',
@@ -368,7 +368,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Will you come to my birthday party tomorrow?"',
     prompt: 'She asked me: "Will you come to my birthday party tomorrow?" → She asked me …',
     answer: 'She asked me if I would come to her birthday party the next day.|She asked me if I would come to her birthday party the following day.',
-    explanationCs: '„Will you come" → „if I would come". „My" → „her". „Tomorrow" → „the next day".',
+    explanationCs: '„Will you come“ → „if I would come“. „My“ → „her“. „Tomorrow“ → „the next day“.',
   },
   {
     id: 'rs_tr_25',
@@ -378,7 +378,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Be quiet and listen to me!"',
     prompt: 'The teacher said: "Be quiet and listen to me!" → The teacher told the class …',
     answer: 'The teacher told the class to be quiet and listen to him.|The teacher told the class to be quiet and listen to her.',
-    explanationCs: 'Dva rozkazy spojené „and" → „told + osoba + to + inf. + and + inf.". „Me" → „him/her" (podle toho, zda jde o učitele, nebo učitelku).',
+    explanationCs: 'Dva rozkazy spojené „and“ → „told + osoba + to + inf. + and + inf.“. „Me“ → „him/her“ (podle toho, zda jde o učitele, nebo učitelku).',
   },
 
   // ═══════════════════════════════════════════════════════════════════
@@ -395,7 +395,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: 'She said: "I am happy." → She said she ___ happy.',
     answer: 'was',
     options: ['is', 'was', 'has been', 'were'],
-    explanationCs: '„Am" se v nepřímé řeči mění na „was".',
+    explanationCs: '„Am“ se v nepřímé řeči mění na „was“.',
   },
   {
     id: 'rs_mcq_02',
@@ -406,7 +406,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I play tennis every day." → He said he ___ tennis every day.',
     answer: 'played',
     options: ['plays', 'played', 'had played', 'was playing'],
-    explanationCs: 'Present simple → past simple: „play" → „played".',
+    explanationCs: 'Present simple → past simple: „play“ → „played“.',
   },
   {
     id: 'rs_mcq_03',
@@ -417,7 +417,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I will buy a new phone." → She said she ___ buy a new phone.',
     answer: 'would',
     options: ['will', 'would', 'could', 'should'],
-    explanationCs: '„Will" se v nepřímé řeči mění na „would".',
+    explanationCs: '„Will“ se v nepřímé řeči mění na „would“.',
   },
   {
     id: 'rs_mcq_04',
@@ -428,7 +428,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I can drive a car." → He said he ___ drive a car.',
     answer: 'could',
     options: ['can', 'could', 'was able', 'would'],
-    explanationCs: '„Can" se mění na „could".',
+    explanationCs: '„Can“ se mění na „could“.',
   },
   {
     id: 'rs_mcq_05',
@@ -439,7 +439,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I have lost my keys." → She said she ___ her keys.',
     answer: 'had lost',
     options: ['has lost', 'had lost', 'lost', 'was losing'],
-    explanationCs: 'Present perfect → past perfect: „have lost" → „had lost".',
+    explanationCs: 'Present perfect → past perfect: „have lost“ → „had lost“.',
   },
   {
     id: 'rs_mcq_06',
@@ -450,7 +450,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I saw them yesterday." → He said he ___ them the day before.',
     answer: 'had seen',
     options: ['saw', 'had seen', 'has seen', 'was seeing'],
-    explanationCs: 'Past simple → past perfect: „saw" → „had seen".',
+    explanationCs: 'Past simple → past perfect: „saw“ → „had seen“.',
   },
   {
     id: 'rs_mcq_07',
@@ -461,7 +461,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I must study for the exam." → She said she ___ study for the exam.',
     answer: 'had to',
     options: ['had to', 'has to', 'would', 'should'],
-    explanationCs: '„Must" se v nepřímé řeči mění na „had to".',
+    explanationCs: '„Must“ se v nepřímé řeči mění na „had to“.',
   },
   {
     id: 'rs_mcq_08',
@@ -472,7 +472,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"We are watching TV." → They said they ___ TV.',
     answer: 'were watching',
     options: ['are watching', 'were watching', 'had watched', 'watched'],
-    explanationCs: 'Present continuous → past continuous: „are watching" → „were watching".',
+    explanationCs: 'Present continuous → past continuous: „are watching“ → „were watching“.',
   },
   {
     id: 'rs_mcq_09',
@@ -483,7 +483,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I may visit you next week." → He said he ___ visit me the following week.',
     answer: 'might',
     options: ['may', 'might', 'will', 'would'],
-    explanationCs: '„May" se mění na „might". „Next week" → „the following week".',
+    explanationCs: '„May“ se mění na „might“. „Next week“ → „the following week“.',
   },
   {
     id: 'rs_mcq_10',
@@ -494,7 +494,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I was waiting for the bus when it started raining." → She said she ___ for the bus when it started raining.',
     answer: 'had been waiting',
     options: ['is waiting', 'had been waiting', 'has been waiting', 'waited'],
-    explanationCs: 'Past continuous → past perfect continuous: „was waiting" → „had been waiting". Vedlejší časová věta („when it started raining") se obvykle neposouvá.',
+    explanationCs: 'Past continuous → past perfect continuous: „was waiting“ → „had been waiting“. Vedlejší časová věta („when it started raining“) se obvykle neposouvá.',
   },
 
   // --- questions (8) ---
@@ -507,7 +507,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Are you hungry?" → She asked me ___ hungry.',
     answer: 'if I was',
     options: ['if I was', 'that I was', 'was I', 'if was I'],
-    explanationCs: 'Zjišťovací otázka → „if" + oznamovací slovosled. „Are you" → „if I was".',
+    explanationCs: 'Zjišťovací otázka → „if“ + oznamovací slovosled. „Are you“ → „if I was“.',
   },
   {
     id: 'rs_mcq_12',
@@ -518,7 +518,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Where is the station?" → He asked me ___.',
     answer: 'where the station was',
     options: ['where the station was', 'where was the station', 'where is the station', 'if the station was'],
-    explanationCs: 'Wh- otázka → tázací slovo + oznamovací slovosled. „Where is the station" → „where the station was".',
+    explanationCs: 'Wh- otázka → tázací slovo + oznamovací slovosled. „Where is the station“ → „where the station was“.',
   },
   {
     id: 'rs_mcq_13',
@@ -529,7 +529,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"What time does the train leave?" → She asked ___ the train left.',
     answer: 'what time',
     options: ['what time', 'if', 'whether', 'that'],
-    explanationCs: 'Wh- otázka si zachovává tázací slovo „what time" + oznamovací slovosled.',
+    explanationCs: 'Wh- otázka si zachovává tázací slovo „what time“ + oznamovací slovosled.',
   },
   {
     id: 'rs_mcq_14',
@@ -540,7 +540,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Did you finish the project?" → He asked me ___ the project.',
     answer: 'if I had finished',
     options: ['if I had finished', 'if I finished', 'did I finish', 'that I had finished'],
-    explanationCs: '„Did you finish" → „if I had finished". Past simple → past perfect.',
+    explanationCs: '„Did you finish“ → „if I had finished“. Past simple → past perfect.',
   },
   {
     id: 'rs_mcq_15',
@@ -551,7 +551,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Will you help me?" → She asked me ___ help her.',
     answer: 'if I would',
     options: ['if I would', 'will I', 'that I would', 'if would I'],
-    explanationCs: '„Will you" → „if I would". „Me" → „her".',
+    explanationCs: '„Will you“ → „if I would“. „Me“ → „her“.',
   },
   {
     id: 'rs_mcq_16',
@@ -562,7 +562,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"How long have you been waiting?" → He asked me how long ___.',
     answer: 'I had been waiting',
     options: ['I had been waiting', 'had I been waiting', 'I have been waiting', 'was I waiting'],
-    explanationCs: '„Have you been waiting" → „I had been waiting". Present perfect continuous → past perfect continuous + oznam. slovosled.',
+    explanationCs: '„Have you been waiting“ → „I had been waiting“. Present perfect continuous → past perfect continuous + oznam. slovosled.',
   },
   {
     id: 'rs_mcq_17',
@@ -573,7 +573,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Do you have a pen?" → She asked me ___ a pen.',
     answer: 'if I had',
     options: ['if I had', 'if I have', 'do I have', 'whether had I'],
-    explanationCs: '„Do you have" → „if I had". Present simple → past simple.',
+    explanationCs: '„Do you have“ → „if I had“. Present simple → past simple.',
   },
   {
     id: 'rs_mcq_18',
@@ -584,7 +584,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Why didn\'t you call me?" → She asked me why ___.',
     answer: 'I hadn\'t called her',
     options: ['I hadn\'t called her', 'didn\'t I call her', 'I didn\'t call her', 'hadn\'t I called her'],
-    explanationCs: '„Didn\'t you call" → „I hadn\'t called". Záporný past simple → záporný past perfect + oznam. slovosled.',
+    explanationCs: '„Didn\'t you call“ → „I hadn\'t called“. Záporný past simple → záporný past perfect + oznam. slovosled.',
   },
 
   // --- commands (4) ---
@@ -597,7 +597,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Close the door!" → He ___ me to close the door.',
     answer: 'told',
     options: ['told', 'said', 'talked', 'spoke'],
-    explanationCs: 'Pro rozkazy používáme „told + osoba + to…" (řekl/nařídil). „Said" se s osobou a „to + infinitiv" nepojí, „talked/spoke" také ne.',
+    explanationCs: 'Pro rozkazy používáme „told + osoba + to…“ (řekl/nařídil). „Said“ se s osobou a „to + infinitiv“ nepojí, „talked/spoke“ také ne.',
   },
   {
     id: 'rs_mcq_20',
@@ -608,7 +608,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Don\'t touch the paintings!" → The guide told us ___ the paintings.',
     answer: 'not to touch',
     options: ['not to touch', 'don\'t touch', 'didn\'t touch', 'not touch'],
-    explanationCs: 'Záporný rozkaz → „told + osoba + not to + infinitiv".',
+    explanationCs: 'Záporný rozkaz → „told + osoba + not to + infinitiv“.',
   },
   {
     id: 'rs_mcq_21',
@@ -619,7 +619,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"Please lend me your dictionary." → She ___ me to lend her my dictionary.',
     answer: 'asked',
     options: ['asked', 'told', 'said', 'ordered'],
-    explanationCs: '„Please" naznačuje žádost → „asked" (požádala), ne „told" (přikázala).',
+    explanationCs: '„Please“ naznačuje žádost → „asked“ (požádala), ne „told“ (přikázala).',
   },
 
   // --- mixed (3) ---
@@ -632,7 +632,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I am cooking dinner now." → She said she ___ dinner ___.',
     answer: 'was cooking … then',
     options: ['was cooking … then', 'is cooking … now', 'had cooked … then', 'cooked … that day'],
-    explanationCs: 'Present continuous → past continuous. „Now" → „then".',
+    explanationCs: 'Present continuous → past continuous. „Now“ → „then“.',
   },
   {
     id: 'rs_mcq_23',
@@ -643,7 +643,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I live here." → He said he ___ ___.',
     answer: 'lived there',
     options: ['lived there', 'lives here', 'lived here', 'had lived there'],
-    explanationCs: '„Live" → „lived". „Here" → „there".',
+    explanationCs: '„Live“ → „lived“. „Here“ → „there“.',
   },
   {
     id: 'rs_mcq_24',
@@ -654,7 +654,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I will come tomorrow." → He said he ___ come ___.',
     answer: 'would … the next day',
     options: ['would … the next day', 'will … tomorrow', 'would … tomorrow', 'will … the next day'],
-    explanationCs: '„Will" → „would". „Tomorrow" → „the next day".',
+    explanationCs: '„Will“ → „would“. „Tomorrow“ → „the next day“.',
   },
   {
     id: 'rs_mcq_25',
@@ -665,7 +665,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     prompt: '"I spoke to him two days ago." → She said she ___ to him two days ___.',
     answer: 'had spoken … before',
     options: ['had spoken … before', 'spoke … ago', 'had spoken … ago', 'spoke … before'],
-    explanationCs: '„Spoke" → „had spoken". „Ago" → „before".',
+    explanationCs: '„Spoke“ → „had spoken“. „Ago“ → „before“.',
   },
 
   // ═══════════════════════════════════════════════════════════════════
@@ -681,7 +681,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I enjoy swimming."',
     prompt: '"I enjoy swimming." → He said he _____ swimming.',
     answer: 'enjoyed',
-    explanationCs: 'Present simple → past simple: „enjoy" → „enjoyed".',
+    explanationCs: 'Present simple → past simple: „enjoy“ → „enjoyed“.',
   },
   {
     id: 'rs_fill_02',
@@ -691,7 +691,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I don\'t understand the question."',
     prompt: '"I don\'t understand the question." → She said she _____ understand the question.',
     answer: 'didn\'t',
-    explanationCs: '„Don\'t" se mění na „didn\'t" (present simple → past simple).',
+    explanationCs: '„Don\'t“ se mění na „didn\'t“ (present simple → past simple).',
   },
   {
     id: 'rs_fill_03',
@@ -701,7 +701,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I have never tried sushi."',
     prompt: '"I have never tried sushi." → He said he _____ never tried sushi.',
     answer: 'had',
-    explanationCs: 'Present perfect → past perfect: „have tried" → „had tried".',
+    explanationCs: 'Present perfect → past perfect: „have tried“ → „had tried“.',
   },
   {
     id: 'rs_fill_04',
@@ -711,7 +711,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I was sleeping when you called."',
     prompt: '"I was sleeping when you called." → She said she _____ sleeping when I called.',
     answer: 'had been',
-    explanationCs: 'Past continuous → past perfect continuous: „was sleeping" → „had been sleeping". Vedlejší časová věta („when I called") se obvykle neposouvá.',
+    explanationCs: 'Past continuous → past perfect continuous: „was sleeping“ → „had been sleeping“. Vedlejší časová věta („when I called“) se obvykle neposouvá.',
   },
   {
     id: 'rs_fill_05',
@@ -721,7 +721,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I will send you an email."',
     prompt: '"I will send you an email." → He said he _____ send me an email.',
     answer: 'would',
-    explanationCs: '„Will" → „would".',
+    explanationCs: '„Will“ → „would“.',
   },
 
   // --- questions (6) ---
@@ -733,7 +733,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Is it raining outside?"',
     prompt: '"Is it raining outside?" → She asked _____ it was raining outside.',
     answer: 'if|whether',
-    explanationCs: 'Zjišťovací otázka (ano/ne) → „if" (nebo „whether") + oznamovací slovosled.',
+    explanationCs: 'Zjišťovací otázka (ano/ne) → „if“ (nebo „whether“) + oznamovací slovosled.',
   },
   {
     id: 'rs_fill_07',
@@ -743,7 +743,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"When does the shop close?"',
     prompt: '"When does the shop close?" → He asked _____ the shop closed.',
     answer: 'when',
-    explanationCs: 'Doplňovací otázka si zachovává „when" + oznamovací slovosled.',
+    explanationCs: 'Doplňovací otázka si zachovává „when“ + oznamovací slovosled.',
   },
   {
     id: 'rs_fill_08',
@@ -753,7 +753,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Where did you buy that jacket?"',
     prompt: '"Where did you buy that jacket?" → She asked me where I _____ bought that jacket.',
     answer: 'had',
-    explanationCs: '„Did you buy" → „I had bought". Past simple → past perfect.',
+    explanationCs: '„Did you buy“ → „I had bought“. Past simple → past perfect.',
   },
   {
     id: 'rs_fill_09',
@@ -763,7 +763,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"How many languages can you speak?"',
     prompt: '"How many languages can you speak?" → He asked me how many languages I _____ speak.',
     answer: 'could',
-    explanationCs: '„Can" → „could" + oznamovací slovosled.',
+    explanationCs: '„Can“ → „could“ + oznamovací slovosled.',
   },
   {
     id: 'rs_fill_10',
@@ -773,7 +773,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Do you want some tea?"',
     prompt: '"Do you want some tea?" → She asked me _____ I wanted some tea.',
     answer: 'if|whether',
-    explanationCs: 'Zjišťovací otázka → „if" (nebo „whether") + oznamovací slovosled.',
+    explanationCs: 'Zjišťovací otázka → „if“ (nebo „whether“) + oznamovací slovosled.',
   },
   {
     id: 'rs_fill_11',
@@ -783,7 +783,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Why are you laughing?"',
     prompt: '"Why are you laughing?" → He asked me _____ I was laughing.',
     answer: 'why',
-    explanationCs: 'Tázací slovo „why" zůstává, slovosled se mění na oznamovací.',
+    explanationCs: 'Tázací slovo „why“ zůstává, slovosled se mění na oznamovací.',
   },
 
   // --- commands (6) ---
@@ -795,7 +795,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Turn off the TV!"',
     prompt: '"Turn off the TV!" → Mum told me _____ turn off the TV.',
     answer: 'to',
-    explanationCs: 'Rozkaz → „told + osoba + to + infinitiv".',
+    explanationCs: 'Rozkaz → „told + osoba + to + infinitiv“.',
   },
   {
     id: 'rs_fill_13',
@@ -805,7 +805,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Don\'t eat in the classroom!"',
     prompt: '"Don\'t eat in the classroom!" → The teacher told us _____ eat in the classroom.',
     answer: 'not to',
-    explanationCs: 'Záporný rozkaz → „told + osoba + not to + infinitiv".',
+    explanationCs: 'Záporný rozkaz → „told + osoba + not to + infinitiv“.',
   },
   {
     id: 'rs_fill_14',
@@ -815,7 +815,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Please help me with my bags."',
     prompt: '"Please help me with my bags." → She _____ me to help her with her bags.',
     answer: 'asked',
-    explanationCs: 'Zdvořilá žádost s „please" → „asked" + osoba + to + infinitiv.',
+    explanationCs: 'Zdvořilá žádost s „please“ → „asked“ + osoba + to + infinitiv.',
   },
   {
     id: 'rs_fill_15',
@@ -825,7 +825,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Stop talking immediately!"',
     prompt: '"Stop talking immediately!" → The boss _____ us to stop talking immediately.',
     answer: 'told|ordered',
-    explanationCs: 'Přísný rozkaz → „told" (nebo „ordered") + osoba + to + infinitiv.',
+    explanationCs: 'Přísný rozkaz → „told“ (nebo „ordered“) + osoba + to + infinitiv.',
   },
   {
     id: 'rs_fill_16',
@@ -835,7 +835,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Don\'t park here!"',
     prompt: '"Don\'t park here!" → The officer told the driver _____ park there.',
     answer: 'not to',
-    explanationCs: 'Záporný rozkaz → „not to". Pozor: „here" → „there".',
+    explanationCs: 'Záporný rozkaz → „not to“. Pozor: „here“ → „there“.',
   },
   {
     id: 'rs_fill_17',
@@ -845,7 +845,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"Please wait for me outside."',
     prompt: '"Please wait for me outside." → He asked me to _____ for him outside.',
     answer: 'wait',
-    explanationCs: 'Po „asked + osoba + to" následuje infinitiv bez „to" (to je už ve větě). „Me" → „him".',
+    explanationCs: 'Po „asked + osoba + to“ následuje infinitiv bez „to“ (to je už ve větě). „Me“ → „him“.',
   },
 
   // --- mixed (3) ---
@@ -857,7 +857,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I went to the gym yesterday."',
     prompt: '"I went to the gym yesterday." → He said he had _____ to the gym the day before.',
     answer: 'gone|been',
-    explanationCs: '„Went" → „had gone" (nebo „had been to the gym"). Past simple → past perfect. „Yesterday" → „the day before".',
+    explanationCs: '„Went“ → „had gone“ (nebo „had been to the gym“). Past simple → past perfect. „Yesterday“ → „the day before“.',
   },
   {
     id: 'rs_fill_19',
@@ -867,7 +867,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"I don\'t like this film."',
     prompt: '"I don\'t like this film." → She said she didn\'t like _____ film.',
     answer: 'that',
-    explanationCs: '„This" se v nepřímé řeči mění na „that".',
+    explanationCs: '„This“ se v nepřímé řeči mění na „that“.',
   },
   {
     id: 'rs_fill_20',
@@ -877,7 +877,7 @@ export const REPORTED_SPEECH_EXERCISES: ReportedSpeechExercise[] = [
     directSpeech: '"We arrived here two hours ago."',
     prompt: '"We arrived here two hours ago." → They said they had arrived _____ two hours before.',
     answer: 'there',
-    explanationCs: '„Here" → „there". „Ago" → „before". „Arrived" → „had arrived".',
+    explanationCs: '„Here“ → „there“. „Ago“ → „before“. „Arrived“ → „had arrived“.',
   },
 ];
 

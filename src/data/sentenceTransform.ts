@@ -446,7 +446,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     prompt: 'If _____, you will get better.',
     category: 'comparisons',
     level: 'B1',
-    hintCs: 'Přeformulujte „the more … the better" jako podmínku.',
+    hintCs: 'Přeformulujte „the more … the better“ jako podmínku.',
   },
   {
     id: 'st38',
@@ -772,7 +772,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     prompt: 'I _____ June.',
     category: 'mixed',
     level: 'B1',
-    hintCs: 'Přeformulujte „the last time" na předpřítomný čas se since.',
+    hintCs: 'Přeformulujte „the last time“ na předpřítomný čas se since.',
     alternatives: ['have not seen her since'],
   },
   {

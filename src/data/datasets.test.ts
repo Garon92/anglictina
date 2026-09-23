@@ -205,3 +205,17 @@ describe('reference content', () => {
     uniqueIds('grammar reference', GRAMMAR_REFERENCE);
   });
 });
+
+describe('Czech typography', () => {
+  it('closes Czech quotes „…“ with “, not an ASCII quote', async () => {
+    const files = import.meta.glob('./**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+    expect(Object.keys(files).length).toBeGreaterThan(20);
+    const bad: string[] = [];
+    for (const [f, src] of Object.entries(files)) {
+      if (f.endsWith('.test.ts')) continue;
+      const m = src.match(/„[^“"\n]*"/g);
+      if (m) bad.push(`${f}: ${m.length}× e.g. ${m[0]}`);
+    }
+    expect(bad).toEqual([]);
+  });
+});

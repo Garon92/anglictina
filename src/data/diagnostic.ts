@@ -21,7 +21,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'What is the colour of the sky on a clear day?',
     options: ['red', 'blue', 'green', 'yellow'],
     answerIndex: 1,
-    explanationCs: 'Nebe za jasného dne je modré – „blue".',
+    explanationCs: 'Nebe za jasného dne je modré – „blue“.',
   },
   {
     id: 'diag_02',
@@ -31,7 +31,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'Which word means a place where you sleep?',
     options: ['kitchen', 'bedroom', 'garden', 'office'],
     answerIndex: 1,
-    explanationCs: '„Bedroom" znamená ložnice – místnost, kde spíte.',
+    explanationCs: '„Bedroom“ znamená ložnice – místnost, kde spíte.',
   },
   {
     id: 'diag_03',
@@ -40,7 +40,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'vocab',
     question: 'The opposite of "hot" is ___.',
     answer: 'cold',
-    explanationCs: 'Opak slova „hot" (horký) je „cold" (studený).',
+    explanationCs: 'Opak slova „hot“ (horký) je „cold“ (studený).',
   },
   {
     id: 'diag_04',
@@ -50,7 +50,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'She ___ a student.',
     options: ['am', 'is', 'are', 'be'],
     answerIndex: 1,
-    explanationCs: 'Se zájmenem „she" používáme tvar „is".',
+    explanationCs: 'Se zájmenem „she“ používáme tvar „is“.',
   },
   {
     id: 'diag_05',
@@ -60,7 +60,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'I ___ two brothers.',
     options: ['has', 'have', 'having', 'am have'],
     answerIndex: 1,
-    explanationCs: 'S „I" se pojí tvar „have" (mám).',
+    explanationCs: 'S „I“ se pojí tvar „have“ (mám).',
   },
   {
     id: 'diag_06',
@@ -69,7 +69,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'grammar',
     question: 'They ___ from Prague. (to be)',
     answer: 'are',
-    explanationCs: 'S „they" se pojí tvar „are".',
+    explanationCs: 'S „they“ se pojí tvar „are“.',
   },
   {
     id: 'diag_07',
@@ -79,7 +79,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'He ___ to school every day.',
     options: ['go', 'goes', 'going', 'gone'],
     answerIndex: 1,
-    explanationCs: 'Ve třetí osobě jednotného čísla přidáváme „-es": he goes.',
+    explanationCs: 'Ve třetí osobě jednotného čísla přidáváme „-es“: he goes.',
   },
   {
     id: 'diag_08',
@@ -89,7 +89,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: '___ you like coffee?',
     options: ['Are', 'Do', 'Is', 'Has'],
     answerIndex: 1,
-    explanationCs: 'Otázky s „you" v přítomném čase tvoříme pomocí „Do".',
+    explanationCs: 'Otázky s „you“ v přítomném čase tvoříme pomocí „Do“.',
   },
   {
     id: 'diag_09',
@@ -100,7 +100,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
       'Read: "My name is Tom. I am 10 years old. I have a dog called Max." How old is Tom?',
     options: ['8', '9', '10', '11'],
     answerIndex: 2,
-    explanationCs: 'V textu se píše „I am 10 years old", takže Tomovi je 10.',
+    explanationCs: 'V textu se píše „I am 10 years old“, takže Tomovi je 10.',
   },
   {
     id: 'diag_10',
@@ -109,7 +109,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'vocab',
     question: 'Monday, Tuesday, ___. What day comes next?',
     answer: 'Wednesday',
-    explanationCs: 'Po úterý (Tuesday) následuje středa – „Wednesday".',
+    explanationCs: 'Po úterý (Tuesday) následuje středa – „Wednesday“.',
   },
 
   // ─── A2 (questions 11-20): 2 points each ───
@@ -122,7 +122,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'If you feel "exhausted", you feel very ___.',
     options: ['happy', 'tired', 'hungry', 'angry'],
     answerIndex: 1,
-    explanationCs: '„Exhausted" znamená velmi unavený – „tired".',
+    explanationCs: '„Exhausted“ znamená velmi unavený – „tired“.',
   },
   {
     id: 'diag_12',
@@ -131,7 +131,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'vocab',
     question: 'A person who flies an aeroplane is called a ___.',
     answer: 'pilot',
-    explanationCs: 'Osoba, která řídí letadlo, se anglicky řekne stejně jako česky – „pilot".',
+    explanationCs: 'Osoba, která řídí letadlo, se anglicky řekne stejně jako česky – „pilot“.',
   },
   {
     id: 'diag_13',
@@ -141,7 +141,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'Which word means "to get to a place"?',
     options: ['leave', 'arrive', 'escape', 'return'],
     answerIndex: 1,
-    explanationCs: '„Arrive" znamená dorazit, přijet na místo.',
+    explanationCs: '„Arrive“ znamená dorazit, přijet na místo.',
   },
   {
     id: 'diag_14',
@@ -151,7 +151,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'I ___ to London last summer.',
     options: ['travel', 'travelled', 'will travel', 'am travelling'],
     answerIndex: 1,
-    explanationCs: '„Last summer" označuje minulost, proto použijeme minulý čas: „travelled".',
+    explanationCs: '„Last summer“ označuje minulost, proto použijeme minulý čas: „travelled“.',
   },
   {
     id: 'diag_15',
@@ -162,7 +162,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     options: ['cooks', 'cooked', 'was cooking', 'has cooked'],
     answerIndex: 2,
     explanationCs:
-      'Probíhající děj v minulosti přerušený jinou událostí = past continuous: „was cooking".',
+      'Probíhající děj v minulosti přerušený jinou událostí = past continuous: „was cooking“.',
   },
   {
     id: 'diag_16',
@@ -171,7 +171,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'grammar',
     question: 'We arrived ___ the airport at 6 a.m. (preposition)',
     answer: 'at',
-    explanationCs: 'S „airport" se pojí předložka „at" – arrive at the airport.',
+    explanationCs: 'S „airport“ se pojí předložka „at“ – arrive at the airport.',
   },
   {
     id: 'diag_17',
@@ -181,7 +181,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'There ___ many people at the party yesterday.',
     options: ['was', 'were', 'is', 'are'],
     answerIndex: 1,
-    explanationCs: '„Many people" je množné číslo + minulý čas → „were".',
+    explanationCs: '„Many people“ je množné číslo + minulý čas → „were“.',
   },
   {
     id: 'diag_18',
@@ -191,7 +191,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'He is ___ than his brother.',
     options: ['tall', 'taller', 'tallest', 'more tall'],
     answerIndex: 1,
-    explanationCs: 'Porovnáváme dvě osoby → 2. stupeň přídavného jména: „taller".',
+    explanationCs: 'Porovnáváme dvě osoby → 2. stupeň přídavného jména: „taller“.',
   },
   {
     id: 'diag_19',
@@ -207,7 +207,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
       'Her car is broken.',
     ],
     answerIndex: 2,
-    explanationCs: 'Text říká „because the weather is nice" – proto jde pěšky.',
+    explanationCs: 'Text říká „because the weather is nice“ – proto jde pěšky.',
   },
   {
     id: 'diag_20',
@@ -230,7 +230,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'The company decided to ___ several employees due to budget cuts.',
     options: ['promote', 'hire', 'lay off', 'train'],
     answerIndex: 2,
-    explanationCs: '„Lay off" znamená propustit zaměstnance kvůli úsporám.',
+    explanationCs: '„Lay off“ znamená propustit zaměstnance kvůli úsporám.',
   },
   {
     id: 'diag_22',
@@ -240,7 +240,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question:
       'Despite all the difficulties, she managed to ___ her goal. (synonym of "achieve")',
     answer: 'accomplish|reach|attain|fulfil|fulfill|realise|realize',
-    explanationCs: '„Accomplish" (také „reach", „attain", „fulfil") je synonymum pro „achieve" – dosáhnout cíle.',
+    explanationCs: '„Accomplish“ (také „reach“, „attain“, „fulfil“) je synonymum pro „achieve“ – dosáhnout cíle.',
   },
   {
     id: 'diag_23',
@@ -250,7 +250,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'A "thorough" investigation is one that is ___.',
     options: ['quick', 'careless', 'complete and careful', 'illegal'],
     answerIndex: 2,
-    explanationCs: '„Thorough" znamená důkladný, pečlivý – „complete and careful".',
+    explanationCs: '„Thorough“ znamená důkladný, pečlivý – „complete and careful“.',
   },
   {
     id: 'diag_24',
@@ -261,7 +261,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     options: ['have', 'had', 'will have', 'would have'],
     answerIndex: 1,
     explanationCs:
-      'Druhý kondicionál (nereálná podmínka v přítomnosti): If + past simple → „had".',
+      'Druhý kondicionál (nereálná podmínka v přítomnosti): If + past simple → „had“.',
   },
   {
     id: 'diag_25',
@@ -271,7 +271,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'The letter ___ yesterday.',
     options: ['sent', 'was sent', 'is sent', 'has sent'],
     answerIndex: 1,
-    explanationCs: 'Trpný rod v minulém čase: „was sent" (dopis byl odeslán).',
+    explanationCs: 'Trpný rod v minulém čase: „was sent“ (dopis byl odeslán).',
   },
   {
     id: 'diag_26',
@@ -281,7 +281,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'She asked me where I ___ the previous day. (to go – reported speech)',
     answer: 'had gone',
     explanationCs:
-      'V nepřímé řeči se minulý čas mění na předminulý: went → „had gone".',
+      'V nepřímé řeči se minulý čas mění na předminulý: went → „had gone“.',
   },
   {
     id: 'diag_27',
@@ -292,7 +292,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     options: ['already started', 'had already started', 'has already started', 'already starts'],
     answerIndex: 1,
     explanationCs:
-      'Děj dokončený před jiným minulým dějem = předminulý čas: „had already started".',
+      'Děj dokončený před jiným minulým dějem = předminulý čas: „had already started“.',
   },
   {
     id: 'diag_28',
@@ -302,7 +302,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     question: 'I wish I ___ speak French fluently.',
     options: ['can', 'could', 'will', 'would'],
     answerIndex: 1,
-    explanationCs: '„I wish" + minulý tvar vyjadřuje přání: „could" (kéž bych uměl).',
+    explanationCs: '„I wish“ + minulý tvar vyjadřuje přání: „could“ (kéž bych uměl).',
   },
   {
     id: 'diag_29',
@@ -319,7 +319,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     ],
     answerIndex: 1,
     explanationCs:
-      'Text uvádí, že cvičení snižuje stres a úzkost – „lower levels of stress and anxiety".',
+      'Text uvádí, že cvičení snižuje stres a úzkost – „lower levels of stress and anxiety“.',
   },
   {
     id: 'diag_30',
@@ -331,7 +331,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     options: ['very good', 'not yet paid', 'standing outside', 'average'],
     answerIndex: 0,
     explanationCs:
-      '„Outstanding" zde znamená vynikající, výborný (very good, excellent). Význam „not yet paid" (nezaplacený) má jen u dluhů a účtů.',
+      '„Outstanding“ zde znamená vynikající, výborný (very good, excellent). Význam „not yet paid“ (nezaplacený) má jen u dluhů a účtů.',
   },
 ];
 

@@ -70,7 +70,7 @@ export const PREPOSITION_EXERCISES: PrepositionExercise[] = [
     sentence: 'The shop closes ___ 9 p.m.',
     answer: 'at',
     options: ['in', 'on', 'at', 'to'],
-    explanationCs: 'Pro přesný čas vždy AT. „V devět večer" = "at 9 p.m.".',
+    explanationCs: 'Pro přesný čas vždy AT. „V devět večer“ = "at 9 p.m.".',
     category: 'time',
     level: 'A1',
   },

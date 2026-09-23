@@ -153,7 +153,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
   cloze('pc07', 'present_continuous', 'A2',
     'We ___ (have) a party next Saturday.',
     'are having|are going to have',
-    'Průběhový čas lze použít i pro domluvené budoucí akce (lze i „are going to have").',
+    'Průběhový čas lze použít i pro domluvené budoucí akce (lze i „are going to have“).',
     ['present_continuous', 'future_plan']),
 
   mcq('pc08', 'present_continuous', 'A2',
@@ -582,7 +582,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     'I love ___ chocolate.',
     ['a', 'the', '—'],
     '—',
-    'Obecné vyjádření „mám rád čokoládu" – bez členu (nulový člen).',
+    'Obecné vyjádření „mám rád čokoládu“ – bez členu (nulový člen).',
     ['articles', 'zero']),
 
   cloze('art08', 'articles', 'A1',

@@ -407,6 +407,16 @@ function Part8(p: PartViewProps) {
   return (
     <div className="grid items-start gap-4 xl:grid-cols-2">
       <div className="space-y-3">
+        <a
+          href="#offers-8"
+          className="btn-soft btn-sm xl:!hidden"
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById('offers-8')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+        >
+          Nabídky A–G jsou pod lidmi ↓
+        </a>
         {p.set.part8.people.map((person, i) => (
           <section key={i} className="card !p-4">
             <TaskHeader no={taskNo(8, i)} result={p.review ? res[i] : undefined}>{person.name}</TaskHeader>
@@ -431,11 +441,19 @@ function Part8(p: PartViewProps) {
                 );
               })}
             </div>
+            {!p.review && p.answers.p8[i] !== null && p.answers.p8[i] !== undefined && (
+              <details className="mt-2 rounded-xl bg-surface-2 px-3 py-2 text-sm xl:hidden">
+                <summary className="cursor-pointer font-bold text-accent-text">
+                  Vybráno: {LETTERS[p.answers.p8[i]!]} – {p.set.part8.offers[p.answers.p8[i]!].title}
+                </summary>
+                <p className="mt-1 leading-relaxed text-fg" lang="en">{p.set.part8.offers[p.answers.p8[i]!].text}</p>
+              </details>
+            )}
             <Explain show={p.review} ok={!!res[i]} answer={`${LETTERS[person.answer]} – ${p.set.part8.offers[person.answer].title}`}>{person.explanationCs}</Explain>
           </section>
         ))}
       </div>
-      <div className="space-y-3 xl:sticky xl:top-[calc(var(--g92-appbar-total)+8.5rem)] xl:max-h-[calc(100dvh-var(--g92-appbar-total)-10rem)] xl:overflow-y-auto xl:pr-1">
+      <div id="offers-8" className="scroll-mt-40 space-y-3 xl:sticky xl:top-[calc(var(--g92-appbar-total)+8.5rem)] xl:max-h-[calc(100dvh-var(--g92-appbar-total)-10rem)] xl:overflow-y-auto xl:pr-1">
         {p.set.part8.offers.map((o, j) => (
           <article key={j} className={`card !p-4 ${usedBy.has(j) ? '!border-accent-border' : ''}`}>
             <div className="mb-1 flex items-center gap-2">

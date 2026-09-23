@@ -1,14 +1,34 @@
 import {
   addDrillSession, getStats, saveStats, updateStreak, getMistake, putMistake, getAllMistakes,
-  getDrillSessions, getDueCards, currentStreak,
+  getDrillSessions, getDrillSessionsOn, getDueCards, currentStreak, kvSet, kvDelete, kvEntries,
 } from './db';
 import type { DrillSession, MistakeItem, UserStats } from './types';
 import { dayKey } from './lib/dates';
 import { sessionModule } from './modules';
 import { createDaily } from './kit/streak';
 
-/** Shared daily counter read by the g92 menu ("Dnes procvičeno N", streak chips). */
-export const daily = createDaily('anglictina', { goal: 20 });
+/**
+ * Shared daily counter read by the g92 menu ("Dnes procvičeno N", streak chips).
+ * Counts MINUTES of practice — the same daily goal the learner sets in onboarding / Nastavení
+ * and sees in the ring on "Dnes" (one goal, one unit).
+ */
+export const daily = createDaily('anglictina', { goal: 25 });
+
+/** Keep the kit daily goal in sync with settings.minutesPerDay. */
+export function setDailyGoalMinutes(minutes: number) {
+  const goal = Math.max(5, Math.round(minutes || 25));
+  try {
+    daily.setGoal(goal);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Minutes practised on a local day (same computation as the ring on "Dnes"). */
+export async function minutesOnDay(day: string): Promise<number> {
+  const sessions = await getDrillSessionsOn(day);
+  return sessions.reduce((sum, s) => sum + (s.endedAt ? Math.max(0, (s.endedAt - s.startedAt) / 60_000) : 0), 0);
+}
 
 // ─── Sessions ────────────────────────────────────────────────────────
 
@@ -24,6 +44,8 @@ export interface SessionInput {
   tags?: string[];
   /** Override the credited-minutes cap (e.g. 120 for a full exam). */
   maxMinutes?: number;
+  /** Client session id (see pending sessions). */
+  sid?: string;
 }
 
 /** Upper bound on minutes credited for one session (guards against a tab left open). */
@@ -71,6 +93,7 @@ export async function recordSession(input: SessionInput): Promise<UserStats | nu
     totalItems: input.total,
     correctItems: Math.min(input.correct, input.total),
     tags: [input.module, ...(input.tags ?? [])],
+    ...(input.sid ? { sid: input.sid } : {}),
   };
   await addDrillSession(session);
   const stats = await getStats();
@@ -80,7 +103,10 @@ export async function recordSession(input: SessionInput): Promise<UserStats | nu
   const updated = await updateStreak(dayKey(endedAt));
   let goalReached = false;
   try {
-    goalReached = daily.record(input.total, new Date(endedAt)).reachedNow;
+    const day = dayKey(endedAt);
+    const total = Math.round(await minutesOnDay(day));
+    const delta = total - daily.today(new Date(endedAt));
+    if (delta > 0) goalReached = daily.record(delta, new Date(endedAt)).reachedNow;
   } catch {
     /* best-effort */
   }
@@ -95,6 +121,99 @@ export async function recordSession(input: SessionInput): Promise<UserStats | nu
     try { fn(session as DrillSession); } catch { /* ignore */ }
   }
   return updated;
+}
+
+// ─── Unfinished sessions ─────────────────────────────────────────────
+// Every answer updates a "pending" record, so work is never lost — even when the tab is closed
+// mid-session. Pending records older than a few minutes are turned into normal sessions.
+
+const PENDING_PREFIX = 'pending-session:';
+/** Identifies this page load; pending records of other (closed) pages can be recovered at once. */
+const PAGE_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+/** Pending ids written by this page and still running here. */
+const ownPending = new Set<string>();
+
+export interface PendingSession {
+  id: string;
+  module: string;
+  type?: string;
+  tags?: string[];
+  startedAt: number;
+  updatedAt: number;
+  total: number;
+  correct: number;
+  pageId?: string;
+}
+
+// Other open tabs answer "is this pending session still running in your page?"
+let channel: BroadcastChannel | null = null;
+function getChannel(): BroadcastChannel | null {
+  if (channel || typeof BroadcastChannel === 'undefined') return channel;
+  try {
+    channel = new BroadcastChannel('anglictina-pending');
+    channel.onmessage = (e: MessageEvent<{ type: string; ids?: string[] }>) => {
+      if (e.data?.type === 'ping' && e.data.ids) {
+        const alive = e.data.ids.filter((id) => ownPending.has(id));
+        if (alive.length) channel?.postMessage({ type: 'alive', ids: alive });
+      }
+    };
+  } catch {
+    channel = null;
+  }
+  return channel;
+}
+
+async function aliveElsewhere(ids: string[], waitMs = 250): Promise<Set<string>> {
+  const ch = getChannel();
+  const alive = new Set<string>();
+  if (!ch || ids.length === 0) return alive;
+  const listener = (e: MessageEvent<{ type: string; ids?: string[] }>) => {
+    if (e.data?.type === 'alive') e.data.ids?.forEach((id) => alive.add(id));
+  };
+  ch.addEventListener('message', listener);
+  ch.postMessage({ type: 'ping', ids });
+  await new Promise((r) => setTimeout(r, waitMs));
+  ch.removeEventListener('message', listener);
+  return alive;
+}
+
+export function savePendingSession(p: PendingSession): Promise<void> {
+  ownPending.add(p.id);
+  getChannel();
+  return kvSet(PENDING_PREFIX + p.id, { ...p, pageId: PAGE_ID }).catch(() => {});
+}
+
+export function clearPendingSession(id: string): Promise<void> {
+  ownPending.delete(id);
+  return kvDelete(PENDING_PREFIX + id).catch(() => {});
+}
+
+/**
+ * Record pending sessions that were left behind (closed tab, Back out of the app, crash).
+ * Records of other page loads are recovered right away unless another open tab reports them as
+ * still running; records of this page only when older than `minAgeMs`. Returns how many.
+ */
+export async function recoverPendingSessions(minAgeMs = 5 * 60_000, now = Date.now()): Promise<number> {
+  let n = 0;
+  try {
+    const entries = await kvEntries<PendingSession>(PENDING_PREFIX);
+    const candidates = entries.filter(({ value: p }) => p && !ownPending.has(p.id) && (p.pageId !== PAGE_ID || now - p.updatedAt >= minAgeMs));
+    const foreign = candidates.filter(({ value: p }) => p.pageId !== PAGE_ID && now - p.updatedAt < minAgeMs).map(({ value: p }) => p.id);
+    const alive = await aliveElsewhere(foreign);
+    for (const { key, value: p } of candidates) {
+      if (alive.has(p.id)) continue;
+      await kvDelete(key);
+      if (p.total <= 0) continue;
+      // Already recorded (e.g. saved on pagehide, but the pending record wasn't cleared)?
+      const sameDay = await getDrillSessionsOn(dayKey(p.updatedAt));
+      if (sameDay.some((s) => s.sid === p.id)) continue;
+      await recordSession({ module: p.module, type: p.type, tags: p.tags, startedAt: p.startedAt, endedAt: p.updatedAt, total: p.total, correct: p.correct, sid: p.id });
+      n++;
+    }
+  } catch {
+    /* best-effort */
+  }
+  return n;
 }
 
 // ─── Mistakes ────────────────────────────────────────────────────────

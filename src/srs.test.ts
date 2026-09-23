@@ -9,11 +9,12 @@ const DAY = 86_400_000;
 const NOW = new Date(2026, 4, 1, 15, 30).getTime();
 
 describe('SRS scheduling', () => {
-  it('graduates a new card to 1 day on "good" and 4 days on "easy"', () => {
+  it('graduates a new card to 1 / 2 / 4 days on "hard" / "good" / "easy"', () => {
     const s = createInitialSRSState('w1', 'vocab');
+    expect(processReview(s, 2, NOW).intervalDays).toBe(1);
     const good = processReview(s, 3, NOW);
-    expect(good.intervalDays).toBe(1);
-    expect(good.dueAt).toBe(startOfDay(NOW) + DAY);
+    expect(good.intervalDays).toBe(2);
+    expect(good.dueAt).toBe(startOfDay(NOW) + 2 * DAY);
     expect(good.totalReviews).toBe(1);
     expect(good.firstReviewAt).toBe(NOW);
     const easy = processReview(s, 4, NOW);

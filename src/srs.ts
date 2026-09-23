@@ -56,8 +56,8 @@ export function nextIntervalDays(state: SRSState, grade: number): number {
   const ease = state.ease || INITIAL_EASE;
   let days: number;
   if (prev < 1) {
-    // new or relearning card: graduate to 1 day, or 4 days when it was easy
-    days = grade >= 4 ? 4 : 1;
+    // new or relearning card: Těžké 1 day, Dobře 2 days, Snadné 4 days
+    days = grade >= 4 ? 4 : grade === 3 ? 2 : 1;
   } else if (grade === 2) {
     days = Math.max(prev + 1, Math.round(prev * 1.2));
   } else if (grade >= 4) {

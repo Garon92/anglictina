@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS } from './types';
 import { getSettings as getKitSettings, setSettings as setKitSettings, SETTINGS_KEY } from './kit';
 import { appStore } from './lib/appStore';
 import { reportActivity } from './lib/activity';
+import { setDailyGoalMinutes } from './progress';
 
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
@@ -76,6 +77,11 @@ export default function App() {
   useEffect(() => {
     if (settings) applyFontSize(settings.fontSize);
   }, [settings?.fontSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // One daily goal (minutes) everywhere: ring on "Dnes", celebration toast, menu chip.
+  useEffect(() => {
+    if (settings) setDailyGoalMinutes(settings.minutesPerDay);
+  }, [settings?.minutesPerDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateSettings = useCallback((s: UserSettings) => {
     setSettings(s);

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createRun, pauseRun, resumeRun, runParts, submitRun, saveRun, loadRun, partHistory, pickSetForPart } from './run';
+import { createRun, pauseRun, resumeRun, runParts, submitRun, saveRun, loadRun, partHistory, pickSetForPart, activeTime, remainingTime } from './run';
 import { EXAM_SETS } from './sets';
 import { resetDBConnection, DB_NAME, getExamSessions, getDrillSessions, getAllMistakes } from '../db';
 
@@ -53,12 +53,31 @@ describe('exam runs', () => {
     const exams = await getExamSessions();
     expect(exams[0].mode).toBe('full');
     expect(exams[0].partPoints?.[1]).toBe(8);
-    expect((await getDrillSessions())[0].module).toBe('exam');
+    const ds = (await getDrillSessions())[0];
+    expect(ds.module).toBe('exam');
+    expect(ds.totalItems).toBe(18); // only answered items count
     const mistakes = await getAllMistakes();
     expect(mistakes).toHaveLength(10); // part 9 wrong answers only (part 10 unanswered is skipped)
     expect(mistakes[0].kind).toBe('mcq');
     const hist = await partHistory();
     expect(hist[2].best).toBe(1);
     expect(pickSetForPart(hist[2].sets)).not.toBe(set.id);
+  });
+});
+
+describe('exam practice credit', () => {
+  it('an empty submission records no practice session', async () => {
+    const run = createRun({ mode: 'part', part: 9, setId: 'set-a', practice: true, timed: false });
+    await submitRun(run);
+    expect(await getDrillSessions()).toHaveLength(0);
+    expect(await getExamSessions()).toHaveLength(1);
+  });
+  it('credits only active time (pauses excluded)', async () => {
+    const run = createRun({ mode: 'part', part: 2, setId: 'set-a', practice: true, timed: false });
+    const t0 = run.startedAt;
+    const paused = pauseRun(run, t0 + 5 * 60_000); // 5 min work
+    const resumed = resumeRun(paused, t0 + 10 * 3600_000); // 10 h later
+    expect(activeTime(resumed, t0 + 10 * 3600_000 + 2 * 60_000)).toBe(7 * 60_000);
+    expect(remainingTime(run)).toBeNull();
   });
 });

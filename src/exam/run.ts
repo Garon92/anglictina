@@ -2,7 +2,7 @@ import { kvDelete, kvGet, kvSet, addExamSession, getExamSessions } from '../db';
 import { recordAnswer, recordSession } from '../progress';
 import { EXAM_SETS, getSet } from './sets';
 import type { ExamSet } from './types';
-import { emptyAnswers, scoreExam, itemResults, sentenceAroundGap, type ExamAnswers, type ExamScore } from './scoring';
+import { emptyAnswers, scoreExam, itemResults, sentenceAroundGap, answeredCount, type ExamAnswers, type ExamScore } from './scoring';
 import { minutesForMode, partsForMode, partInfo, type ExamMode, type PartNo } from './structure';
 import { shuffleArray } from '../utils';
 
@@ -24,6 +24,9 @@ export interface ExamRun {
   deadline: number | null;
   /** Remaining ms when the run was left (the clock pauses while you are away). */
   remainingMs?: number;
+  /** Active working time before the current stretch (ms), and when the current stretch began. */
+  activeMs?: number;
+  resumedAt?: number;
   current: PartNo;
 }
 
@@ -72,14 +75,30 @@ export async function loadRun(): Promise<ExamRun | undefined> {
 
 /** Pause the clock (store the remaining time). */
 export function pauseRun(run: ExamRun, now = Date.now()): ExamRun {
-  if (!run.deadline || run.remainingMs !== undefined) return run;
-  return { ...run, remainingMs: Math.max(0, run.deadline - now) };
+  if (run.resumedAt === -1) return run; // already paused
+  const activeMs = activeTime(run, now);
+  const base = { ...run, activeMs, resumedAt: -1 };
+  if (!run.deadline || run.remainingMs !== undefined) return base;
+  return { ...base, remainingMs: Math.max(0, run.deadline - now) };
+}
+
+/** Milliseconds actually spent working on the run (pauses excluded). */
+export function activeTime(run: ExamRun, now = Date.now()): number {
+  const since = run.resumedAt === -1 ? now : (run.resumedAt ?? run.startedAt);
+  return (run.activeMs ?? 0) + Math.max(0, now - since);
+}
+
+/** Remaining time in ms (paused runs report the frozen value), or null for untimed runs. */
+export function remainingTime(run: ExamRun, now = Date.now()): number | null {
+  if (run.remainingMs !== undefined) return run.remainingMs;
+  return run.deadline ? Math.max(0, run.deadline - now) : null;
 }
 
 /** Resume a paused clock. */
 export function resumeRun(run: ExamRun, now = Date.now()): ExamRun {
-  if (run.remainingMs === undefined) return run;
-  const { remainingMs, ...rest } = run;
+  const resumed = run.resumedAt === -1 ? { ...run, resumedAt: now } : run;
+  if (resumed.remainingMs === undefined) return resumed;
+  const { remainingMs, ...rest } = resumed;
   return { ...rest, deadline: run.deadline ? now + remainingMs : null };
 }
 
@@ -131,18 +150,21 @@ export async function submitRun(run: ExamRun): Promise<{ score: ExamScore; sessi
     parts,
   });
 
-  const items = score.parts.reduce((s, p) => s + p.items, 0);
+  // Only answered items count as practice, and only active time (pauses excluded).
+  const answered = parts.reduce((s, p) => s + answeredCount(p, run.answers), 0);
   const correct = score.parts.reduce((s, p) => s + p.correct, 0);
-  await recordSession({
-    module: 'exam',
-    type: 'exam',
-    startedAt: run.startedAt,
-    endedAt,
-    total: items,
-    correct,
-    tags: [run.mode, ...(run.part ? [`part${run.part}`] : [])],
-    maxMinutes: 120,
-  });
+  if (answered > 0) {
+    await recordSession({
+      module: 'exam',
+      type: 'exam',
+      startedAt: endedAt - activeTime(run, endedAt),
+      endedAt,
+      total: answered,
+      correct: Math.min(correct, answered),
+      tags: [run.mode, ...(run.part ? [`part${run.part}`] : [])],
+      maxMinutes: 120,
+    });
+  }
 
   // Grammar gaps (parts 9 and 10) are self-contained enough to be re-drilled as mistakes.
   for (const p of parts) {

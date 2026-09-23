@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { applyAnswerToMistake, creditedMinutes, recordAnswer, recordSession, getActiveMistakes, getDueMistakes, recordMistakeReview, getMistakeSummary, CLEAR_AFTER } from './progress';
-import { resetDBConnection, DB_NAME, getDrillSessions, getStats } from './db';
+import { applyAnswerToMistake, creditedMinutes, recordAnswer, recordSession, getActiveMistakes, getDueMistakes, recordMistakeReview, getMistakeSummary, CLEAR_AFTER, savePendingSession, clearPendingSession, recoverPendingSessions } from './progress';
+import { resetDBConnection, DB_NAME, getDrillSessions, getStats, kvSet } from './db';
 import { dayKey } from './lib/dates';
 
 (globalThis as any).localStorage ??= { getItem: () => null, setItem() {}, removeItem() {} };
@@ -68,5 +68,28 @@ describe('persistence', () => {
     expect(stats.totalStudyMinutes).toBeCloseTo(creditedMinutes(now - 5 * 3600_000, now, 10));
     expect(stats.streakDays).toBe(1);
     expect(await recordSession({ module: 'x', startedAt: now, total: 0, correct: 0 })).toBeNull();
+  });
+});
+
+describe('pending sessions', () => {
+  it('recovers sessions left behind by closed pages, not the ones running here', async () => {
+    const now = Date.now();
+    // written by another (closed) page load
+    await kvSet('pending-session:a', { id: 'a', module: 'articles', startedAt: now - 20 * 60_000, updatedAt: now - 10_000, total: 5, correct: 3, pageId: 'old-page' });
+    // running in this page
+    await savePendingSession({ id: 'c', module: 'grammar', startedAt: now - 60_000, updatedAt: now - 10_000, total: 2, correct: 2 });
+    expect(await recoverPendingSessions(5 * 60_000, now)).toBe(1);
+    const sessions = await getDrillSessions();
+    expect(sessions.map((s) => s.module)).toEqual(['articles']);
+    expect(sessions[0].sid).toBe('a');
+    expect(await recoverPendingSessions(5 * 60_000, now)).toBe(0);
+    await clearPendingSession('c');
+  });
+  it('does not double-record a session that was already saved', async () => {
+    const now = Date.now();
+    await recordSession({ module: 'prepositions', startedAt: now - 60_000, endedAt: now - 5_000, total: 4, correct: 4, sid: 'x' });
+    await kvSet('pending-session:x', { id: 'x', module: 'prepositions', startedAt: now - 60_000, updatedAt: now - 5_000, total: 4, correct: 4, pageId: 'old-page' });
+    expect(await recoverPendingSessions(5 * 60_000, now)).toBe(0);
+    expect(await getDrillSessions()).toHaveLength(1);
   });
 });

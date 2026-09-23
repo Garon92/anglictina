@@ -12,6 +12,8 @@ export interface DeckOverview {
   newLimit: number;
   newAvailable: number;
   reviewedToday: number;
+  /** Cards learned before today that were reviewed today (real "repetition" work). */
+  oldReviewedToday: number;
   learning: number;
   young: number;
   mature: number;
@@ -54,6 +56,18 @@ export async function getDeckOverview(settings: UserSettings, deckId = VOCAB_DEC
     newLimit: settings.newCardsPerDay,
     newAvailable: Math.max(0, Math.min(settings.newCardsPerDay - newToday, totalCards - seen)),
     reviewedToday: new Set(logsToday.map((l) => l.cardId)).size,
+    oldReviewedToday: (() => {
+      const sod = startOfDay(now);
+      const byId = new Map(states.map((s) => [s.cardId, s]));
+      const ids = new Set<string>();
+      for (const l of logsToday) {
+        const st = byId.get(l.cardId);
+        if (!st) continue;
+        const learnedBefore = st.firstReviewAt !== undefined ? st.firstReviewAt < sod : st.totalReviews > 1;
+        if (learnedBefore) ids.add(l.cardId);
+      }
+      return ids.size;
+    })(),
     learning,
     young,
     mature,

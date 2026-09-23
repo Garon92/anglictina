@@ -196,7 +196,8 @@ export async function saveStats(stats: UserStats): Promise<void> {
  */
 export async function updateStreak(today = dayKey()): Promise<UserStats> {
   const stats = await getStats();
-  if (stats.lastActiveDate === today) return stats;
+  // Same day, or a late-recorded older session: nothing to change.
+  if (stats.lastActiveDate && stats.lastActiveDate >= today) return stats;
   stats.streakDays = stats.lastActiveDate === addDays(today, -1) ? stats.streakDays + 1 : 1;
   stats.lastActiveDate = today;
   if (stats.streakDays > stats.bestStreak) stats.bestStreak = stats.streakDays;
@@ -243,9 +244,14 @@ export async function getAllSRSStates(deckId?: string): Promise<SRSState[]> {
   return db.getAll('srsState');
 }
 
-export async function addReviewLog(log: Omit<ReviewLog, 'id'>): Promise<void> {
+export async function addReviewLog(log: Omit<ReviewLog, 'id'>): Promise<number> {
   const db = await getDB();
-  await db.add('reviewLog', log as ReviewLog);
+  return db.add('reviewLog', log as ReviewLog);
+}
+
+export async function deleteReviewLog(id: number): Promise<void> {
+  const db = await getDB();
+  await db.delete('reviewLog', id);
 }
 
 export async function getReviewLogs(since?: number): Promise<ReviewLog[]> {
@@ -329,6 +335,13 @@ export async function kvSet<T>(key: string, value: T): Promise<void> {
 export async function kvDelete(key: string): Promise<void> {
   const db = await getDB();
   await db.delete('kv', key);
+}
+
+/** All kv records whose key starts with `prefix`. */
+export async function kvEntries<T>(prefix: string): Promise<{ key: string; value: T }[]> {
+  const db = await getDB();
+  const recs = await db.getAll('kv', IDBKeyRange.bound(prefix, `${prefix}\uffff`));
+  return recs.map((r) => ({ key: r.key, value: r.value as T }));
 }
 
 // ─── Backup ──────────────────────────────────────────────────────────

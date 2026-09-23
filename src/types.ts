@@ -137,6 +137,8 @@ export interface DrillSession {
   type: string;
   /** Module id from src/modules.ts (added in v2; inferred from tags for older records). */
   module?: string;
+  /** Client-side id of the practice session (dedupes recovery of unfinished sessions). */
+  sid?: string;
   startedAt: number;
   endedAt?: number;
   totalItems: number;

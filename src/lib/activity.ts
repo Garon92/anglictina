@@ -1,11 +1,16 @@
 import { recordActivity } from '../kit';
 import { getAllSRSStates, getStats, getExamSessions, currentStreak } from '../db';
-import { VOCAB_TOTAL } from '../data/vocabMeta';
+import { daily, minutesOnDay } from '../progress';
+import { dayKey } from './dates';
 
-/** Report progress to the shared g92 menu ("Pokračovat" card, per-app stats). */
+/**
+ * Report progress to the shared g92 menu ("Pokračovat" card, per-app stats).
+ * The progress bar shows today's share of the daily goal (motivating from day one),
+ * the metric the number of words in spaced repetition.
+ */
 export async function reportActivity(): Promise<void> {
   try {
-    const [srs, stats, exams] = await Promise.all([getAllSRSStates('vocab'), getStats(), getExamSessions()]);
+    const [srs, stats, exams, minutes] = await Promise.all([getAllSRSStates('vocab'), getStats(), getExamSessions(), minutesOnDay(dayKey())]);
     const learned = srs.filter((s) => s.totalReviews > 0).length;
     const lastExam = exams
       .filter((e) => e.mode === 'full')
@@ -17,7 +22,7 @@ export async function reportActivity(): Promise<void> {
         ? `Série ${streak} dní`
         : undefined;
     recordActivity('anglictina', {
-      progress: Math.min(1, learned / VOCAB_TOTAL),
+      progress: Math.min(1, minutes / Math.max(1, daily.goal())),
       metric: { label: 'Slovíček', value: learned },
       note: note ?? null,
     });

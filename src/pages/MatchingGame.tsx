@@ -1,28 +1,42 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useRef, useState } from 'react';
 import { VOCABULARY } from '../data/vocabulary';
+import type { VocabWord } from '../types';
 import { shuffleArray } from '../utils';
-import { speak } from '../tts';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
+import { speak, stopSpeaking } from '../tts';
+import { playCorrect, playIncorrect } from '../sounds';
+import { confirmDialog } from '../kit';
+import { useSettings } from '../App';
+import { useDrillSession, DrillSetup, FilterGroup, Chip, ResultScreen } from '../components/drill';
+import { ProgressBar, StatTile } from '../components/ui';
+
+type Phase = 'setup' | 'game' | 'result';
+type Pairs = 6 | 8 | 10;
+type Band = 0 | 1 | 2 | 3;
 
 interface GameCard {
   id: string;
   pairId: string;
   text: string;
   type: 'en' | 'cs';
-  matched: boolean;
-  flipped: boolean;
 }
 
-type Difficulty = 6 | 8 | 10;
-type Phase = 'select' | 'game' | 'result';
+const DIFFICULTIES: { pairs: Pairs; label: string }[] = [
+  { pairs: 6, label: 'Lehké' },
+  { pairs: 8, label: 'Střední' },
+  { pairs: 10, label: 'Těžké' },
+];
+const BANDS: { value: Band; label: string }[] = [
+  { value: 0, label: 'Vše' },
+  { value: 1, label: 'Běžná (band 1)' },
+  { value: 2, label: 'Středně pokročilá (band 2)' },
+  { value: 3, label: 'Pokročilá (band 3)' },
+];
+const FLIP_BACK_MS = 1100;
 
-const GRID_LAYOUTS: Record<Difficulty, { cols: number; rows: number }> = {
-  6: { cols: 4, rows: 3 },
-  8: { cols: 4, rows: 4 },
-  10: { cols: 5, rows: 4 },
-};
+/** Whole seconds elapsed since a timestamp. */
+function secondsSince(t: number): number {
+  return Math.floor((Date.now() - t) / 1000);
+}
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -30,450 +44,321 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function getStarRating(moves: number, pairs: number): number {
-  if (moves <= pairs) return 3;
-  if (moves <= pairs * 1.5) return 2;
-  return 1;
+/** Meanings without notes in brackets: "trávit (čas) / utrácet (peníze)" → ["trávit", "utrácet"]. */
+function senseKeys(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .split(/[/,;]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+const USABLE = VOCABULARY.filter((w) => w.cs && w.cs.trim() !== '' && w.en.trim() !== '');
+
+/**
+ * Pick `n` words so that no English and no Czech text (or meaning) appears twice on the board —
+ * otherwise two cards could be a valid match for the same card.
+ */
+function pickWords(band: Band, n: number): VocabWord[] {
+  let pool = band ? USABLE.filter((w) => w.band === band) : USABLE;
+  const short = pool.filter((w) => w.cs.length <= 30);
+  if (short.length >= n * 3) pool = short;
+  if (pool.length < n) pool = USABLE;
+  const out: VocabWord[] = [];
+  const usedEn = new Set<string>();
+  const usedCs = new Set<string>();
+  for (const w of shuffleArray(pool)) {
+    const en = [w.en.trim().toLowerCase(), ...senseKeys(w.en)];
+    const cs = [w.cs.trim().toLowerCase(), ...senseKeys(w.cs)];
+    if (en.some((k) => usedEn.has(k)) || cs.some((k) => usedCs.has(k))) continue;
+    out.push(w);
+    en.forEach((k) => usedEn.add(k));
+    cs.forEach((k) => usedCs.add(k));
+    if (out.length === n) break;
+  }
+  return out;
 }
 
 export default function MatchingGame() {
-  const navigate = useNavigate();
-  const [phase, setPhase] = useState<Phase>('select');
-  const [difficulty, setDifficulty] = useState<Difficulty>(6);
-  const [bandFilter, setBandFilter] = useState<number>(0);
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [pairs, setPairs] = useState<Pairs>(6);
+  const [band, setBand] = useState<Band>(0);
 
+  const [words, setWords] = useState<VocabWord[]>([]);
   const [cards, setCards] = useState<GameCard[]>([]);
-  const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
+  const [faceUp, setFaceUp] = useState<number[]>([]);
+  const [matched, setMatched] = useState<string[]>([]);
   const [moves, setMoves] = useState(0);
-  const [matchedCount, setMatchedCount] = useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [startTime, setStartTime] = useState(0);
-  const [locked, setLocked] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef(0);
+  const startedAt = useRef(0);
+  const timerRef = useRef<number | null>(null);
+  const flipRef = useRef<number | null>(null);
+  /** Card indices that have been face up at least once. */
+  const seenRef = useRef<Set<number>>(new Set());
+  /** Pairs the player mixed up although the translation had already been seen. */
+  const dirtyRef = useRef<Set<string>>(new Set());
+  const endingRef = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
+  const session = useDrillSession('matching', { tags: [`pairs_${pairs}`, band ? `band_${band}` : 'all'] });
 
-  function startGame() {
-    let pool = VOCABULARY.filter((w) => w.cs && w.cs.trim() !== '');
-    if (bandFilter > 0) pool = pool.filter((w) => w.band === bandFilter);
+  function stopTimers() {
+    if (timerRef.current !== null) window.clearInterval(timerRef.current);
+    if (flipRef.current !== null) window.clearTimeout(flipRef.current);
+    timerRef.current = null;
+    flipRef.current = null;
+  }
 
-    if (pool.length < difficulty) {
-      pool = VOCABULARY.filter((w) => w.cs && w.cs.trim() !== '');
-    }
+  useEffect(
+    () => () => {
+      stopTimers();
+      stopSpeaking();
+    },
+    [],
+  );
 
-    const selected = shuffleArray(pool).slice(0, difficulty);
-    const gameCards: GameCard[] = [];
-
-    for (const word of selected) {
-      gameCards.push({
-        id: `${word.id}-en`,
-        pairId: word.id,
-        text: word.en,
-        type: 'en',
-        matched: false,
-        flipped: false,
-      });
-      gameCards.push({
-        id: `${word.id}-cs`,
-        pairId: word.id,
-        text: word.cs,
-        type: 'cs',
-        matched: false,
-        flipped: false,
-      });
-    }
-
-    const shuffled = shuffleArray(gameCards);
-    setCards(shuffled);
-    setFlippedIndices([]);
+  function start() {
+    stopTimers();
+    const picked = pickWords(band, pairs);
+    if (!picked.length) return;
+    const deck: GameCard[] = picked.flatMap((w) => [
+      { id: `${w.id}-en`, pairId: w.id, text: w.en, type: 'en' as const },
+      { id: `${w.id}-cs`, pairId: w.id, text: w.cs, type: 'cs' as const },
+    ]);
+    setWords(picked);
+    setCards(shuffleArray(deck));
+    setFaceUp([]);
+    setMatched([]);
     setMoves(0);
-    setMatchedCount(0);
-    setLocked(false);
-
-    const now = Date.now();
-    setStartTime(now);
-    startTimeRef.current = now;
-    setElapsedSeconds(0);
-
-    timerRef.current = setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
-    }, 1000);
-
+    setElapsed(0);
+    seenRef.current = new Set();
+    dirtyRef.current = new Set();
+    endingRef.current = false;
+    session.start();
+    startedAt.current = Date.now();
+    timerRef.current = window.setInterval(() => setElapsed(secondsSince(startedAt.current)), 1000);
     setPhase('game');
   }
 
-  function handleCardClick(index: number) {
-    if (locked) return;
-    const card = cards[index];
-    if (card.matched || card.flipped) return;
-
-    const newCards = [...cards];
-    newCards[index] = { ...newCards[index], flipped: true };
-    setCards(newCards);
-
-    if (card.type === 'en') {
-      speak(card.text, 0.9);
-    }
-
-    const newFlipped = [...flippedIndices, index];
-    setFlippedIndices(newFlipped);
-
-    if (newFlipped.length === 2) {
-      const newMoves = moves + 1;
-      setMoves(newMoves);
-      setLocked(true);
-
-      const first = newCards[newFlipped[0]];
-      const second = newCards[newFlipped[1]];
-
-      if (first.pairId === second.pairId && first.type !== second.type) {
-        playCorrect();
-        const matched = [...newCards];
-        matched[newFlipped[0]] = { ...matched[newFlipped[0]], matched: true };
-        matched[newFlipped[1]] = { ...matched[newFlipped[1]], matched: true };
-        setCards(matched);
-        setFlippedIndices([]);
-        setLocked(false);
-
-        const newMatchedCount = matchedCount + 1;
-        setMatchedCount(newMatchedCount);
-
-        if (newMatchedCount === difficulty) {
-          endGame(newMoves);
-        }
-      } else {
-        playIncorrect();
-        setTimeout(() => {
-          const reset = [...newCards];
-          reset[newFlipped[0]] = { ...reset[newFlipped[0]], flipped: false };
-          reset[newFlipped[1]] = { ...reset[newFlipped[1]], flipped: false };
-          setCards(reset);
-          setFlippedIndices([]);
-          setLocked(false);
-        }, 1000);
-      }
-    }
-  }
-
-  async function endGame(finalMoves: number) {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    playComplete();
-
-    const endedAt = Date.now();
-    const score = getStarRating(finalMoves, difficulty);
-
-    try {
-      await addDrillSession({
-        date: new Date().toISOString().slice(0, 10),
-        type: 'vocab',
-        startedAt: startTime,
-        endedAt,
-        totalItems: difficulty,
-        correctItems: Math.round((score / 3) * difficulty),
-        tags: ['matching_game'],
-      });
-
-      const stats = await getStats();
-      stats.totalExercisesDone = (stats.totalExercisesDone || 0) + difficulty;
-      stats.totalStudyMinutes += (endedAt - startTime) / 60000;
-      await saveStats(stats);
-      await updateStreak();
-    } catch {
-      // DB errors non-critical
-    }
-
+  async function endGame() {
+    if (endingRef.current) return;
+    endingRef.current = true;
+    stopTimers();
+    setElapsed(secondsSince(startedAt.current));
+    await session.finish();
     setPhase('result');
   }
 
-  function getResultMessage(): string {
-    const stars = getStarRating(moves, difficulty);
-    if (stars === 3) return 'Výborně!';
-    if (stars === 2) return 'Dobrá práce!';
-    return 'Zkus to znovu!';
-  }
+  function flip(i: number) {
+    if (phase !== 'game' || endingRef.current) return;
+    const card = cards[i];
+    if (!card || matched.includes(card.pairId) || faceUp.includes(i)) return;
 
-  function resetGame() {
-    setPhase('select');
-    setCards([]);
-    setFlippedIndices([]);
-    setMoves(0);
-    setMatchedCount(0);
-    setElapsedSeconds(0);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    // Two wrong cards still showing: turn them back right away and start a new move.
+    let open = faceUp;
+    if (open.length === 2) {
+      if (flipRef.current !== null) window.clearTimeout(flipRef.current);
+      flipRef.current = null;
+      open = [];
     }
+
+    if (card.type === 'en' && settings.ttsEnabled) void speak(card.text, settings.ttsRate);
+
+    if (open.length === 0) {
+      seenRef.current.add(i);
+      setFaceUp([i]);
+      return;
+    }
+
+    const a = open[0];
+    const first = cards[a];
+    setMoves((m) => m + 1);
+
+    if (first.pairId === card.pairId) {
+      seenRef.current.add(i);
+      playCorrect();
+      const nextMatched = [...matched, card.pairId];
+      setMatched(nextMatched);
+      setFaceUp([]);
+      const word = words.find((w) => w.id === card.pairId);
+      const clean = !dirtyRef.current.has(card.pairId);
+      if (word) {
+        session.answer({
+          itemId: word.id,
+          category: 'matching',
+          prompt: `Co znamená „${word.en}“?`,
+          kind: 'reveal',
+          answer: word.cs,
+          userAnswer: clean ? undefined : '',
+          explanation: word.example || undefined,
+          correct: clean,
+          silent: true,
+        });
+      }
+      if (nextMatched.length === cards.length / 2) void endGame();
+      return;
+    }
+
+    // Mismatch. It counts as a mistake of the first card's pair only if its translation
+    // had already been uncovered earlier (the player could have known where it was).
+    const partner = cards.findIndex((c, j) => j !== a && c.pairId === first.pairId);
+    if (seenRef.current.has(partner)) dirtyRef.current.add(first.pairId);
+    seenRef.current.add(i);
+    playIncorrect();
+    setFaceUp([a, i]);
+    flipRef.current = window.setTimeout(() => {
+      flipRef.current = null;
+      setFaceUp([]);
+    }, FLIP_BACK_MS);
   }
 
-  // ── Select Phase ──────────────────────────────────────────────────────
-  if (phase === 'select') {
+  async function askExit() {
+    if (matched.length === 0 && moves === 0) {
+      stopTimers();
+      setPhase('setup');
+      return;
+    }
+    const ok = await confirmDialog({
+      title: 'Ukončit hru?',
+      message: 'Nalezené páry se uloží a uvidíš výsledek.',
+      confirmLabel: 'Ukončit',
+      cancelLabel: 'Hrát dál',
+    });
+    if (ok) void endGame();
+  }
+
+  /* ── Setup ── */
+  if (phase === 'setup') {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-4">
-        <div className="max-w-md mx-auto pt-8">
-          <button
-            onClick={() => navigate('/')}
-            className="text-blue-500 hover:text-blue-600 mb-6 flex items-center gap-1"
-          >
-            ← Zpět
-          </button>
-
-          <h1 className="text-3xl font-bold mb-2">Pexeso</h1>
-          <p className="text-slate-500 dark:text-slate-400 mb-8">
-            Spoj anglická slova s českými překlady
-          </p>
-
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-600 dark:text-slate-300">
-                Obtížnost
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {([6, 8, 10] as Difficulty[]).map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDifficulty(d)}
-                    className={`py-3 px-2 rounded-xl text-sm font-medium transition-all ${
-                      difficulty === d
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {d === 6 ? 'Lehké' : d === 8 ? 'Střední' : 'Těžké'}
-                    <span className="block text-xs mt-0.5 opacity-75">
-                      {d} párů
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-slate-600 dark:text-slate-300">
-                Úroveň slovíček
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 0, label: 'Vše' },
-                  { value: 1, label: 'Běžná (band 1)' },
-                  { value: 2, label: 'Středně pokročilá (band 2)' },
-                  { value: 3, label: 'Pokročilá (band 3)' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setBandFilter(opt.value)}
-                    className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
-                      bandFilter === opt.value
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={startGame}
-              className="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-semibold text-lg shadow-lg shadow-blue-500/25 transition-all active:scale-[0.98]"
-            >
-              Začít hru
-            </button>
-          </div>
-        </div>
-      </div>
+      <DrillSetup
+        title="Pexeso"
+        subtitle="Otáčej kartičky a spojuj anglická slova s jejich českým překladem."
+        icon="🃏"
+        onStart={start}
+        startLabel="Začít hru"
+      >
+        <FilterGroup label="Obtížnost">
+          {DIFFICULTIES.map((d) => (
+            <Chip key={d.pairs} active={pairs === d.pairs} onClick={() => setPairs(d.pairs)}>
+              {d.label} · {d.pairs} párů
+            </Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label="Úroveň slovíček">
+          {BANDS.map((b) => (
+            <Chip key={b.value} active={band === b.value} onClick={() => setBand(b.value)}>{b.label}</Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ── Result Phase ──────────────────────────────────────────────────────
+  /* ── Result ── */
   if (phase === 'result') {
-    const stars = getStarRating(moves, difficulty);
+    const all = session.total === pairs && session.total > 0;
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-4 flex items-center justify-center">
-        <div className="max-w-sm w-full text-center">
-          <div className="text-5xl mb-4">
-            {stars === 3 ? '🏆' : stars === 2 ? '👏' : '💪'}
-          </div>
-          <h2 className="text-3xl font-bold mb-2">{getResultMessage()}</h2>
-
-          <div className="text-4xl mb-6 tracking-wider">
-            {'★'.repeat(stars)}
-            {'☆'.repeat(3 - stars)}
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 mb-8 space-y-3">
-            <div className="flex justify-between text-lg">
-              <span className="text-slate-500 dark:text-slate-400">Čas</span>
-              <span className="font-semibold">{formatTime(elapsedSeconds)}</span>
-            </div>
-            <div className="flex justify-between text-lg">
-              <span className="text-slate-500 dark:text-slate-400">Tahy</span>
-              <span className="font-semibold">{moves}</span>
-            </div>
-            <div className="flex justify-between text-lg">
-              <span className="text-slate-500 dark:text-slate-400">Páry</span>
-              <span className="font-semibold">{difficulty}</span>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate('/')}
-              className="flex-1 py-3 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-            >
-              Domů
-            </button>
-            <button
-              onClick={resetGame}
-              className="flex-1 py-3 rounded-xl font-medium bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/25 transition-all"
-            >
-              Nová hra
-            </button>
-          </div>
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nová hra"
+        title={all ? 'Všechny páry nalezeny!' : session.total > 0 ? 'Hra ukončena' : undefined}
+      >
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <StatTile icon="⏱️" value={formatTime(elapsed)} label="Čas" />
+          <StatTile icon="🔄" value={moves} label="Tahy" />
+          <StatTile icon="🃏" value={`${session.total} / ${pairs}`} label="Páry" />
         </div>
-      </div>
+        <p className="mt-3 text-center text-xs text-muted">
+          Skóre = páry bez chyby. Chyba je, když otočíš špatnou kartu, přestože jsi správný překlad už viděl/a.
+        </p>
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit nastavení</button>
+        </div>
+      </ResultScreen>
     );
   }
 
-  // ── Game Phase ────────────────────────────────────────────────────────
-  const layout = GRID_LAYOUTS[difficulty];
+  /* ── Game ── */
+  const total = cards.length / 2;
+  const cols = total === 10 ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-4';
+  const wrongPair = faceUp.length === 2;
 
   return (
-    <>
-      <style>{`
-        .card-container {
-          perspective: 600px;
-        }
-        .card-inner {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          transition: transform 0.4s ease;
-          transform-style: preserve-3d;
-        }
-        .card-inner.flipped {
-          transform: rotateY(180deg);
-        }
-        .card-face {
-          position: absolute;
-          inset: 0;
-          backface-visibility: hidden;
-          -webkit-backface-visibility: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 0.75rem;
-          padding: 0.25rem;
-          overflow: hidden;
-        }
-        .card-back {
-          transform: rotateY(180deg);
-        }
-        .card-matched {
-          animation: matchPulse 0.4s ease;
-        }
-        @keyframes matchPulse {
-          0% { transform: rotateY(180deg) scale(1); }
-          50% { transform: rotateY(180deg) scale(1.08); }
-          100% { transform: rotateY(180deg) scale(1); }
-        }
-      `}</style>
-
-      <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-3 sm:p-4">
-        <div className="max-w-xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => {
-                if (timerRef.current) clearInterval(timerRef.current);
-                resetGame();
-              }}
-              className="text-blue-500 hover:text-blue-600 text-sm font-medium"
-            >
-              ← Zpět
-            </button>
-            <div className="flex items-center gap-4 text-sm font-mono">
-              <span className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">
-                ⏱ {formatTime(elapsedSeconds)}
-              </span>
-              <span className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">
-                Tahy: {moves}
-              </span>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mb-4">
-            <div
-              className="bg-green-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(matchedCount / difficulty) * 100}%` }}
-            />
-          </div>
-
-          {/* Card grid */}
-          <div
-            className="grid gap-2 sm:gap-3 mx-auto"
-            style={{
-              gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
-              maxWidth: layout.cols * 104,
-            }}
-          >
-            {cards.map((card, i) => {
-              const isFlipped = card.flipped || card.matched;
-              const isEn = card.type === 'en';
-
-              return (
-                <div
-                  key={card.id}
-                  className="card-container aspect-square cursor-pointer"
-                  onClick={() => handleCardClick(i)}
-                >
-                  <div className={`card-inner ${isFlipped ? 'flipped' : ''} ${card.matched ? 'card-matched' : ''}`}>
-                    {/* Front (face-down) */}
-                    <div className="card-face bg-slate-200 dark:bg-slate-600 border-2 border-slate-300 dark:border-slate-500 shadow-md hover:shadow-lg hover:border-slate-400 dark:hover:border-slate-400 transition-shadow">
-                      <span className="text-2xl sm:text-3xl font-bold text-slate-400 dark:text-slate-400 select-none">
-                        ?
-                      </span>
-                    </div>
-
-                    {/* Back (face-up) */}
-                    <div
-                      className={`card-face card-back border-2 shadow-md ${
-                        isEn
-                          ? 'bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700'
-                          : 'bg-green-100 dark:bg-green-900/50 border-green-300 dark:border-green-700'
-                      } ${
-                        card.matched
-                          ? 'opacity-70 ring-2 ring-green-400'
-                          : ''
-                      }`}
-                    >
-                      <span
-                        className={`text-xs sm:text-sm font-semibold text-center leading-tight px-1 ${
-                          isEn
-                            ? 'text-blue-800 dark:text-blue-200'
-                            : 'text-green-800 dark:text-green-200'
-                        }`}
-                      >
-                        {card.text}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+    <div className="page-container">
+      <div className="mb-5">
+        <div className="mb-2 flex items-center gap-2">
+          <button type="button" className="btn-ghost btn-sm -ml-2" onClick={() => void askExit()} aria-label="Ukončit hru">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+            <span className="hidden sm:inline">Ukončit</span>
+          </button>
+          <span className="min-w-0 flex-1 truncate text-sm font-bold text-muted">Pexeso</span>
+          <span className="badge tabular-nums" title="Čas">⏱ {formatTime(elapsed)}</span>
+          <span className="badge tabular-nums" title="Tahy">Tahy: {moves}</span>
+          <span className="text-sm font-bold tabular-nums text-muted" aria-live="polite">
+            {matched.length} / {total}
+          </span>
         </div>
+        <ProgressBar value={matched.length} max={total} tone="success" label="Nalezené páry" />
       </div>
-    </>
+
+      <p className="sr-only" aria-live="polite">
+        {wrongPair ? 'Tyto karty k sobě nepatří.' : faceUp.length === 1 ? `Otočeno: ${cards[faceUp[0]]?.text}` : ''}
+      </p>
+
+      <div className={`mx-auto grid gap-2 sm:gap-3 ${cols}`} style={{ maxWidth: total === 10 ? 640 : 520 }}>
+        {cards.map((card, i) => {
+          const isMatched = matched.includes(card.pairId);
+          const isUp = isMatched || faceUp.includes(i);
+          const tone = isMatched
+            ? 'border-success bg-success-soft opacity-70'
+            : wrongPair && faceUp.includes(i)
+              ? 'border-danger bg-danger-soft'
+              : card.type === 'en'
+                ? 'border-accent bg-surface'
+                : 'border-border-strong bg-surface-2';
+          return (
+            <button
+              key={card.id}
+              type="button"
+              className="relative aspect-[3/4] w-full rounded-xl [perspective:800px] focus-visible:outline-offset-2 disabled:cursor-default"
+              onClick={() => flip(i)}
+              disabled={isMatched}
+              aria-label={isUp ? `${card.text}${isMatched ? ' – nalezený pár' : ''}` : `Karta ${i + 1}, zakrytá`}
+              lang={isUp ? card.type : undefined}
+            >
+              <span
+                className={`absolute inset-0 transition-transform duration-300 [transform-style:preserve-3d] motion-reduce:transition-none ${isUp ? '[transform:rotateY(180deg)]' : ''}`}
+                aria-hidden="true"
+              >
+                <span className="absolute inset-0 grid place-items-center rounded-xl border-2 border-accent bg-accent text-2xl font-black text-accent-contrast shadow-1 [backface-visibility:hidden]">
+                  ?
+                </span>
+                <span
+                  className={`absolute inset-0 flex flex-col items-center justify-center rounded-xl border-2 p-1.5 shadow-1 [backface-visibility:hidden] [transform:rotateY(180deg)] ${tone}`}
+                >
+                  <span className="absolute top-1 left-1.5 text-[0.6rem] font-bold tracking-wide text-subtle uppercase">
+                    {card.type === 'en' ? 'EN' : 'CZ'}
+                  </span>
+                  <span className="text-center text-xs leading-tight font-bold break-words hyphens-auto text-fg sm:text-sm" lang={card.type}>
+                    {card.text}
+                  </span>
+                  {isMatched && <span className="absolute right-1.5 bottom-1 text-xs text-success">✓</span>}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mt-4 text-center text-xs text-muted">
+        Najdi ke každému anglickému slovu (EN) jeho český překlad (CZ). Karty ovládáš i klávesnicí (Tab a Enter).
+      </p>
+    </div>
   );
 }

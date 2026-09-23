@@ -1,583 +1,500 @@
-import { useState, useRef, useEffect, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { IRREGULAR_VERBS, type IrregularVerb } from '../data/irregularVerbs';
-import { speak } from '../tts';
+import { speak, stopSpeaking } from '../tts';
 import { shuffleArray } from '../utils';
+import { isAnswerCorrect } from '../lib/answer';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { playFlip } from '../sounds';
+import { useSettings } from '../App';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, TextAnswer, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
+import { PageHeader, SpeakButton } from '../components/ui';
 
-type Phase = 'select' | 'table' | 'flashcard' | 'quiz' | 'result';
-type Level = 'all' | 'A1' | 'A2' | 'B1';
+type Phase = 'setup' | 'table' | 'flashcard' | 'quiz' | 'result';
 type Mode = 'table' | 'flashcard' | 'quiz';
+type Level = 'all' | 'A1' | 'A2' | 'B1';
+type QKind = 'base_to_past' | 'base_to_pp' | 'cs_to_base';
 
-type QuizSubType = 'base_to_past' | 'base_to_pp' | 'cs_to_base';
+const LEVELS: Level[] = ['all', 'A1', 'A2', 'B1'];
+const MODES: { id: Mode; label: string }[] = [
+  { id: 'flashcard', label: 'Kartičky' },
+  { id: 'quiz', label: 'Kvíz (psaní)' },
+  { id: 'table', label: 'Tabulka' },
+];
+const Q_KINDS: { id: QKind; label: string; badge: string; task: string }[] = [
+  { id: 'base_to_past', label: 'Past simple', badge: 'Past simple', task: 'Napiš tvar past simple:' },
+  { id: 'base_to_pp', label: 'Past participle', badge: 'Past participle', task: 'Napiš tvar past participle (3. tvar):' },
+  { id: 'cs_to_base', label: 'Z češtiny (infinitiv)', badge: 'Infinitiv', task: 'Napiš anglický infinitiv:' },
+];
 
-interface QuizQuestion {
-  verb: IrregularVerb;
-  subType: QuizSubType;
-  prompt: string;
-  promptLabel: string;
-  correctAnswer: string;
+/* ─── Helpers ─────────────────────────────────────────────────────── */
+
+/** Ignore "next" for a moment after answering, so a double Enter doesn't skip the feedback. */
+const NEXT_GUARD_MS = 350;
+const now = () => Date.now();
+
+/** "burnt/burned" (data) or "burnt|burned" → ["burnt", "burned"] */
+function variants(form: string): string[] {
+  return form.split(/[/|]/).map((s) => s.trim()).filter(Boolean);
+}
+/** Display form: "burnt / burned". */
+function show(form: string): string {
+  return variants(form).join(' / ');
+}
+/** Text for TTS: "burn, burnt or burned, burnt or burned". */
+function spokenForms(v: IrregularVerb): string {
+  return [v.base, v.past, v.pastParticiple].map((f) => variants(f).join(' or ')).join(', ');
 }
 
-const LEVEL_COLORS: Record<string, string> = {
-  A1: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  A2: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  B1: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-};
+const normCs = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+const senses = (m: string) => m.split(/[,;]/).map(normCs).filter(Boolean);
+const coreSense = (s: string) => s.replace(/\s*\([^)]*\)/g, '').trim();
 
-const LEVEL_ROW_COLORS: Record<string, string> = {
-  A1: 'border-l-green-400',
-  A2: 'border-l-blue-400',
-  B1: 'border-l-purple-400',
-};
-
-function buildQuizQuestions(verbs: IrregularVerb[]): QuizQuestion[] {
-  const subTypes: QuizSubType[] = ['base_to_past', 'base_to_pp', 'cs_to_base'];
-
-  return verbs.map((verb, i) => {
-    const subType = subTypes[i % 3];
-
-    switch (subType) {
-      case 'base_to_past':
-        return {
-          verb,
-          subType,
-          prompt: verb.base,
-          promptLabel: 'Napiš tvar past simple:',
-          correctAnswer: verb.past,
-        };
-      case 'base_to_pp':
-        return {
-          verb,
-          subType,
-          prompt: verb.base,
-          promptLabel: 'Napiš tvar past participle:',
-          correctAnswer: verb.pastParticiple,
-        };
-      case 'cs_to_base':
-        return {
-          verb,
-          subType,
-          prompt: verb.meaningCs,
-          promptLabel: 'Napiš základní tvar (infinitiv):',
-          correctAnswer: verb.base,
-        };
-    }
-  });
-}
-
-function normalize(s: string): string {
-  return s.trim().toLowerCase();
-}
-
-function checkAnswer(input: string, correct: string): boolean {
-  const norm = normalize(input);
-  const variants = correct.split('/').map(normalize);
-  return variants.some((v) => v === norm);
-}
-
-const TTS_ICON = (
-  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
-  </svg>
+/**
+ * Other verbs that are also a correct answer to the Czech prompt of `v`:
+ * the same Czech meaning, or a verb whose sense matches an unqualified sense of the prompt
+ * ("udeřit, trefit" → hit, but also strike = "udeřit (o blesku)"; "říct (něco)" stays say only).
+ */
+const SYNONYMS: Map<string, string[]> = new Map(
+  IRREGULAR_VERBS.map((v) => {
+    const bare = senses(v.meaningCs).filter((s) => !s.includes('('));
+    const others = IRREGULAR_VERBS.filter(
+      (w) => w.id !== v.id && (normCs(w.meaningCs) === normCs(v.meaningCs) || senses(w.meaningCs).some((s) => bare.includes(coreSense(s)))),
+    ).map((w) => w.base);
+    return [v.id, others];
+  }),
 );
 
-const DRILL_COUNT = 20;
+interface Question {
+  verb: IrregularVerb;
+  kind: QKind;
+  /** Accepted answer, alternatives separated by "|". */
+  answer: string;
+  accept: string[];
+}
+
+function buildQuestion(verb: IrregularVerb, kind: QKind): Question {
+  if (kind === 'cs_to_base') return { verb, kind, answer: verb.base, accept: SYNONYMS.get(verb.id) ?? [] };
+  const form = kind === 'base_to_past' ? verb.past : verb.pastParticiple;
+  // Accept one variant, or both written together ("burnt/burned").
+  return { verb, kind, answer: variants(form).join('|'), accept: form.includes('/') ? [form] : [] };
+}
+
+/** Typed answer check: any variant, several variants separated by "/", "," or "or" are fine too. */
+function checkTyped(input: string, q: Question): boolean {
+  let s = input.trim();
+  if (q.kind === 'cs_to_base') s = s.replace(/^to\s+/i, '');
+  const parts = s.split(/\s*(?:\/|\||,|\bor\b)\s*/i).filter(Boolean);
+  return parts.length > 0 && parts.every((p) => isAnswerCorrect(p, q.answer, q.accept));
+}
+
+function questionPrompt(q: Question): string {
+  if (q.kind === 'cs_to_base') return `${q.verb.meaningCs} → infinitiv`;
+  return `${q.verb.base} → ${q.kind === 'base_to_past' ? 'past simple' : 'past participle'}`;
+}
+
+function formsLine(v: IrregularVerb): string {
+  return `${v.base} – ${show(v.past)} – ${show(v.pastParticiple)}`;
+}
+
+/* ─── Page ────────────────────────────────────────────────────────── */
 
 export default function IrregularVerbsDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [mode, setMode] = useState<Mode>('flashcard');
+  const [level, setLevel] = useState<Level>('all');
+  const [kinds, setKinds] = useState<QKind[]>([]);
+  const [count, setCount] = useState(20);
 
-  const [phase, setPhase] = useState<Phase>('select');
-  const [selectedLevel, setSelectedLevel] = useState<Level>('all');
-  const [selectedMode, setSelectedMode] = useState<Mode>('table');
-
-  const [items, setItems] = useState<IrregularVerb[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [startTime, setStartTime] = useState(0);
-
-  // Flashcard
+  const [cards, setCards] = useState<IrregularVerb[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [knownCount, setKnownCount] = useState(0);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<boolean | null>(null);
+  const answeredRef = useRef(-1);
+  const answeredAt = useRef(0);
 
-  // Quiz
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [userInput, setUserInput] = useState('');
-  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [correctCount, setCorrectCount] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const session = useDrillSession('irregular_verbs', { tags: [mode, level] });
 
-  // Result
-  const [resultCorrect, setResultCorrect] = useState(0);
-  const [resultTotal, setResultTotal] = useState(0);
+  const pool = useMemo(() => (level === 'all' ? IRREGULAR_VERBS : IRREGULAR_VERBS.filter((v) => v.level === level)), [level]);
 
-  function getFilteredVerbs(): IrregularVerb[] {
-    if (selectedLevel === 'all') return IRREGULAR_VERBS;
-    return IRREGULAR_VERBS.filter((v) => v.level === selectedLevel);
+  useEffect(() => () => stopSpeaking(), []);
+
+  const say = (t: string) => void speak(t, settings.ttsRate);
+
+  function resetItem() {
+    setRevealed(false);
+    setText('');
+    setResult(null);
+    answeredRef.current = -1;
   }
 
-  function startDrill() {
-    const pool = getFilteredVerbs();
-    if (pool.length === 0) return;
-
-    const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    startTransition(() => {
-      setItems(selected);
-      setCurrentIndex(0);
-      setStartTime(Date.now());
-      setRevealed(false);
-      setKnownCount(0);
-      setCorrectCount(0);
-      setUserInput('');
-      setFeedback(null);
-
-      if (selectedMode === 'quiz') {
-        setQuestions(shuffleArray(buildQuizQuestions(selected)));
-      }
-
-      setPhase(selectedMode);
-    });
-  }
-
-  function handleFlashcardRate(known: boolean) {
-    const newKnown = known ? knownCount + 1 : knownCount;
-    if (known) setKnownCount(newKnown);
-
-    if (currentIndex + 1 >= items.length) {
-      finishDrill(newKnown, items.length);
+  function start() {
+    if (mode === 'table') {
+      setPhase('table');
+      return;
+    }
+    const picked = shuffleArray(pool).slice(0, count);
+    if (!picked.length) return;
+    if (mode === 'quiz') {
+      const active = kinds.length ? Q_KINDS.filter((k) => kinds.includes(k.id)).map((k) => k.id) : Q_KINDS.map((k) => k.id);
+      setQuestions(shuffleArray(picked.map((v, i) => buildQuestion(v, active[i % active.length]))));
     } else {
-      setCurrentIndex((i) => i + 1);
-      setRevealed(false);
+      setCards(picked);
     }
+    setIdx(0);
+    resetItem();
+    session.start();
+    setPhase(mode);
   }
 
-  function handleQuizSubmit() {
-    if (feedback !== null || !userInput.trim()) return;
-    const q = questions[currentIndex];
-    const isCorrect = checkAnswer(userInput, q.correctAnswer);
-    if (isCorrect) setCorrectCount((c) => c + 1);
-    setFeedback(isCorrect ? 'correct' : 'wrong');
-  }
-
-  function handleQuizNext() {
-    const newCorrect = correctCount;
-    if (currentIndex + 1 >= questions.length) {
-      finishDrill(newCorrect, questions.length);
-    } else {
-      setCurrentIndex((i) => i + 1);
-      setUserInput('');
-      setFeedback(null);
-    }
-  }
-
-  useEffect(() => {
-    if (phase === 'quiz' && feedback === null && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [currentIndex, phase, feedback]);
-
-  async function finishDrill(correct: number, total: number) {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: total,
-      correctItems: correct,
-      tags: ['irregular_verbs'],
-    });
-
-    setResultCorrect(correct);
-    setResultTotal(total);
+  async function finishNow() {
+    await session.finish();
     setPhase('result');
   }
 
-  // ──── SELECT PHASE ────
+  async function advance(total: number) {
+    if (idx + 1 >= total) {
+      await finishNow();
+    } else {
+      setIdx(idx + 1);
+      resetItem();
+    }
+  }
 
-  if (phase === 'select') {
-    const pool = getFilteredVerbs();
+  /* ── Flashcards ── */
+  const card = phase === 'flashcard' ? cards[idx] : undefined;
 
+  function reveal() {
+    if (!card || revealed) return;
+    setRevealed(true);
+    playFlip();
+    if (settings.ttsEnabled) say(spokenForms(card));
+  }
+
+  function grade(known: boolean) {
+    if (!card || !revealed || answeredRef.current === idx) return;
+    answeredRef.current = idx;
+    session.answer({
+      itemId: card.id,
+      category: card.level,
+      prompt: `Tvary slovesa ${card.base} (${card.meaningCs})`,
+      kind: 'reveal',
+      answer: `${card.base} – ${show(card.past)} – ${show(card.pastParticiple)}`,
+      userAnswer: known ? undefined : '',
+      explanation: card.example,
+      correct: known,
+      silent: true,
+    });
+    void advance(cards.length);
+  }
+
+  /* ── Quiz ── */
+  const q = phase === 'quiz' ? questions[idx] : undefined;
+
+  function submit() {
+    if (!q || result !== null || answeredRef.current === idx) return;
+    const user = text.trim();
+    if (!user) return;
+    answeredRef.current = idx;
+    answeredAt.current = now();
+    const correct = checkTyped(user, q);
+    setResult(correct);
+    session.answer({
+      itemId: `${q.verb.id}:${q.kind}`,
+      category: q.kind,
+      prompt: questionPrompt(q),
+      kind: 'text',
+      answer: q.answer,
+      accept: q.accept,
+      userAnswer: user,
+      explanation: `${formsLine(q.verb)} (${q.verb.meaningCs})`,
+      correct,
+    });
+  }
+
+  function quizNext() {
+    if (now() - answeredAt.current < NEXT_GUARD_MS) return;
+    void advance(questions.length);
+  }
+
+  useKeyboard(
+    phase === 'flashcard'
+      ? revealed
+        ? { '1': () => grade(false), '2': () => grade(true), ArrowLeft: () => grade(false), ArrowRight: () => grade(true) }
+        : { ' ': reveal, Enter: reveal }
+      : phase === 'quiz' && result !== null
+        ? { Enter: quizNext }
+        : {},
+    phase === 'flashcard' || phase === 'quiz',
+  );
+
+  /* ── Setup ── */
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>
-          ← Zpět
-        </button>
-        <h1 className="page-title">Nepravidelná slovesa</h1>
-        <p className="page-subtitle">Procvič si tři tvary</p>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Úroveň</h3>
-          <div className="flex gap-2 flex-wrap">
-            {(['all', 'A1', 'A2', 'B1'] as const).map((lvl) => (
-              <button
-                key={lvl}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectedLevel === lvl
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => setSelectedLevel(lvl)}
-              >
-                {lvl === 'all' ? 'Vše' : lvl}
-              </button>
+      <DrillSetup
+        title="Nepravidelná slovesa"
+        subtitle="Procvič si tři tvary: go – went – gone. Kartičky, psaní tvarů nebo přehledná tabulka."
+        icon="🔁"
+        poolSize={pool.length}
+        onStart={start}
+        startLabel={mode === 'table' ? 'Zobrazit tabulku' : 'Začít'}
+        count={mode === 'table' ? undefined : count}
+        onCountChange={mode === 'table' ? undefined : setCount}
+        countOptions={[10, 20, 30]}
+      >
+        <FilterGroup label="Režim">
+          {MODES.map((m) => (
+            <Chip key={m.id} active={mode === m.id} onClick={() => setMode(m.id)}>{m.label}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        {mode === 'quiz' && (
+          <FilterGroup label={`Co psát${kinds.length ? ` (${kinds.length})` : ' (mix)'}`} hint="Tvary s variantami (burnt / burned) uznáme v kterékoli podobě.">
+            {Q_KINDS.map((k) => (
+              <Chip key={k.id} active={kinds.includes(k.id)} onClick={() => setKinds((p) => (p.includes(k.id) ? p.filter((x) => x !== k.id) : [...p, k.id]))}>
+                {k.label}
+              </Chip>
             ))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Režim</h3>
-          <div className="flex gap-2 flex-wrap">
-            {([['table', 'Tabulka'], ['flashcard', 'Flashcards'], ['quiz', 'Kvíz']] as const).map(
-              ([mode, label]) => (
-                <button
-                  key={mode}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    selectedMode === mode
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                  }`}
-                  onClick={() => setSelectedMode(mode)}
-                >
-                  {label}
-                </button>
-              ),
-            )}
-          </div>
-        </div>
-
-        {selectedMode === 'table' ? (
-          <button
-            className="btn-primary btn-lg w-full"
-            disabled={pool.length === 0}
-            onClick={() => startTransition(() => setPhase('table'))}
-          >
-            {pool.length === 0 ? 'Žádná slovesa pro tento filtr' : `Zobrazit tabulku (${pool.length} sloves)`}
-          </button>
-        ) : (
-          <button
-            className="btn-primary btn-lg w-full"
-            disabled={pool.length === 0}
-            onClick={startDrill}
-          >
-            {pool.length === 0
-              ? 'Žádná slovesa pro tento filtr'
-              : `Začít (${Math.min(pool.length, DRILL_COUNT)} sloves)`}
-          </button>
+          </FilterGroup>
         )}
-      </div>
+      </DrillSetup>
     );
   }
 
-  // ──── TABLE MODE ────
-
+  /* ── Table ── */
   if (phase === 'table') {
-    const verbs = getFilteredVerbs();
-
-    return (
-      <div className="page-container">
-        <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>
-            ← Zpět
-          </button>
-          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {verbs.length} sloves
-          </span>
-        </div>
-
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-          Přehled nepravidelných sloves
-        </h2>
-
-        <div className="overflow-x-auto -mx-4 px-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b-2 border-slate-200 dark:border-slate-700">
-                <th className="text-left py-2 pr-2 text-slate-500 dark:text-slate-400 font-medium">Base</th>
-                <th className="text-left py-2 pr-2 text-slate-500 dark:text-slate-400 font-medium">Past</th>
-                <th className="text-left py-2 pr-2 text-slate-500 dark:text-slate-400 font-medium">Past Participle</th>
-                <th className="text-left py-2 text-slate-500 dark:text-slate-400 font-medium">Český význam</th>
-                <th className="w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {verbs.map((v) => (
-                <tr
-                  key={v.id}
-                  className={`border-b border-slate-100 dark:border-slate-700/50 border-l-4 ${LEVEL_ROW_COLORS[v.level]}`}
-                >
-                  <td className="py-2.5 pr-2 font-semibold text-slate-900 dark:text-white">{v.base}</td>
-                  <td className="py-2.5 pr-2 text-slate-700 dark:text-slate-300">{v.past}</td>
-                  <td className="py-2.5 pr-2 text-slate-700 dark:text-slate-300">{v.pastParticiple}</td>
-                  <td className="py-2.5 text-slate-500 dark:text-slate-400">{v.meaningCs}</td>
-                  <td className="py-2.5 pl-1">
-                    <button
-                      className="text-primary-500 hover:text-primary-700 dark:hover:text-primary-300 p-1"
-                      onClick={() => speak(v.base)}
-                    >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
+    return <VerbTable verbs={pool} level={level} onBack={() => setPhase('setup')} onSpeak={say} />;
   }
 
-  // ──── RESULT PHASE ────
-
+  /* ── Result ── */
   if (phase === 'result') {
-    const pct = resultTotal > 0 ? Math.round((resultCorrect / resultTotal) * 100) : 0;
-
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">
-          {pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nové kolo"
+        title={mode === 'flashcard' && session.total > 0 ? 'Kartičky hotové!' : undefined}
+      >
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit nastavení</button>
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Hotovo!</h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-1">
-          {resultCorrect} / {resultTotal} správně ({pct}%)
-        </p>
-        <p className="text-sm text-slate-400 mb-6">
-          {pct >= 80
-            ? 'Výborně! Nepravidelná slovesa ti jdou!'
-            : pct >= 50
-              ? 'Dobrý základ, pokračuj v procvičování.'
-              : 'Nevadí, opakování dělá mistra!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>
-            Domů
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setPhase('select');
-            }}
-          >
-            Znovu
-          </button>
-        </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  // ──── FLASHCARD PHASE ────
-
+  /* ── Flashcard ── */
   if (phase === 'flashcard') {
-    const verb = items[currentIndex];
-    if (!verb) return null;
-    const progress = currentIndex / items.length;
-
+    if (!card) return null;
     return (
       <div className="page-container">
-        <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>
-            ← Zpět
-          </button>
-          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {currentIndex + 1} / {items.length}
-          </span>
-        </div>
+        <DrillTopBar current={idx} total={cards.length} correct={session.correct} onExit={() => void finishNow()} title="Kartičky" />
 
-        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-          <div
-            className="bg-primary-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
-
-        <div className="card !p-6 sm:!p-8 text-center mb-6 min-h-[280px] flex flex-col justify-center">
-          <span className={`badge ${LEVEL_COLORS[verb.level]} mx-auto mb-3`}>
-            {verb.level}
-          </span>
-
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">{verb.base}</h2>
-            <button
-              className="text-primary-500 hover:text-primary-700 dark:hover:text-primary-300 p-1"
-              onClick={() => speak(verb.base)}
-            >
-              {TTS_ICON}
-            </button>
+        <div className="card flex min-h-[18rem] flex-col items-center justify-center !p-6 text-center">
+          <span className="badge !bg-accent-soft !text-accent-text">{card.level}</span>
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <h2 className="text-4xl font-black break-words text-fg" lang="en">{card.base}</h2>
+            <SpeakButton onClick={() => say(revealed ? spokenForms(card) : card.base)} label={`Přehrát: ${card.base}`} />
           </div>
+          <p className="mt-1 text-sm text-muted">infinitiv</p>
 
-          <p className="text-sm text-slate-400 dark:text-slate-500 mb-4">infinitiv</p>
-
-          {revealed ? (
-            <div className="animate-in fade-in duration-300 space-y-3">
+          {!revealed ? (
+            <>
+              <p className="mt-6 text-sm text-muted">Vybav si past simple a past participle, pak si kartičku otoč.</p>
+              <button type="button" className="btn-primary btn-lg mt-4" onClick={reveal}>Ukázat tvary</button>
+              <p className="mt-2 hidden text-xs text-subtle sm:block">nebo mezerník</p>
+            </>
+          ) : (
+            <div className="mt-5 w-full animate-fadeIn space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-3">
-                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">Past Simple</p>
-                  <p className="text-lg font-bold text-amber-800 dark:text-amber-200">{verb.past}</p>
+                <div className="rounded-2xl bg-accent-soft p-3">
+                  <div className="text-xs font-bold text-accent-text">Past simple</div>
+                  <div className="text-xl font-black break-words text-fg" lang="en">{show(card.past)}</div>
                 </div>
-                <div className="bg-violet-50 dark:bg-violet-900/30 rounded-xl p-3">
-                  <p className="text-xs text-violet-600 dark:text-violet-400 font-medium mb-1">Past Participle</p>
-                  <p className="text-lg font-bold text-violet-800 dark:text-violet-200">{verb.pastParticiple}</p>
+                <div className="rounded-2xl bg-info-soft p-3">
+                  <div className="text-xs font-bold text-info">Past participle</div>
+                  <div className="text-xl font-black break-words text-fg" lang="en">{show(card.pastParticiple)}</div>
                 </div>
               </div>
-              <div className="text-lg text-primary-600 dark:text-primary-400 font-semibold">
-                {verb.meaningCs}
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-left">
-                <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{verb.example}"</p>
+              <div className="text-lg font-bold text-accent-text">{card.meaningCs}</div>
+              <div className="flex items-start gap-2 rounded-2xl bg-surface-2 p-3 text-left">
+                <p className="flex-1 text-fg italic" lang="en">„{card.example}“</p>
+                <SpeakButton size="sm" onClick={() => say(card.example)} label="Přehrát příklad" />
               </div>
             </div>
-          ) : (
-            <button
-              className="btn-primary btn-lg mx-auto mt-4"
-              onClick={() => {
-                setRevealed(true);
-                speak(verb.base);
-              }}
-            >
-              Ukázat tvary
-            </button>
           )}
         </div>
 
-        {revealed && (
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              className="py-3 rounded-xl text-center transition-all active:scale-95 bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300 font-medium"
-              onClick={() => handleFlashcardRate(false)}
-            >
-              ❌ Neznám
-            </button>
-            <button
-              className="py-3 rounded-xl text-center transition-all active:scale-95 bg-green-50 hover:bg-green-100 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-300 font-medium"
-              onClick={() => handleFlashcardRate(true)}
-            >
-              ✅ Znám
-            </button>
+        {revealed && <GradeButtons onGrade={grade} />}
+      </div>
+    );
+  }
+
+  /* ── Quiz ── */
+  if (!q) return null;
+  const kindInfo = Q_KINDS.find((k) => k.id === q.kind)!;
+  const last = idx + 1 >= questions.length;
+  const synonyms = q.kind === 'cs_to_base' ? q.accept : [];
+
+  return (
+    <div className="page-container">
+      <DrillTopBar current={idx} total={questions.length} correct={session.correct} onExit={() => void finishNow()} title="Tvary sloves" />
+
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{kindInfo.badge}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{q.verb.level}</span>
+        </div>
+        <p className="mb-1 text-sm font-bold text-muted">{kindInfo.task}</p>
+        <div className="mb-4 flex items-center gap-3">
+          {q.kind === 'cs_to_base' ? (
+            <p className="text-2xl font-black break-words text-fg" lang="cs">{q.verb.meaningCs}</p>
+          ) : (
+            <>
+              <p className="text-2xl font-black break-words text-fg" lang="en">{q.verb.base}</p>
+              <SpeakButton size="sm" onClick={() => say(q.verb.base)} label={`Přehrát: ${q.verb.base}`} />
+            </>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex-1">
+            <TextAnswer
+              value={text}
+              onChange={setText}
+              onSubmit={submit}
+              disabled={result !== null}
+              status={result === null ? null : result ? 'correct' : 'wrong'}
+              label={kindInfo.task}
+            />
           </div>
+          {result === null && (
+            <button type="button" className="btn-primary btn-lg" disabled={!text.trim()} onClick={submit}>Ověřit</button>
+          )}
+        </div>
+
+        {result !== null && (
+          <Feedback
+            correct={result}
+            answer={q.answer}
+            userAnswer={text.trim()}
+            explanation={
+              <>
+                <span className="flex items-center gap-2">
+                  <strong className="min-w-0 break-words text-fg" lang="en">{formsLine(q.verb)}</strong>
+                  <SpeakButton size="sm" onClick={() => say(spokenForms(q.verb))} label="Přehrát všechny tvary" />
+                </span>
+                <span className="block">{q.verb.meaningCs}</span>
+                {synonyms.length > 0 && <span className="mt-1 block">Uznáváme i: <span lang="en">{synonyms.join(', ')}</span></span>}
+                <span className="mt-1 block italic" lang="en">„{q.verb.example}“</span>
+              </>
+            }
+          />
+        )}
+        {result !== null && <NextButton onClick={quizNext} last={last} />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Page-local components ───────────────────────────────────────── */
+
+function GradeButtons({ onGrade }: { onGrade: (known: boolean) => void }) {
+  return (
+    <div className="mt-4">
+      <div className="grid grid-cols-2 gap-3">
+        <button type="button" className="vocab-grade vocab-grade--again" onClick={() => onGrade(false)}>
+          <span className="font-black">Neznám</span>
+          <span className="text-[0.7rem] opacity-80">klávesa 1 / ←</span>
+        </button>
+        <button type="button" className="vocab-grade vocab-grade--good" onClick={() => onGrade(true)}>
+          <span className="font-black">Znám ✓</span>
+          <span className="text-[0.7rem] opacity-80">klávesa 2 / →</span>
+        </button>
+      </div>
+      <p className="mt-2 text-center text-xs text-muted">Hodnoť poctivě — co neumíš, zařadíme do opakování chyb.</p>
+    </div>
+  );
+}
+
+function VerbTable({ verbs, level, onBack, onSpeak }: { verbs: IrregularVerb[]; level: Level; onBack: () => void; onSpeak: (t: string) => void }) {
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? verbs.filter((v) => [v.base, v.past, v.pastParticiple, v.meaningCs].some((f) => f.toLowerCase().includes(q)))
+    : verbs;
+
+  return (
+    <div className="page-container page-container--wide">
+      <button type="button" className="btn-ghost btn-sm -ml-2 mb-2" onClick={onBack}>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        Zpět na výběr
+      </button>
+      <PageHeader
+        back={null}
+        icon="📋"
+        title="Přehled nepravidelných sloves"
+        subtitle={`${verbs.length} sloves${level === 'all' ? '' : ` úrovně ${level}`} · infinitiv – past simple – past participle`}
+      />
+
+      <label className="mb-4 block">
+        <span className="eyebrow mb-1 block">Hledat</span>
+        <input
+          type="search"
+          className="input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="např. go, went, psát…"
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+        />
+      </label>
+
+      <div className="card !p-0 overflow-hidden">
+        <div className="hidden grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_2.25rem_2.25rem] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-xs font-bold text-muted sm:grid" aria-hidden="true">
+          <span>Infinitiv</span>
+          <span>Past simple</span>
+          <span>Past participle</span>
+          <span>Význam</span>
+          <span />
+          <span />
+        </div>
+        {shown.length === 0 ? (
+          <p className="p-5 text-center text-sm text-muted">
+            Nic jsme nenašli{level === 'all' ? '' : ` mezi slovesy úrovně ${level}`}. Zkus jiné slovo.
+          </p>
+        ) : (
+          <ul>
+            {shown.map((v) => (
+              <li key={v.id} className="flex items-center gap-3 border-b border-border px-4 py-2.5 last:border-b-0 sm:grid sm:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_2.25rem_2.25rem]">
+                <div className="min-w-0 flex-1 sm:contents">
+                  <div className="font-bold break-words text-fg" lang="en">
+                    {v.base}
+                    <span className="font-medium text-muted sm:hidden"> – {show(v.past)} – {show(v.pastParticiple)}</span>
+                  </div>
+                  <div className="hidden break-words text-fg sm:block" lang="en">{show(v.past)}</div>
+                  <div className="hidden break-words text-fg sm:block" lang="en">{show(v.pastParticiple)}</div>
+                  <div className="text-sm break-words text-muted">{v.meaningCs}</div>
+                </div>
+                <span className="badge shrink-0 justify-self-center">{v.level}</span>
+                <SpeakButton size="sm" onClick={() => onSpeak(spokenForms(v))} label={`Přehrát: ${formsLine(v)}`} />
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-    );
-  }
-
-  // ──── QUIZ PHASE ────
-
-  if (phase === 'quiz') {
-    const q = questions[currentIndex];
-    if (!q) return null;
-    const progress = currentIndex / questions.length;
-
-    return (
-      <div className="page-container">
-        <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>
-            ← Zpět
-          </button>
-          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {currentIndex + 1} / {questions.length}
-          </span>
-        </div>
-
-        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-          <div
-            className="bg-primary-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
-
-        <div className="card !p-6 mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className={`badge ${LEVEL_COLORS[q.verb.level]}`}>{q.verb.level}</span>
-            <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-              {q.subType === 'base_to_past' ? 'Past Simple' : q.subType === 'base_to_pp' ? 'Past Participle' : 'Infinitiv'}
-            </span>
-          </div>
-
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">{q.promptLabel}</p>
-
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{q.prompt}</h3>
-            {q.subType !== 'cs_to_base' && (
-              <button
-                className="text-primary-500 hover:text-primary-700 dark:hover:text-primary-300 p-1"
-                onClick={() => speak(q.prompt)}
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {feedback === null ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleQuizSubmit();
-              }}
-            >
-              <input
-                ref={inputRef}
-                type="text"
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-lg focus:border-primary-500 focus:outline-none transition-colors"
-                placeholder="Tvoje odpověď..."
-                autoComplete="off"
-                autoCapitalize="off"
-              />
-              <button
-                type="submit"
-                className="btn-primary btn-lg w-full mt-3"
-                disabled={!userInput.trim()}
-              >
-                Zkontrolovat
-              </button>
-            </form>
-          ) : (
-            <div>
-              <div
-                className={`px-4 py-3 rounded-xl border-2 text-lg font-medium ${
-                  feedback === 'correct'
-                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                    : 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'
-                }`}
-              >
-                {feedback === 'correct' ? '✓ ' : '✗ '}
-                {userInput}
-              </div>
-
-              {feedback === 'wrong' && (
-                <div className="mt-3 px-4 py-3 rounded-xl bg-green-50 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700">
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Správná odpověď: <strong className="text-green-900 dark:text-green-100">{q.correctAnswer}</strong>
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>{q.verb.base}</strong> → {q.verb.past} → {q.verb.pastParticiple}
-                </p>
-                <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">{q.verb.meaningCs}</p>
-                <p className="text-xs text-blue-500 dark:text-blue-400 mt-1 italic">"{q.verb.example}"</p>
-              </div>
-
-              <button className="btn-primary btn-lg w-full mt-3" onClick={handleQuizNext}>
-                {currentIndex + 1 >= questions.length ? 'Zobrazit výsledky' : 'Další otázka →'}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }

@@ -1,595 +1,430 @@
-import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { IDIOMS, COLLOCATIONS, IDIOM_CATEGORIES } from '../data/idioms';
 import type { Idiom, Collocation } from '../data/idioms';
-import { shuffleArray } from '../utils';
-import { speak } from '../tts';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { trackError } from '../errorTracker';
+import { shuffleArray, buildOptions, uniqueBy } from '../utils';
+import { speak, stopSpeaking } from '../tts';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { useSettings } from '../App';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
+import { Segmented, SpeakButton } from '../components/ui';
 
-type Phase = 'select' | 'quiz' | 'result';
-type Tab = 'idioms' | 'collocations' | 'quiz';
+type Phase = 'setup' | 'quiz' | 'result';
+type Content = 'mix' | 'idioms' | 'collocations';
+type BrowseTab = 'idioms' | 'collocations';
 
-const CATEGORY_BORDER_COLORS: Record<string, string> = {
-  emotions: 'border-l-rose-400',
-  effort: 'border-l-amber-400',
-  communication: 'border-l-sky-400',
-  money: 'border-l-emerald-400',
-  relationships: 'border-l-violet-400',
-  general: 'border-l-slate-400',
+const CATEGORY_KEYS = Object.keys(IDIOM_CATEGORIES);
+const MAIN_VERBS = ['make', 'do', 'have', 'take', 'get', 'pay'];
+const VERB_FILTERS = ['all', ...MAIN_VERBS, 'other'] as const;
+type VerbFilter = (typeof VERB_FILTERS)[number];
+const CONTENTS: { id: Content; label: string }[] = [
+  { id: 'mix', label: 'Idiomy i kolokace' },
+  { id: 'idioms', label: 'Jen idiomy' },
+  { id: 'collocations', label: 'Jen kolokace' },
+];
+
+/** Every verb that appears in the collocation data (correct or typical wrong one). */
+const ALL_VERBS = uniqueBy(COLLOCATIONS.flatMap((c) => [c.verb, c.wrongVerb]), (v) => v);
+
+/**
+ * Verbs that would also make a valid English phrase with the collocate (often with another
+ * meaning) — never offered as distractors so that the correct answer stays unambiguous.
+ */
+const ALSO_VALID: Record<string, string[]> = {
+  'make a decision': ['take'],
+  'make money': ['have', 'get'],
+  'make friends': ['have'],
+  'make a complaint': ['have'],
+  'make arrangements': ['have'],
+  'do homework': ['have', 'get'],
+  'do damage': ['take'],
+  'take a risk': ['run'],
+  'take responsibility': ['have'],
+  'take a deep breath': ['have', 'catch'],
+  'pay a visit': ['make'],
+  'catch a cold': ['have', 'get'],
+  'keep a promise': ['make'],
+  'come to a conclusion': ['get'],
+  'run a business': ['have'],
 };
 
-const CATEGORY_BADGE_COLORS: Record<string, string> = {
-  emotions: 'bg-rose-100 text-rose-700',
-  effort: 'bg-amber-100 text-amber-700',
-  communication: 'bg-sky-100 text-sky-700',
-  money: 'bg-emerald-100 text-emerald-700',
-  relationships: 'bg-violet-100 text-violet-700',
-  general: 'bg-slate-100 text-slate-600',
-};
+/** Idioms with a close meaning — never used as distractors for each other. */
+const SIMILAR_IDIOMS: string[][] = [
+  ['a piece of cake', "it's not rocket science"],
+  ['see eye to eye', 'be on the same page'],
+  ['hit the books', 'burn the midnight oil', 'work your fingers to the bone'],
+  ['get along with', 'hit it off', 'have a lot in common'],
+  ['cost an arm and a leg', 'a rip-off'],
+  ['give it your best shot', 'go the extra mile'],
+  ['keep a stiff upper lip', 'pull yourself together', 'keep your chin up'],
+  ['save for a rainy day', 'tighten your belt', "money doesn't grow on trees"],
+  ['make ends meet', 'live from hand to mouth'],
+  ['butterflies in your stomach', 'get cold feet', 'be scared stiff'],
+  ['speak your mind', 'get something off your chest'],
+];
 
-const VERB_FILTERS = ['make', 'do', 'have', 'take', 'get', 'pay', 'other'] as const;
+function similarTo(idiom: string): string[] {
+  return SIMILAR_IDIOMS.find((g) => g.includes(idiom)) ?? [];
+}
 
-interface QuizQuestion {
+function matchesVerb(c: Collocation, verb: VerbFilter): boolean {
+  if (verb === 'all') return true;
+  if (verb === 'other') return !MAIN_VERBS.includes(c.verb);
+  return c.verb === verb;
+}
+
+interface Question {
+  id: string;
   type: 'idiom' | 'collocation';
   idiom?: Idiom;
   collocation?: Collocation;
-  prompt: string;
   options: string[];
   correctIndex: number;
-  explanation: string;
-  explanationDetail: string;
 }
 
-function buildQuizQuestions(): QuizQuestion[] {
-  const questions: QuizQuestion[] = [];
+function idiomQuestion(idiom: Idiom): Question {
+  const similar = similarTo(idiom.idiom);
+  const pool = IDIOMS.filter((i) => i.id !== idiom.id && !similar.includes(i.idiom)).map((i) => i.meaningCs);
+  const { options, correctIndex } = buildOptions(idiom.meaningCs, pool, 3);
+  return { id: idiom.id, type: 'idiom', idiom, options, correctIndex };
+}
 
-  const idiomPool = shuffleArray(IDIOMS).slice(0, 10);
-  for (const idiom of idiomPool) {
-    const distractors = shuffleArray(
-      IDIOMS.filter((i) => i.id !== idiom.id),
-    ).slice(0, 3);
-
-    const options = shuffleArray([
-      idiom.meaningCs,
-      ...distractors.map((d) => d.meaningCs),
-    ]);
-
-    questions.push({
-      type: 'idiom',
-      idiom,
-      prompt: idiom.idiom,
-      options,
-      correctIndex: options.indexOf(idiom.meaningCs),
-      explanation: `${idiom.idiom} = ${idiom.meaningCs}`,
-      explanationDetail: idiom.example,
-    });
-  }
-
-  const colPool = shuffleArray(COLLOCATIONS).slice(0, 10);
-  for (const col of colPool) {
-    const verbSet = new Set([col.verb, col.wrongVerb]);
-    const allVerbs = [...new Set(COLLOCATIONS.map((c) => c.verb))];
-    const extraVerbs = shuffleArray(
-      allVerbs.filter((v) => !verbSet.has(v)),
-    ).slice(0, 4 - verbSet.size);
-
-    const options = shuffleArray([...verbSet, ...extraVerbs].slice(0, 4));
-    const correctIndex = options.indexOf(col.verb);
-
-    questions.push({
-      type: 'collocation',
-      collocation: col,
-      prompt: `_____ ${col.collocate}`,
-      options,
-      correctIndex,
-      explanation: `${col.full} = ${col.meaningCs}`,
-      explanationDetail: col.example,
-    });
-  }
-
-  return shuffleArray(questions).slice(0, 20);
+function collocationQuestion(col: Collocation): Question {
+  const banned = new Set([col.verb, ...(ALSO_VALID[col.full] ?? [])]);
+  const others = shuffleArray(ALL_VERBS.filter((v) => !banned.has(v) && v !== col.wrongVerb));
+  // The typical Czech mistake is always one of the options.
+  const distractors = [...(banned.has(col.wrongVerb) ? [] : [col.wrongVerb]), ...others].slice(0, 3);
+  const options = shuffleArray([col.verb, ...distractors]);
+  return { id: col.id, type: 'collocation', collocation: col, options, correctIndex: options.indexOf(col.verb) };
 }
 
 export default function IdiomsDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [content, setContent] = useState<Content>('mix');
+  const [cats, setCats] = useState<string[]>([]);
+  const [verb, setVerb] = useState<VerbFilter>('all');
+  const [count, setCount] = useState(20);
+  const [browse, setBrowse] = useState<BrowseTab>('idioms');
 
-  const [phase, setPhase] = useState<Phase>('select');
-  const [tab, setTab] = useState<Tab>('idioms');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const answeredRef = useRef(-1);
 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedVerb, setSelectedVerb] = useState<string>('all');
+  const session = useDrillSession('idioms', { tags: [content, ...(cats.length ? cats : [])] });
 
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [answered, setAnswered] = useState(false);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [startTime, setStartTime] = useState(0);
+  const idioms = useMemo(() => (cats.length ? IDIOMS.filter((i) => cats.includes(i.category)) : IDIOMS), [cats]);
+  const collocations = useMemo(() => COLLOCATIONS.filter((c) => matchesVerb(c, verb)), [verb]);
+  const poolSize = (content !== 'collocations' ? idioms.length : 0) + (content !== 'idioms' ? collocations.length : 0);
 
-  function toggleCategory(cat: string) {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-    );
-  }
+  useEffect(() => () => stopSpeaking(), []);
 
-  const filteredIdioms =
-    selectedCategories.length === 0
-      ? IDIOMS
-      : IDIOMS.filter((i) => selectedCategories.includes(i.category));
+  const say = (t: string) => void speak(t, settings.ttsRate);
 
-  const filteredCollocations =
-    selectedVerb === 'all'
-      ? COLLOCATIONS
-      : selectedVerb === 'other'
-        ? COLLOCATIONS.filter(
-            (c) => !['make', 'do', 'have', 'take', 'get', 'pay'].includes(c.verb),
-          )
-        : COLLOCATIONS.filter((c) => c.verb === selectedVerb);
-
-  const collocationGroups = filteredCollocations.reduce<Record<string, Collocation[]>>(
-    (acc, col) => {
-      (acc[col.verb] ??= []).push(col);
-      return acc;
-    },
-    {},
-  );
-
-  function startQuiz() {
-    const qs = buildQuizQuestions();
-    startTransition(() => {
-      setQuestions(qs);
-      setCurrentIndex(0);
-      setSelectedOption(null);
-      setAnswered(false);
-      setCorrectCount(0);
-      setStartTime(Date.now());
-      setPhase('quiz');
-    });
-  }
-
-  function handleAnswer() {
-    if (selectedOption === null) return;
-    const q = questions[currentIndex];
-    const isCorrect = selectedOption === q.correctIndex;
-
-    if (isCorrect) {
-      setCorrectCount((c) => c + 1);
-      playCorrect();
+  function start() {
+    const idiomQs = content === 'collocations' ? [] : shuffleArray(idioms).map(idiomQuestion);
+    const colQs = content === 'idioms' ? [] : shuffleArray(collocations).map(collocationQuestion);
+    let picked: Question[];
+    if (content === 'mix') {
+      // Half and half when possible, the rest from whichever pool is bigger.
+      const half = Math.ceil(count / 2);
+      const a = idiomQs.slice(0, Math.max(half, count - colQs.length));
+      const b = colQs.slice(0, count - a.length);
+      picked = shuffleArray([...a, ...b]);
     } else {
-      playIncorrect();
-      trackError(
-        'idioms',
-        q.type === 'idiom' ? 'idiom_meaning' : 'collocation_verb',
-        q.prompt,
-        q.options[selectedOption],
-        q.options[q.correctIndex],
-      );
+      picked = [...idiomQs, ...colQs].slice(0, count);
     }
-    setAnswered(true);
+    if (!picked.length) return;
+    setQuestions(picked);
+    setIdx(0);
+    setSelected(null);
+    answeredRef.current = -1;
+    session.start();
+    setPhase('quiz');
   }
 
-  function nextQuestion() {
-    if (currentIndex + 1 >= questions.length) {
-      finishQuiz();
-    } else {
-      setCurrentIndex((i) => i + 1);
-      setSelectedOption(null);
-      setAnswered(false);
-    }
-  }
-
-  async function finishQuiz() {
-    playComplete();
-
-    const userStats = await getStats();
-    userStats.totalExercisesDone += questions.length;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: questions.length,
-      correctItems: correctCount,
-      tags: ['idioms'],
-    });
-
+  async function finishNow() {
+    await session.finish();
     setPhase('result');
   }
 
-  // ──── RESULT PHASE ────
-
-  if (phase === 'result') {
-    const total = questions.length;
-    const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
-
-    return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">
-          {pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}
-        </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Kvíz hotový!</h2>
-        <p className="text-slate-600 mb-1">
-          {correctCount} / {total} správně ({pct} %)
-        </p>
-        <p className="text-sm text-slate-400 mb-6">
-          {pct >= 80
-            ? 'Výborně! Idiomy a kolokace ti jdou skvěle!'
-            : pct >= 50
-              ? 'Dobrý základ, procvičuj dál!'
-              : 'Nevadí, opakování dělá mistra!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>
-            Domů
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setPhase('select');
-              setTab('quiz');
-            }}
-          >
-            Další cvičení
-          </button>
-        </div>
-      </div>
-    );
+  async function next() {
+    if (idx + 1 >= questions.length) {
+      await finishNow();
+    } else {
+      setIdx(idx + 1);
+      setSelected(null);
+      answeredRef.current = -1;
+    }
   }
 
-  // ──── QUIZ PHASE ────
+  const q = phase === 'quiz' ? questions[idx] : undefined;
+  const result = q && selected !== null ? selected === q.correctIndex : null;
 
-  if (phase === 'quiz') {
-    const q = questions[currentIndex];
-    if (!q) return null;
+  function choose(i: number) {
+    if (!q || selected !== null || answeredRef.current === idx) return;
+    answeredRef.current = idx;
+    setSelected(i);
+    const isIdiom = q.type === 'idiom';
+    session.answer({
+      itemId: q.id,
+      category: isIdiom ? q.idiom!.category : 'collocation',
+      prompt: isIdiom ? `Co znamená „${q.idiom!.idiom}“?` : `_____ ${q.collocation!.collocate} (${q.collocation!.meaningCs})`,
+      options: q.options,
+      kind: 'mcq',
+      answer: q.options[q.correctIndex],
+      userAnswer: q.options[i],
+      explanation: isIdiom
+        ? `${q.idiom!.idiom} = ${q.idiom!.meaningCs}. ${q.idiom!.example}`
+        : `${q.collocation!.full} = ${q.collocation!.meaningCs} (ne *${q.collocation!.wrongVerb} ${q.collocation!.collocate}). ${q.collocation!.example}`,
+      correct: i === q.correctIndex,
+    });
+  }
 
-    const progress = currentIndex / questions.length;
-    const isCorrect = selectedOption !== null && selectedOption === q.correctIndex;
+  useKeyboard(phase === 'quiz' && selected !== null ? { Enter: () => void next() } : {}, phase === 'quiz');
 
+  /* ── Setup + browsing ── */
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>
-            ← Zpět
-          </button>
-          <span className="text-sm text-slate-500 font-medium">
-            {currentIndex + 1} / {questions.length}
-          </span>
-        </div>
-
-        <div className="w-full bg-slate-100 rounded-full h-1.5 mb-6">
-          <div
-            className="bg-primary-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${progress * 100}%` }}
+      <DrillSetup
+        title="Idiomy a kolokace"
+        subtitle="Ustálená spojení, díky kterým zníš přirozeně. Projdi si přehled a pak se otestuj."
+        icon="💎"
+        poolSize={poolSize}
+        onStart={start}
+        startLabel="Spustit kvíz"
+        count={count}
+        onCountChange={setCount}
+        countOptions={[10, 20, 30]}
+        footer={
+          <BrowseSection
+            tab={browse}
+            onTab={setBrowse}
+            idioms={idioms}
+            collocations={collocations}
+            onSpeak={say}
           />
-        </div>
-
-        <div className="card !p-6 mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="badge bg-primary-100 text-primary-700">
-              {q.type === 'idiom' ? 'Idiom' : 'Kolokace'}
-            </span>
-            {q.type === 'idiom' && q.idiom && (
-              <span
-                className={`badge ${CATEGORY_BADGE_COLORS[q.idiom.category] || 'bg-slate-100 text-slate-600'}`}
-              >
-                {IDIOM_CATEGORIES[q.idiom.category] || q.idiom.category}
-              </span>
-            )}
-          </div>
-
-          <p className="text-sm text-slate-500 mb-1">
-            {q.type === 'idiom'
-              ? 'Co znamená tento idiom?'
-              : 'Doplň správné sloveso:'}
-          </p>
-
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-xl font-semibold text-slate-900">{q.prompt}</h3>
-            {q.type === 'idiom' && q.idiom && (
-              <button
-                className="text-primary-500 hover:text-primary-700 p-1"
-                onClick={() => speak(q.idiom!.idiom)}
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {!answered && (
-            <div className="space-y-2">
-              {q.options.map((opt, i) => (
-                <button
-                  key={i}
-                  className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
-                    selectedOption === i
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-slate-100 hover:border-slate-200'
-                  }`}
-                  onClick={() => setSelectedOption(i)}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {answered && (
-            <div className="space-y-2">
-              {q.options.map((opt, i) => (
-                <div
-                  key={i}
-                  className={`px-4 py-3 rounded-xl border-2 ${
-                    i === q.correctIndex
-                      ? 'border-green-500 bg-green-50'
-                      : selectedOption === i
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-slate-100'
-                  }`}
-                >
-                  {opt}
-                  {i === q.correctIndex && ' ✓'}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {answered && (
-            <div
-              className={`mt-4 p-3 rounded-xl ${isCorrect ? 'bg-green-50' : 'bg-blue-50'}`}
-            >
-              <p className={`text-sm ${isCorrect ? 'text-green-800' : 'text-blue-800'}`}>
-                {isCorrect ? '✅ ' : '💡 '}
-                <strong>{q.explanation}</strong>
-              </p>
-              <p
-                className={`text-xs mt-1 italic ${isCorrect ? 'text-green-600' : 'text-blue-600'}`}
-              >
-                &ldquo;{q.explanationDetail}&rdquo;
-              </p>
-              {q.type === 'collocation' && q.collocation && (
-                <p className="text-xs text-red-500 mt-1">
-                  Pozor: NE *{q.collocation.wrongVerb} {q.collocation.collocate}*
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {!answered ? (
-          <button
-            className="btn-primary btn-lg w-full"
-            disabled={selectedOption === null}
-            onClick={handleAnswer}
-          >
-            Zkontrolovat
-          </button>
-        ) : (
-          <button className="btn-primary btn-lg w-full" onClick={nextQuestion}>
-            {currentIndex + 1 >= questions.length ? 'Zobrazit výsledky' : 'Další otázka →'}
-          </button>
-        )}
-      </div>
+        }
+      >
+        <FilterGroup label="Kvíz z">
+          {CONTENTS.map((c) => (
+            <Chip key={c.id} active={content === c.id} onClick={() => setContent(c.id)}>{c.label}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label={`Témata idiomů${cats.length ? ` (${cats.length})` : ' (vše)'}`}>
+          {CATEGORY_KEYS.map((c) => (
+            <Chip key={c} active={cats.includes(c)} onClick={() => setCats((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}>
+              {IDIOM_CATEGORIES[c]}
+            </Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label="Sloveso v kolokacích" hint="Výběr platí pro kvíz i pro přehled níže.">
+          {VERB_FILTERS.map((v) => (
+            <Chip key={v} active={verb === v} onClick={() => setVerb(v)}>
+              {v === 'all' ? 'Vše' : v === 'other' ? 'ostatní' : <span lang="en">{v}</span>}
+            </Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ──── SELECT PHASE ────
+  /* ── Result ── */
+  if (phase === 'result') {
+    return (
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nové kolo"
+      >
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr</button>
+        </div>
+      </ResultScreen>
+    );
+  }
+
+  /* ── Quiz ── */
+  if (!q) return null;
+  const last = idx + 1 >= questions.length;
+  const col = q.collocation;
+  const idiom = q.idiom;
 
   return (
     <div className="page-container">
-      <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>
-        ← Zpět
-      </button>
+      <DrillTopBar current={idx} total={questions.length} correct={session.correct} onExit={() => void finishNow()} title="Idiomy a kolokace" />
 
-      <h1 className="page-title">Idiomy &amp; kolokace</h1>
-      <p className="page-subtitle">Ustálené fráze, co tě posunou na B1</p>
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge !bg-accent-soft !text-accent-text">{idiom ? 'Idiom' : 'Kolokace'}</span>
+          {idiom && <span className="badge">{IDIOM_CATEGORIES[idiom.category] || idiom.category}</span>}
+          <span className="badge">{(idiom ?? col)!.level}</span>
+        </div>
 
-      {/* Tab toggle */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-6">
-        {(
-          [
-            ['idioms', 'Idiomy'],
-            ['collocations', 'Kolokace'],
-            ['quiz', 'Kvíz'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-              tab === key
-                ? 'bg-white text-primary-600 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-            onClick={() => setTab(key)}
-          >
-            {label}
-          </button>
-        ))}
+        {idiom ? (
+          <>
+            <p className="mb-1 text-sm font-bold text-muted">Co znamená tento idiom?</p>
+            <div className="mb-4 flex items-center gap-3">
+              <p className="text-2xl font-black break-words text-fg" lang="en">{idiom.idiom}</p>
+              <SpeakButton size="sm" onClick={() => say(idiom.idiom)} label={`Přehrát: ${idiom.idiom}`} />
+            </div>
+          </>
+        ) : col ? (
+          <>
+            <p className="mb-1 text-sm font-bold text-muted">Doplň správné sloveso:</p>
+            <p className="text-2xl font-black break-words text-fg" lang="en">
+              <span className="text-accent-text">{result !== null ? col.verb : '_____'}</span> {col.collocate}
+            </p>
+            <p className="mb-4 mt-1 text-muted">= {col.meaningCs}</p>
+          </>
+        ) : null}
+
+        <OptionList
+          options={q.options}
+          selected={selected}
+          correctIndex={q.correctIndex}
+          revealed={selected !== null}
+          onSelect={choose}
+          lang={idiom ? 'cs' : 'en'}
+          columns={idiom ? 1 : 2}
+        />
+
+        {result !== null && (
+          <Feedback
+            correct={result}
+            explanation={
+              idiom ? (
+                <>
+                  <span className="block"><strong className="text-fg" lang="en">{idiom.idiom}</strong> = {idiom.meaningCs}</span>
+                  <span className="block" lang="en">{idiom.meaningEn}</span>
+                  <ExampleLine en={idiom.example} cs={idiom.exampleCs} onSpeak={say} />
+                  {idiom.czechEquivalent && <span className="mt-1 block">Česky: {idiom.czechEquivalent}</span>}
+                </>
+              ) : col ? (
+                <>
+                  <span className="block"><strong className="text-fg" lang="en">{col.full}</strong> = {col.meaningCs}</span>
+                  <span className="block text-danger">Pozor: ne <span className="line-through" lang="en">{col.wrongVerb} {col.collocate}</span></span>
+                  <ExampleLine en={col.example} onSpeak={say} />
+                </>
+              ) : null
+            }
+          />
+        )}
+        {result !== null && <NextButton onClick={() => void next()} last={last} />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Page-local components ───────────────────────────────────────── */
+
+function ExampleLine({ en, cs, onSpeak }: { en: string; cs?: string; onSpeak: (t: string) => void }) {
+  return (
+    <span className="mt-1 flex items-start gap-2">
+      <span className="flex-1">
+        <span className="block italic text-fg" lang="en">„{en}“</span>
+        {cs && <span className="block">{cs}</span>}
+      </span>
+      <SpeakButton size="sm" onClick={() => onSpeak(en)} label="Přehrát příklad" />
+    </span>
+  );
+}
+
+function BrowseSection({
+  tab,
+  onTab,
+  idioms,
+  collocations,
+  onSpeak,
+}: {
+  tab: BrowseTab;
+  onTab: (t: BrowseTab) => void;
+  idioms: Idiom[];
+  collocations: Collocation[];
+  onSpeak: (t: string) => void;
+}) {
+  const groups = useMemo(() => {
+    const out = new Map<string, Collocation[]>();
+    for (const c of collocations) out.set(c.verb, [...(out.get(c.verb) ?? []), c]);
+    return [...out.entries()];
+  }, [collocations]);
+
+  return (
+    <section aria-labelledby="idioms-browse">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="idioms-browse" className="section-title !mb-0">Přehled</h2>
+        <Segmented<BrowseTab>
+          label="Co zobrazit"
+          value={tab}
+          onChange={onTab}
+          options={[
+            { value: 'idioms', label: `Idiomy (${idioms.length})` },
+            { value: 'collocations', label: `Kolokace (${collocations.length})` },
+          ]}
+        />
       </div>
 
-      {/* ── Idioms Tab ── */}
-      {tab === 'idioms' && (
-        <>
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-slate-600 mb-2">
-              Kategorie {selectedCategories.length > 0 && `(${selectedCategories.length})`}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(IDIOM_CATEGORIES).map(([key, label]) => (
-                <button
-                  key={key}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                    selectedCategories.includes(key)
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                  onClick={() => toggleCategory(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-400 mb-3">
-            {filteredIdioms.length} idiomů
-          </p>
-
-          <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-            {filteredIdioms.map((idiom) => (
-              <div
-                key={idiom.id}
-                className={`card !p-4 border-l-4 ${CATEGORY_BORDER_COLORS[idiom.category] || 'border-l-slate-300'}`}
-              >
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="font-bold text-slate-900">{idiom.idiom}</h4>
-                    <button
-                      className="text-primary-500 hover:text-primary-700 p-0.5 shrink-0"
-                      onClick={() => speak(idiom.idiom)}
-                    >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
-                      </svg>
-                    </button>
+      {tab === 'idioms' ? (
+        idioms.length === 0 ? (
+          <p className="card text-center text-sm text-muted">Pro tento výběr tu nic není.</p>
+        ) : (
+          <ul className="grid gap-3 md:grid-cols-2">
+            {idioms.map((i) => (
+              <li key={i.id} className="card !p-4">
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-black break-words text-fg" lang="en">{i.idiom}</h3>
+                    <p className="text-fg">{i.meaningCs}</p>
+                    <p className="text-xs text-muted" lang="en">{i.meaningEn}</p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span
-                      className={`badge text-xs ${CATEGORY_BADGE_COLORS[idiom.category] || 'bg-slate-100 text-slate-600'}`}
-                    >
-                      {IDIOM_CATEGORIES[idiom.category] || idiom.category}
-                    </span>
-                    <span className="badge text-xs bg-primary-100 text-primary-700">
-                      {idiom.level}
-                    </span>
-                  </div>
+                  <SpeakButton size="sm" onClick={() => onSpeak(i.idiom)} label={`Přehrát: ${i.idiom}`} />
                 </div>
-
-                <p className="text-sm text-slate-700 mb-0.5">{idiom.meaningCs}</p>
-                <p className="text-xs text-slate-400 mb-2">{idiom.meaningEn}</p>
-                <p className="text-sm text-slate-600 italic mb-1">
-                  &ldquo;{idiom.example}&rdquo;
-                </p>
-
-                {idiom.czechEquivalent && (
-                  <span className="inline-block mt-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
-                    🇨🇿 {idiom.czechEquivalent}
-                  </span>
-                )}
-              </div>
+                <p className="mt-2 text-sm text-fg italic" lang="en">„{i.example}“</p>
+                <p className="text-sm text-muted">{i.exampleCs}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="badge">{IDIOM_CATEGORIES[i.category] || i.category}</span>
+                  <span className="badge">{i.level}</span>
+                  {i.czechEquivalent && <span className="badge !bg-info-soft !text-info">Česky: {i.czechEquivalent}</span>}
+                </div>
+              </li>
             ))}
-          </div>
-        </>
-      )}
-
-      {/* ── Collocations Tab ── */}
-      {tab === 'collocations' && (
-        <>
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-slate-600 mb-2">Sloveso</h3>
-            <div className="flex flex-wrap gap-2">
-              <button
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  selectedVerb === 'all'
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-                onClick={() => setSelectedVerb('all')}
-              >
-                Vše
-              </button>
-              {VERB_FILTERS.map((v) => (
-                <button
-                  key={v}
-                  className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                    selectedVerb === v
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                  onClick={() => setSelectedVerb(v)}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-400 mb-3">
-            {filteredCollocations.length} kolokací
-          </p>
-
-          <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-1">
-            {Object.entries(collocationGroups).map(([verb, cols]) => (
-              <div key={verb}>
-                <h3 className="text-sm font-bold text-primary-600 uppercase tracking-wider mb-2">
-                  {verb}
-                </h3>
-                <div className="space-y-2">
-                  {cols.map((col) => (
-                    <div key={col.id} className="card !p-3">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-900">
-                            {col.verb}{' '}
-                            <span className="text-primary-600">+ {col.collocate}</span>
-                          </span>
-                          <button
-                            className="text-primary-500 hover:text-primary-700 p-0.5 shrink-0"
-                            onClick={() => speak(col.full)}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
-                            </svg>
-                          </button>
-                        </div>
-                        <span className="badge text-xs bg-primary-100 text-primary-700 shrink-0">
-                          {col.level}
-                        </span>
+          </ul>
+        )
+      ) : groups.length === 0 ? (
+        <p className="card text-center text-sm text-muted">Pro tento výběr tu nic není.</p>
+      ) : (
+        <div className="space-y-5">
+          {groups.map(([v, cols]) => (
+            <div key={v}>
+              <h3 className="eyebrow mb-2" lang="en">{v}</h3>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {cols.map((c) => (
+                  <li key={c.id} className="card !p-3">
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold break-words text-fg" lang="en">
+                          {c.verb} <span className="text-accent-text">{c.collocate}</span>
+                        </p>
+                        <p className="text-sm text-fg">{c.meaningCs}</p>
                       </div>
-                      <p className="text-sm text-slate-600">{col.meaningCs}</p>
-                      <p className="text-xs text-slate-500 italic mt-0.5">
-                        &ldquo;{col.example}&rdquo;
-                      </p>
-                      <p className="text-xs text-red-500 mt-1">
-                        Pozor: NE <span className="line-through">*{col.wrongVerb} {col.collocate}*</span>
-                      </p>
+                      <span className="badge shrink-0">{c.level}</span>
+                      <SpeakButton size="sm" onClick={() => onSpeak(c.full)} label={`Přehrát: ${c.full}`} />
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ── Quiz Tab ── */}
-      {tab === 'quiz' && (
-        <div className="text-center py-8">
-          <div className="text-5xl mb-4">🧠</div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">
-            Smíšený kvíz
-          </h3>
-          <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
-            20 otázek náhodně z idiomů i kolokací. U idiomů hádáš český význam, u
-            kolokací doplňuješ správné sloveso.
-          </p>
-          <button className="btn-primary btn-lg" onClick={startQuiz}>
-            Spustit kvíz
-          </button>
+                    <p className="mt-1 text-xs text-muted italic" lang="en">„{c.example}“</p>
+                    <p className="mt-1 text-xs text-danger">
+                      Pozor: ne <span className="line-through" lang="en">{c.wrongVerb} {c.collocate}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

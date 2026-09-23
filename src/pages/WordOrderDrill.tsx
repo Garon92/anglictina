@@ -1,362 +1,392 @@
-import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { WORD_ORDER_EXERCISES, WORD_ORDER_CATEGORIES } from '../data/wordOrder';
-import { shuffleArray } from '../utils';
 import type { WordOrderExercise } from '../data/wordOrder';
+import { shuffleArray } from '../utils';
+import { isAnswerCorrect } from '../lib/answer';
+import { useKeyboard } from '../hooks/useKeyboard';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
-type Phase = 'select' | 'drill' | 'result';
-
-const DRILL_COUNT = 15;
+type Phase = 'setup' | 'drill' | 'result';
 const LEVELS = ['all', 'A1', 'A2', 'B1'] as const;
 const CATEGORIES = Object.keys(WORD_ORDER_CATEGORIES);
+/** Short chip labels (the full names from the data are too long for a phone screen). */
+const SHORT_LABELS: Record<string, string> = {
+  basic_svo: 'Základní pořadí (SVO)',
+  questions: 'Otázky',
+  negatives: 'Zápory',
+  adverbs: 'Příslovce',
+  time_place: 'Čas a místo',
+  adjective_order: 'Pořadí přídavných jmen',
+  complex: 'Složité věty',
+  indirect: 'Nepřímá řeč a otázky',
+};
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/[.!?,]/g, '').trim();
+/** Short rule reminders shown after answering (and saved with mistakes). */
+const TIPS: Record<string, string> = {
+  basic_svo: 'Základní pořadí: podmět – sloveso – předmět (– místo – čas).',
+  questions: 'Otázka: (tázací slovo) – pomocné sloveso – podmět – sloveso. V nepřímé otázce („Could you tell me where… is?“) je na konci oznamovací pořadí.',
+  negatives: 'Zápor: podmět – pomocné sloveso + not – sloveso. „Never“ stojí před plnovýznamovým slovesem.',
+  adverbs: 'Příslovce četnosti (always, often, never…) stojí před plnovýznamovým slovesem, ale za „be“ a za prvním pomocným slovesem.',
+  time_place: 'Nejdřív místo, potom čas (…to school every day). Časový údaj může stát i na začátku věty.',
+  adjective_order: 'Pořadí přídavných jmen: názor – velikost – stáří – barva – původ – materiál – účel (a beautiful old wooden house).',
+  complex: 'Ve vedlejší větě zůstává oznamovací pořadí: podmět – sloveso.',
+  indirect: 'V nepřímé řeči a nepřímé otázce není inverze: She asked me where I lived.',
+};
+
+/* ─── Helpers ─────────────────────────────────────────────────────── */
+
+/** Ignore "next" for a moment after answering, so a double Enter doesn't skip the feedback. */
+const NEXT_GUARD_MS = 350;
+const now = () => Date.now();
+
+const stripCommas = (s: string) => s.replace(/,/g, '');
+const tokens = (s: string) => s.replace(/[.!?]+$/, '').replace(/,/g, '').split(/\s+/).filter(Boolean);
+
+const DAY = '(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)';
+const UNIT = `(?:day|week|month|year|morning|afternoon|evening|night|weekend|summer|winter|spring|autumn|${DAY})`;
+const TIME_PHRASE = new RegExp(
+  '^(?:' +
+    [
+      `(?:every|each|last|next) ${UNIT}(?: (?:morning|afternoon|evening|night))?`,
+      `on ${DAY}(?: (?:morning|afternoon|evening))?`,
+      '(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\\d+|a few|many) (?:days?|weeks?|months?|years?) ago',
+      'yesterday|today|tomorrow|tonight|now',
+      'at the weekend|in the (?:morning|afternoon|evening)',
+    ].join('|') +
+    ')$',
+);
+/** Sentences with a subordinate clause keep their order (moving the time phrase could change the meaning). */
+const CLAUSE_WORDS = /\b(?:that|who|which|where|when|if|whether|because|since|so|but|and|or|what|how|why|while|until)\b/i;
+
+/**
+ * Alternative correct orders: a time phrase at the end of a simple statement may also stand
+ * at the beginning ("I go to school every day." = "Every day I go to school.") and vice versa.
+ */
+function orderVariants(answer: string): string[] {
+  if (!answer.trim().endsWith('.') || answer.includes(',') || CLAUSE_WORDS.test(answer)) return [];
+  const t = tokens(answer);
+  const out: string[] = [];
+  for (let k = Math.min(4, t.length - 2); k >= 1; k--) {
+    const tail = t.slice(-k).join(' ');
+    if (TIME_PHRASE.test(tail.toLowerCase())) {
+      out.push([tail, ...t.slice(0, -k)].join(' '));
+      break;
+    }
+  }
+  for (let k = Math.min(4, t.length - 2); k >= 1; k--) {
+    const head = t.slice(0, k).join(' ');
+    if (TIME_PHRASE.test(head.toLowerCase())) {
+      out.push([...t.slice(k), head].join(' '));
+      break;
+    }
+  }
+  return out;
 }
 
+/** Display casing of each word taken from the answer ("i" → "I", "london" → "London"). */
+function casingMap(answer: string): Map<string, string> {
+  const map = new Map<string, string>();
+  tokens(answer).forEach((tok, i) => {
+    const lower = tok.toLowerCase();
+    const shown = i === 0 && tok !== 'I' && !tok.startsWith("I'") ? lower : tok;
+    if (!map.has(lower) || i > 0) map.set(lower, shown);
+  });
+  return map;
+}
+
+function terminal(answer: string): string {
+  const m = /[.!?]$/.exec(answer.trim());
+  return m ? m[0] : '.';
+}
+
+function capitalize(s: string): string {
+  return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+interface Item {
+  ex: WordOrderExercise;
+  /** Order of word indices in the word bank (shuffled once per round). */
+  bank: number[];
+  display: string[];
+  variants: string[];
+}
+
+function buildItem(ex: WordOrderExercise): Item {
+  const map = casingMap(ex.answer);
+  // Shuffle until the bank isn't already the solution (for sentences longer than 2 words).
+  let bank = shuffleArray(ex.words.map((_, i) => i));
+  for (let guard = 0; guard < 5 && ex.words.length > 2 && isAnswerCorrect(bank.map((i) => ex.words[i]).join(' '), stripCommas(ex.answer)); guard++) {
+    bank = shuffleArray(bank);
+  }
+  return {
+    ex,
+    bank,
+    display: ex.words.map((w) => map.get(w.toLowerCase()) ?? w),
+    variants: orderVariants(ex.answer),
+  };
+}
+
+/* ─── Page ────────────────────────────────────────────────────────── */
+
 export default function WordOrderDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [level, setLevel] = useState<(typeof LEVELS)[number]>('all');
+  const [cats, setCats] = useState<string[]>([]);
+  const [count, setCount] = useState(15);
 
-  const [phase, setPhase] = useState<Phase>('select');
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [selectedCats, setSelectedCats] = useState<string[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [placed, setPlaced] = useState<number[]>([]);
+  const [result, setResult] = useState<boolean | null>(null);
+  const answeredRef = useRef(-1);
+  const answeredAt = useRef(0);
+  const bankRef = useRef<HTMLDivElement>(null);
+  const lineRef = useRef<HTMLDivElement>(null);
+  const checkRef = useRef<HTMLButtonElement>(null);
 
-  const [exercises, setExercises] = useState<WordOrderExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [availableWords, setAvailableWords] = useState<{ word: string; idx: number }[]>([]);
-  const [selectedWords, setSelectedWords] = useState<{ word: string; idx: number }[]>([]);
-  const [checked, setChecked] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [startTime, setStartTime] = useState(0);
+  const session = useDrillSession('word_order', { tags: cats.length ? cats : ['all'] });
 
-  function toggleCat(cat: string) {
-    setSelectedCats((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+  const pool = useMemo(
+    () => WORD_ORDER_EXERCISES.filter((e) => (!cats.length || cats.includes(e.category)) && (level === 'all' || e.level === level)),
+    [cats, level],
+  );
+
+  const item = phase === 'drill' ? items[idx] : undefined;
+  const available = item ? item.bank.filter((i) => !placed.includes(i)) : [];
+  const allPlaced = !!item && available.length === 0;
+  const sentence = item ? placed.map((i) => item.ex.words[i]).join(' ') : '';
+  const shownSentence = item ? capitalize(placed.map((i) => item.display[i]).join(' ')) + terminal(item.ex.answer) : '';
+
+  function resetItem() {
+    setPlaced([]);
+    setResult(null);
+    answeredRef.current = -1;
   }
 
-  function startDrill() {
-    let pool = WORD_ORDER_EXERCISES;
-    if (selectedCats.length > 0) {
-      pool = pool.filter((e) => selectedCats.includes(e.category));
-    }
-    if (selectedLevel !== 'all') {
-      pool = pool.filter((e) => e.level === selectedLevel);
-    }
-    const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    setupWords(selected[0]);
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setScore({ correct: 0, total: 0 });
-      setStartTime(Date.now());
-      setPhase('drill');
+  function start() {
+    const picked = shuffleArray(pool).slice(0, count).map(buildItem);
+    if (!picked.length) return;
+    setItems(picked);
+    setIdx(0);
+    resetItem();
+    session.start();
+    setPhase('drill');
+  }
+
+  /** Keep keyboard users in the flow: after a move, focus the chip that took the place of the moved one. */
+  const pendingFocus = useRef<{ where: 'bank' | 'line'; pos: number } | null>(null);
+  useLayoutEffect(() => {
+    const p = pendingFocus.current;
+    if (!p) return;
+    pendingFocus.current = null;
+    const buttons = (p.where === 'bank' ? bankRef.current : lineRef.current)?.querySelectorAll<HTMLButtonElement>('button');
+    if (buttons && buttons.length) buttons[Math.min(p.pos, buttons.length - 1)].focus({ preventScroll: true });
+    else if (p.where === 'bank') checkRef.current?.focus({ preventScroll: true });
+  });
+
+  function place(wordIdx: number, fromKeyboard = false) {
+    if (result !== null || placed.includes(wordIdx)) return;
+    if (fromKeyboard) pendingFocus.current = { where: 'bank', pos: available.indexOf(wordIdx) };
+    setPlaced((p) => (p.includes(wordIdx) ? p : [...p, wordIdx]));
+  }
+
+  function unplace(wordIdx: number, fromKeyboard = false) {
+    if (result !== null) return;
+    if (fromKeyboard) pendingFocus.current = { where: 'line', pos: placed.indexOf(wordIdx) };
+    setPlaced((p) => p.filter((x) => x !== wordIdx));
+  }
+
+  function undoLast() {
+    if (result !== null || !placed.length) return;
+    setPlaced((p) => p.slice(0, -1));
+  }
+
+  function check() {
+    if (!item || result !== null || !allPlaced || answeredRef.current === idx) return;
+    answeredRef.current = idx;
+    answeredAt.current = now();
+    const { ex } = item;
+    const accept = [stripCommas(ex.answer), ...item.variants];
+    const correct = isAnswerCorrect(sentence, stripCommas(ex.answer), item.variants);
+    setResult(correct);
+    session.answer({
+      itemId: ex.id,
+      category: ex.category,
+      prompt: `Slož větu: ${ex.hintCs} (${item.bank.map((i) => item.display[i]).join(' / ')})`,
+      kind: 'text',
+      answer: ex.answer,
+      accept,
+      userAnswer: shownSentence,
+      explanation: TIPS[ex.category],
+      correct,
     });
   }
 
-  function setupWords(ex: WordOrderExercise) {
-    const shuffled = shuffleArray(ex.words.map((w, i) => ({ word: w, idx: i })));
-    setAvailableWords(shuffled);
-    setSelectedWords([]);
-    setChecked(false);
-    setIsCorrect(false);
-  }
-
-  function selectWord(item: { word: string; idx: number }) {
-    if (checked) return;
-    setAvailableWords((prev) => prev.filter((w) => w.idx !== item.idx));
-    setSelectedWords((prev) => [...prev, item]);
-  }
-
-  function deselectWord(item: { word: string; idx: number }) {
-    if (checked) return;
-    setSelectedWords((prev) => prev.filter((w) => w.idx !== item.idx));
-    setAvailableWords((prev) => [...prev, item]);
-  }
-
-  function checkAnswer() {
-    const ex = exercises[currentIndex];
-    const userSentence = selectedWords.map((w) => w.word).join(' ');
-    const correct = normalize(userSentence) === normalize(ex.answer);
-    setIsCorrect(correct);
-    setChecked(true);
-    setScore((prev) => ({
-      correct: prev.correct + (correct ? 1 : 0),
-      total: prev.total + 1,
-    }));
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      const nextIdx = currentIndex + 1;
-      setCurrentIndex(nextIdx);
-      setupWords(exercises[nextIdx]);
-    }
-  }
-
-  async function finishDrill() {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += score.total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: score.total,
-      correctItems: score.correct,
-      tags: ['word_order', ...(selectedCats.length > 0 ? selectedCats : ['all'])],
-    });
-
+  async function finishNow() {
+    await session.finish();
     setPhase('result');
   }
 
-  // ── SELECT PHASE ──────────────────────────────────────────────
-  if (phase === 'select') {
-    const poolSize = WORD_ORDER_EXERCISES.filter((e) => {
-      if (selectedCats.length > 0 && !selectedCats.includes(e.category)) return false;
-      if (selectedLevel !== 'all' && e.level !== selectedLevel) return false;
-      return true;
-    }).length;
+  async function next() {
+    if (now() - answeredAt.current < NEXT_GUARD_MS) return;
+    if (idx + 1 >= items.length) {
+      await finishNow();
+    } else {
+      setIdx(idx + 1);
+      resetItem();
+    }
+  }
 
+  useKeyboard(
+    result === null
+      ? { Backspace: undoLast, ...(allPlaced ? { Enter: check } : {}) }
+      : { Enter: () => void next() },
+    phase === 'drill',
+  );
+
+  /* ── Setup ── */
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
-        <h1 className="page-title">Skládání vět</h1>
-        <p className="page-subtitle">Seřaď slova do správného pořadí</p>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Úroveň</h3>
-          <div className="flex gap-2">
-            {LEVELS.map((lvl) => (
-              <button
-                key={lvl}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectedLevel === lvl
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => setSelectedLevel(lvl)}
-              >
-                {lvl === 'all' ? 'Vše' : lvl}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-            Kategorie {selectedCats.length > 0 && `(${selectedCats.length})`}
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  selectedCats.includes(cat)
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => toggleCat(cat)}
-              >
-                {WORD_ORDER_CATEGORIES[cat]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={poolSize === 0}
-          onClick={startDrill}
-        >
-          Začít ({Math.min(DRILL_COUNT, poolSize)} vět)
-        </button>
-        {poolSize === 0 && (
-          <p className="text-sm text-red-500 mt-2 text-center">
-            Pro vybraný filtr nejsou žádná cvičení.
-          </p>
-        )}
-      </div>
+      <DrillSetup
+        title="Slovosled"
+        subtitle="Skládej anglické věty ze slov ve správném pořadí. Český překlad ti napoví, co má věta říct."
+        icon="🧱"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label={`Témata${cats.length ? ` (${cats.length})` : ' (vše)'}`}>
+          {CATEGORIES.map((c) => (
+            <Chip
+              key={c}
+              active={cats.includes(c)}
+              title={WORD_ORDER_CATEGORIES[c]}
+              onClick={() => setCats((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}
+            >
+              {SHORT_LABELS[c] ?? WORD_ORDER_CATEGORIES[c]}
+            </Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ── RESULT PHASE ──────────────────────────────────────────────
+  /* ── Result ── */
   if (phase === 'result') {
-    const pct = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-          Skládání vět hotové!
-        </h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-1">
-          {score.correct} / {score.total} správně ({pct}%)
-        </p>
-        <p className="text-sm text-slate-400 mb-6">
-          {pct >= 80
-            ? 'Výborně! Slovosled ti jde skvěle!'
-            : pct >= 50
-            ? 'Dobrá práce, příště to bude ještě lepší.'
-            : 'Nevadí, procvičuj dál a bude to lepší!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
-          <button
-            className="btn-primary"
-            onClick={() => { setPhase('select'); setSelectedCats([]); setSelectedLevel('all'); }}
-          >
-            Další cvičení
-          </button>
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nové kolo"
+      >
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr témat</button>
         </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  // ── DRILL PHASE ───────────────────────────────────────────────
-  const ex = exercises[currentIndex];
-  if (!ex) return null;
-
-  const allPlaced = availableWords.length === 0;
+  /* ── Drill ── */
+  if (!item) return null;
+  const { ex } = item;
+  const last = idx + 1 >= items.length;
+  const endMark = terminal(ex.answer);
+  const usedVariant = result === true && !isAnswerCorrect(sentence, stripCommas(ex.answer));
+  const lineTone =
+    result === null ? 'border-border-strong bg-surface' : result ? 'border-success bg-success-soft' : 'border-danger bg-danger-soft';
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-4">
-        <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>← Zpět</button>
-        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          {currentIndex + 1} / {exercises.length}
-        </span>
-      </div>
+      <DrillTopBar current={idx} total={items.length} correct={session.correct} onExit={() => void finishNow()} title="Slovosled" />
 
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{WORD_ORDER_CATEGORIES[ex.category] ?? ex.category}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
+          <span className="badge !bg-info-soft !text-info">{endMark === '?' ? 'Otázka' : endMark === '!' ? 'Zvolání' : 'Oznamovací věta'}</span>
+        </div>
+        <p className="mb-1 text-sm font-bold text-muted">Slož anglickou větu:</p>
+        <p className="mb-4 text-xl leading-relaxed font-bold text-fg" lang="cs">{ex.hintCs}</p>
+
+        {/* Answer line */}
+        <p id="wo-line-label" className="eyebrow mb-2">Tvoje věta</p>
         <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{ width: `${(currentIndex / exercises.length) * 100}%` }}
-        />
-      </div>
-
-      <div className="card !p-5 sm:!p-6 mb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs">
-            {WORD_ORDER_CATEGORIES[ex.category] ?? ex.category}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-xs">
-            {ex.level}
-          </span>
-        </div>
-
-        <p className="text-sm text-slate-400 dark:text-slate-500 italic mb-5">
-          {ex.hintCs}
-        </p>
-
-        {/* Available words */}
-        <div className="mb-4">
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">
-            Dostupná slova
-          </p>
-          <div className="flex flex-wrap gap-2 min-h-[44px]">
-            {availableWords.map((item) => (
-              <button
-                key={item.idx}
-                onClick={() => selectWord(item)}
-                disabled={checked}
-                className="px-3.5 py-2 rounded-lg text-sm font-medium
-                  bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200
-                  shadow-sm hover:shadow-md hover:bg-slate-200 dark:hover:bg-slate-600
-                  active:scale-95 transition-all duration-150
-                  disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {item.word}
-              </button>
-            ))}
-            {availableWords.length === 0 && !checked && (
-              <span className="text-xs text-slate-400 dark:text-slate-500 italic self-center">
-                Všechna slova jsou umístěna
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Selected words (sentence being built) */}
-        <div>
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">
-            Tvoje věta
-          </p>
-          <div
-            className={`flex flex-wrap gap-2 min-h-[52px] p-3 rounded-xl border-2 transition-colors ${
-              checked
-                ? isCorrect
-                  ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
-                  : 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/20'
-                : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800'
-            }`}
-          >
-            {selectedWords.length === 0 && (
-              <span className="text-sm text-slate-300 dark:text-slate-600 italic self-center">
-                Klikni na slova výše…
-              </span>
-            )}
-            {selectedWords.map((item) => (
-              <button
-                key={item.idx}
-                onClick={() => deselectWord(item)}
-                disabled={checked}
-                className="px-3.5 py-2 rounded-lg text-sm font-medium
-                  bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200
-                  shadow-sm hover:shadow-md hover:bg-primary-200 dark:hover:bg-primary-800
-                  active:scale-95 transition-all duration-150
-                  disabled:cursor-not-allowed"
-              >
-                {item.word}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Feedback after check */}
-        {checked && (
-          <div className="mt-4">
-            {isCorrect ? (
-              <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
-                <span>✅</span>
-                <span className="font-medium">Správně!</span>
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-1">
-                  <span>❌</span>
-                  <span className="font-medium">Špatně</span>
-                </div>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Správná odpověď: <span className="font-semibold">{ex.answer}</span>
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {!checked ? (
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={!allPlaced}
-          onClick={checkAnswer}
+          ref={lineRef}
+          role="group"
+          aria-labelledby="wo-line-label"
+          className={`flex min-h-[64px] flex-wrap items-center gap-2 rounded-2xl border-2 border-dashed p-3 transition-colors ${lineTone}`}
         >
-          Zkontrolovat
-        </button>
-      ) : (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length ? 'Zobrazit výsledky' : 'Další →'}
-        </button>
-      )}
+          {placed.length === 0 && <span className="text-sm text-subtle">Klepni na slova níže ve správném pořadí…</span>}
+          {placed.map((wi, pos) => (
+            <button
+              key={wi}
+              type="button"
+              lang="en"
+              className="g92-chip is-active !text-base"
+              disabled={result !== null}
+              onClick={(e) => unplace(wi, e.detail === 0)}
+              aria-label={`${item.display[wi]} — vrátit zpět`}
+            >
+              {pos === 0 ? capitalize(item.display[wi]) : item.display[wi]}
+            </button>
+          ))}
+          {placed.length > 0 && (
+            <span className="text-xl font-black text-muted" aria-hidden="true">{endMark}</span>
+          )}
+        </div>
+
+        {/* Word bank */}
+        {result === null && (
+          <>
+            <p id="wo-bank-label" className="eyebrow mt-4 mb-2">Slova</p>
+            <div ref={bankRef} role="group" aria-labelledby="wo-bank-label" className="flex min-h-[48px] flex-wrap gap-2">
+              {available.map((wi) => (
+                <button key={wi} type="button" lang="en" className="g92-chip !text-base" onClick={(e) => place(wi, e.detail === 0)}>
+                  {item.display[wi]}
+                </button>
+              ))}
+              {available.length === 0 && <span className="self-center text-sm text-muted">Všechna slova jsou na místě — zkontroluj větu.</span>}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button ref={checkRef} type="button" className="btn-primary btn-lg" disabled={!allPlaced} onClick={check}>Ověřit</button>
+              <button type="button" className="btn-secondary" disabled={!placed.length} onClick={undoLast}>Vrátit poslední</button>
+              <button type="button" className="btn-ghost" disabled={!placed.length} onClick={() => setPlaced([])}>Začít znovu</button>
+            </div>
+            <p className="mt-2 hidden text-xs text-muted sm:block">
+              Tip: slova vybíráš i klávesnicí (Tab a Enter), Backspace vrátí poslední slovo, Enter větu zkontroluje.
+            </p>
+          </>
+        )}
+
+        {result !== null && (
+          <Feedback
+            correct={result}
+            answer={ex.answer}
+            userAnswer={shownSentence}
+            explanation={
+              <>
+                {usedVariant && <span className="mb-1 block">Tvoje pořadí je správně. Nejčastěji se říká: <strong className="text-fg" lang="en">{ex.answer}</strong></span>}
+                {!usedVariant && result && item.variants.length > 0 && (
+                  <span className="mb-1 block">Správně je i: <span lang="en">{capitalize(item.variants[0])}{endMark}</span></span>
+                )}
+                {TIPS[ex.category]}
+              </>
+            }
+          />
+        )}
+        {result !== null && <NextButton onClick={() => void next()} last={last} />}
+      </div>
     </div>
   );
 }

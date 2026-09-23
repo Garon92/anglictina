@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useSettings } from '../App';
 import { getDrillSessions, getExamSessions, kvGet } from '../db';
 import { getMistakeSummary, getTodaySummary, type MistakeSummary, type TodaySummary } from '../progress';
 import { getDeckOverview, type DeckOverview } from '../vocabDeck';
 import { recommendModule, type Recommendation } from '../recommend';
-import { WORD_OF_THE_DAY, VOCABULARY } from '../data/vocabulary';
-import { speak } from '../tts';
+import { VOCAB_TOTAL } from '../data/vocabMeta';
 import { dayKey, daysUntil, lastDays, czechPlural, parseDayKey, DAY_NAMES_SHORT } from '../lib/dates';
 
 import type { DrillSession, ExamSession } from '../types';
-import DailyChallenge from '../components/DailyChallenge';
-import { Ring, SpeakButton, ProgressBar } from '../components/ui';
+import { Ring, ProgressBar } from '../components/ui';
 import { useSettings as useKitSettings } from '../lib/useKitSettings';
+import { getModule, sessionModule, type ModuleDef } from '../modules';
 import { greeting } from '../kit/cz';
+
+const DailyChallenge = lazy(() => import('../components/DailyChallenge'));
+const WordOfTheDay = lazy(() => import('../components/WordOfTheDay'));
 
 interface DashData {
   today: TodaySummary;
@@ -23,6 +25,20 @@ interface DashData {
   week: { day: string; minutes: number }[];
   lastExam?: ExamSession;
   dailyDone: boolean;
+  recent: ModuleDef[];
+}
+
+const DEFAULT_QUICK = ['vocab', 'grammar', 'reading', 'listening'].map((id) => getModule(id)!).filter(Boolean);
+
+/** Last 4 distinct practised modules (newest first). */
+function recentModules(sessions: DrillSession[]): ModuleDef[] {
+  const out: ModuleDef[] = [];
+  for (const s of [...sessions].sort((a, b) => b.startedAt - a.startedAt)) {
+    const m = getModule(sessionModule(s));
+    if (m && !out.includes(m)) out.push(m);
+    if (out.length === 4) break;
+  }
+  return out.length >= 2 ? out : [];
 }
 
 
@@ -45,7 +61,7 @@ export default function Dashboard() {
     const weekStart = lastDays(7)[0];
     const [today, deck, mistakes, sessions, exams, daily] = await Promise.all([
       getTodaySummary(),
-      getDeckOverview(settings, 'vocab', VOCABULARY.length),
+      getDeckOverview(settings, 'vocab', VOCAB_TOTAL),
       getMistakeSummary(),
       getDrillSessions(),
       getExamSessions(),
@@ -60,6 +76,7 @@ export default function Dashboard() {
       week: weekMinutes(sessions.filter((s) => s.date >= weekStart)),
       lastExam,
       dailyDone: !!daily,
+      recent: recentModules(sessions),
     });
   }, [settings]);
 
@@ -68,7 +85,7 @@ export default function Dashboard() {
   }, [load]);
 
   const examDays = daysUntil(settings.examDate);
-  const wotd = WORD_OF_THE_DAY();
+
 
   if (!data) return <DashboardSkeleton />;
 
@@ -170,7 +187,9 @@ export default function Dashboard() {
               <PlanRow key={t.id} task={t} />
             ))}
             <li className={`rounded-2xl border border-border p-3 ${data.dailyDone ? 'bg-surface-2' : ''}`}>
-              <DailyChallenge onDone={() => void load()} />
+              <Suspense fallback={<div className="skeleton h-11 w-full" />}>
+                <DailyChallenge onDone={() => void load()} />
+              </Suspense>
             </li>
           </ul>
         </section>
@@ -179,23 +198,10 @@ export default function Dashboard() {
           {/* Exam readiness */}
           <ExamCard lastExam={data.lastExam} goal={settings.goalScore} />
 
-          {/* Word of the day */}
-          <section className="card !p-5" aria-label="Slovo dne">
-            <div className="eyebrow mb-1">Slovo dne</div>
-            <div className="flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="text-2xl font-black text-fg" lang="en">{wotd.en}</div>
-                <div className="text-accent-text font-bold">{wotd.cs}</div>
-                {wotd.example && (
-                  <p className="mt-2 text-sm text-muted">
-                    <span lang="en" className="italic">„{wotd.example}“</span>
-                    {wotd.exampleCs && <span className="block text-xs">{wotd.exampleCs}</span>}
-                  </p>
-                )}
-              </div>
-              <SpeakButton onClick={() => void speak(wotd.en, settings.ttsRate)} label={`Přehrát: ${wotd.en}`} />
-            </div>
-          </section>
+          {/* Word of the day (lazy: needs the word list) */}
+          <Suspense fallback={<div className="card !p-5"><div className="skeleton h-20 w-full" /></div>}>
+            <WordOfTheDay />
+          </Suspense>
 
           {/* Week */}
           <WeekCard week={data.week} goal={goal} />
@@ -204,12 +210,11 @@ export default function Dashboard() {
 
       {/* Quick links */}
       <section className="mt-6" aria-labelledby="quick-title">
-        <h2 id="quick-title" className="section-title">Rychlý start</h2>
+        <h2 id="quick-title" className="section-title">{data.recent.length ? 'Naposledy procvičováno' : 'Rychlý start'}</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <QuickLink to="/vocab" icon="🗂️" title="Slovíčka" />
-          <QuickLink to="/grammar" icon="✏️" title="Gramatika" />
-          <QuickLink to="/reading" icon="📖" title="Čtení" />
-          <QuickLink to="/listening" icon="🎧" title="Poslech" />
+          {(data.recent.length ? data.recent : DEFAULT_QUICK).map((m) => (
+            <QuickLink key={m.path} to={m.path} icon={m.icon} title={m.title} />
+          ))}
         </div>
         <p className="mt-3 text-center text-sm">
           <Link to="/practice" className="font-bold">Všechna cvičení →</Link>

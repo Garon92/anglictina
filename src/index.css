@@ -972,3 +972,9 @@
     border-color: var(--accent-border);
   }
 }
+
+@media (max-width: 479px) {
+  .appbar-action {
+    display: none;
+  }
+}

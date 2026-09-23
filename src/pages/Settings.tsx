@@ -228,7 +228,16 @@ function Slider({ label, value, min, max, step, onChange, suffix = '', hint, for
         <span className="g92-label">{label}</span>
         <span className="text-sm font-black tabular-nums text-accent-text">{format ? format(value) : `${value}${suffix}`}</span>
       </span>
-      <input type="range" className="g92-range mt-2 w-full" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      <input
+        type="range"
+        className="g92-range mt-2 w-full"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{ '--_pct': `${((value - min) / (max - min || 1)) * 100}%` } as React.CSSProperties}
+      />
       {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
     </label>
   );

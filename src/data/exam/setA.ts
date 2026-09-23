@@ -107,7 +107,7 @@ export const SET_A: ExamSet = {
       'M: So you missed the first walk?',
       'W: Yes, and our dinner was cold because the cook had made it hours before. But the owner of the hostel made us all hot chocolate, which was really nice of her.',
       "M: And did you climb the big mountain on Saturday? That was the main plan, wasn't it?",
-      "W: No, we didn't. It rained all day and there was thick fog, so Mr Hill said it was too dangerous. We went to a glass museum in the town instead.",
+      "W: No, we didn't. It rained all day and there was thick fog, so our teacher, Mr Hill, said it was too dangerous. We went to a glass museum in the town instead.",
       'M: That sounds boring.',
       'W: I thought it would be boring too, but it was great. We watched a man make a glass bird, and then we each tried to make a small bowl. Mine looks terrible, but I brought it home anyway.',
       'M: And what about Sunday?',
@@ -147,13 +147,13 @@ export const SET_A: ExamSet = {
         text: 'The teacher cancelled the climb because of the weather.',
         answer: true,
         explanationCs:
-          'Pan Hill výstup zrušil kvůli dešti a mlze: „It rained all day and there was thick fog, so Mr Hill said it was too dangerous.“',
+          'Učitel pan Hill výstup zrušil kvůli dešti a mlze: „It rained all day and there was thick fog, so our teacher, Mr Hill, said it was too dangerous.“',
       },
       {
         text: 'Katie expected the glass museum to be interesting.',
         answer: false,
         explanationCs:
-          'Katie čekala nudu: „I thought it would be boring too, but it was great.“ Zajímavé to bylo až nakonec.',
+          'Katie čekala nudu: „I thought it would be boring too, but it was great.“ Muzeum ji nakonec mile překvapilo.',
       },
       {
         text: 'On Sunday, the students walked up a smaller mountain.',
@@ -193,6 +193,7 @@ export const SET_A: ExamSet = {
           'four',
           '4',
           '4 pm',
+          '4pm',
           '4 p.m.',
           '4:00',
           '4.00',
@@ -263,9 +264,11 @@ export const SET_A: ExamSet = {
           'fountain',
           'at the fountain',
           'by the fountain',
+          'near the entrance',
+          'near main entrance',
         ],
         explanationCs:
-          'Prohlídka „starts at the big fountain near the main entrance“. Začíná v 11 a ve 14 hodin.',
+          'Prohlídka „starts at the big fountain near the main entrance“ – uznává se kašna i odpověď „near the entrance“. Začíná v 11 a ve 14 hodin.',
       },
       {
         question: 'Dogs are welcome in the garden. What must they stay on?',
@@ -279,14 +282,14 @@ export const SET_A: ExamSet = {
   part4: {
     items: [
       {
-        question: 'Where should passengers for Bristol go now?',
+        question: 'Where should passengers for Bristol go to catch their train?',
         script: [
           'W: Good afternoon. This is an announcement for passengers waiting for the two twenty-five train to Bristol. Because of a problem with the signals near Reading, this train will leave about twenty minutes late. Please note that it will now depart from platform six, not platform two. The café on platform two is open if you would like a hot drink while you wait. Passengers travelling with bicycles should speak to a member of staff. We are sorry for the delay.',
         ].join('\n'),
         options: ['to platform two', 'to the café', 'to a member of staff', 'to platform six'],
         answer: 3,
         explanationCs:
-          'Hlášení říká: „it will now depart from platform six, not platform two.“ Se zaměstnancem mají mluvit jen cestující s koly.',
+          'Hlášení říká: „it will now depart from platform six, not platform two.“ Kavárna na nástupišti 2 je jen místo, kde lze počkat, a se zaměstnancem mají mluvit jen cestující s koly.',
       },
       {
         question: 'What do customers get if they buy an adult bike?',
@@ -679,10 +682,10 @@ export const SET_A: ExamSet = {
           'Ve spojení „one of the most popular“ stojí před 3. stupněm přídavného jména vždy určitý člen „the“.',
       },
       {
-        options: ['started', 'have started', 'were starting'],
+        options: ['started', 'have started', 'starting'],
         answer: 0,
         explanationCs:
-          'Časový údaj „more than 3,000 years ago“ vyžaduje minulý čas prostý: „started“. Předpřítomný čas se s „ago“ nepoužívá.',
+          'Časový údaj „more than 3,000 years ago“ vyžaduje minulý čas prostý: „started“. Předpřítomný čas se s „ago“ nepoužívá a samotný tvar „starting“ nemůže stát jako sloveso ve větě.',
       },
       {
         options: ['made', 'paid', 'used'],

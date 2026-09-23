@@ -225,7 +225,7 @@ export const SET_E: ExamSet = {
       },
       {
         question: 'By what time must passengers be back on the boat?',
-        accept: ['2.15', '2:15', '14.15', '14:15', 'quarter past two', 'two fifteen', '2.15 p.m.', '2.15 pm'],
+        accept: ['2.15', '2:15', '14.15', '14:15', 'quarter past two', 'quarter past 2', 'two fifteen', '2.15 p.m.', '2.15 pm', '2.15pm', '2:15 pm', '2:15pm', '2:15 p.m.'],
         explanationCs:
           '„Please be back on the boat by quarter past two.“ Loď připlouvá do Hamfordu ve 12.30 a stojí tam hodinu a tři čtvrtě. Ve čtyři se vrací do Millfordu.',
       },
@@ -258,7 +258,7 @@ export const SET_E: ExamSet = {
       {
         question: 'What should drivers going to the airport do?',
         script: [
-          "W: And now the traffic news. There's been an accident on the A40 near Oakley, and the road is closed in both directions. The police say it will stay closed until at least lunchtime. If you're driving to the airport this morning, please use the Kingston road instead, and leave thirty minutes earlier than usual. In the city centre, Park Street is closed all weekend because of road repairs, and the Ring Road is very busy because of the Saturday market.",
+          "W: And now the traffic news. There's been an accident on the A forty near Oakley, and the road is closed in both directions. The police say it will stay closed until at least lunchtime. If you're driving to the airport this morning, please use the Kingston road instead, and leave thirty minutes earlier than usual. In the city centre, Park Street is closed all weekend because of road repairs, and the Ring Road is very busy because of the Saturday market.",
         ].join('\n'),
         options: [
           'Take a different road.',
@@ -268,7 +268,7 @@ export const SET_E: ExamSet = {
         ],
         answer: 0,
         explanationCs:
-          'Řidiči na letiště mají jet jinudy: „please use the Kingston road instead“ a vyrazit o 30 minut dřív. Silnice A40 bude zavřená nejméně do oběda.',
+          'Řidiči na letiště mají jet jinudy: „please use the Kingston road instead“ a vyrazit o 30 minut dřív. Silnice A40 („A forty“) bude zavřená nejméně do oběda.',
       },
       {
         question: 'When can Emma have her hair cut by Jess?',
@@ -334,13 +334,13 @@ export const SET_E: ExamSet = {
         question: 'What does Mum ask Dan to do?',
         options: [
           'Cook dinner for the family.',
-          'Take the dog out this evening.',
+          'Take the dog out while it is still light.',
           "Bring the cake to Lily's party.",
           'Phone the internet company.',
         ],
         answer: 1,
         explanationCs:
-          'Máma prosí: „Could you take the dog for a walk before it gets dark?“ Večeře je už hotová a Dan nemá nikam volat – jen vyřídit vzkaz, pokud se ozve technik internetové společnosti.',
+          'Máma prosí: „Could you take the dog for a walk before it gets dark?“ Večeře je už hotová a Dan nemá nikam volat – jen vyřídit vzkaz, pokud zavolá někdo z internetové společnosti.',
       },
       {
         kind: 'Advert',
@@ -627,7 +627,7 @@ export const SET_E: ExamSet = {
     title: 'A Slice of History',
     text: [
       'Pizza is one of {{1}} most popular foods in the world, but its history is much longer than many people think. In ancient Greece and Rome, people already ate flat bread {{2}} oil, herbs and cheese on top. However, the pizza we know today comes from Naples, in the south of Italy. In the eighteenth century, Naples {{3}} a crowded city, and many of its people were poor. They needed cheap food that they could eat quickly, often while they were walking in the street, and pizza was perfect.',
-      'Tomatoes had arrived in Europe from South America {{4}} the sixteenth century, but at first many Europeans {{5}} they were dangerous to eat. The poor people of Naples were among the first to put them on bread. According to a famous story, in 1889 a pizza maker {{6}} name was Raffaele Esposito cooked for Queen Margherita of Italy. He made a pizza in the colours of the Italian flag: red tomatoes, white mozzarella and green basil. The queen loved it, and the pizza {{7}} named after her.',
+      'Tomatoes had arrived in Europe from the Americas {{4}} the sixteenth century, but at first many Europeans {{5}} they were dangerous to eat. The poor people of Naples were among the first to put them on bread. According to a famous story, in 1889 a pizza maker {{6}} name was Raffaele Esposito cooked for Queen Margherita of Italy. He made a pizza in the colours of the Italian flag: red tomatoes, white mozzarella and green basil. The queen loved it, and the pizza {{7}} named after her.',
       'Pizza travelled to America with Italian families who moved there at the end of the nineteenth century. In 1905, a man called Gennaro Lombardi {{8}} up the first pizzeria in the United States, in New York. After the Second World War, American soldiers who had been to Italy came home hungry for pizza, and it became even {{9}} popular. Since then, pizza {{10}} one of the world\'s favourite foods, and today you can find it almost everywhere, from Tokyo to Prague.',
     ].join('\n\n'),
     gaps: [

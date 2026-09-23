@@ -24,7 +24,7 @@ export const SET_C: ExamSet = {
         ].join('\n'),
         options: [
           { emoji: '👗🔴', caption: 'a red dress' },
-          { emoji: '👚🟢', caption: 'green skirt and top' },
+          { emoji: '👚🟢', caption: 'a green skirt and top' },
           { emoji: '👖⚫', caption: 'black trousers' },
           { emoji: '👗🔵', caption: 'a long blue dress' },
         ],
@@ -123,7 +123,7 @@ export const SET_C: ExamSet = {
           'Maminka má narozeniny v pátek („next Friday“), ale oslava bude až „on Saturday evening“, protože v pátek pracuje do sedmi.',
       },
       {
-        text: 'Dad is going to take Mum out while Sam and Ellie prepare the party.',
+        text: 'Dad is going to take Mum out while Sam and Ellie get the party ready.',
         answer: true,
         explanationCs:
           "Ellie říká: „I've already talked to Dad. He'll take her out for lunch and a long walk by the lake, and we'll get everything ready at home.“",
@@ -168,7 +168,7 @@ export const SET_C: ExamSet = {
     introCs:
       'Uslyšíte učitelku, která třídě představuje výměnný pobyt se školou ve Skotsku. Na základě vyslechnuté nahrávky odpovězte na otázky 13–20. Odpovídejte maximálně třemi slovy, čísla můžete psát číslicemi.',
     script: [
-      "W: Good morning, everyone. As this is our English lesson, I'm going to tell you about our new exchange programme in English. This year our school is starting a partnership with Kelburn Academy, a secondary school in Stirling, in the middle of Scotland.",
+      "W: Good morning, everyone. This is our English lesson, so I'm going to tell you about our new exchange programme in English. This year our school is starting a partnership with Kelburn Academy, a secondary school in Stirling, in the middle of Scotland.",
       "W: The first part of the exchange will be in May. We're leaving on Sunday the twelfth of May and coming back ten days later. We'll fly from Prague to Edinburgh, and a coach from the Scottish school will take us from the airport to Stirling. It's about an hour's drive.",
       "W: There is space for sixteen students on this trip. If more of you are interested, we'll choose students by their English marks and by a short letter about why you want to go.",
       "W: You'll stay with host families. Each of you will have a Scottish partner of about your age, and you'll live in his or her home. In the mornings you'll go to lessons with your partner, and in the afternoons we'll do activities together. Then in October your partners will come here and stay with your families, so please ask your parents first if they're happy to have a guest.",
@@ -530,14 +530,14 @@ export const SET_C: ExamSet = {
         text: "I've just retired and my doctor says I should exercise, but my knees are bad, so something in the water would be best. I'd like to exercise with people of my own age. I often visit my grandchildren abroad, so I don't want to pay a monthly fee. I drive everywhere, so I need somewhere to park.",
         answer: 4,
         explanationCs:
-          'Centrum Aqua Park (E) nabízí „aqua aerobics classes for the over-60s“, platí se „each time you come“ a má „large free car park“. Studio Balance (C) sice nabízí platbu za lekci, ale nemá parkoviště.',
+          'Centrum Aqua Park (E) nabízí „aqua aerobics classes for the over-60s“, platí se „each time you come“ a má „large free car park“. Balance Studio (C) sice nabízí platbu za lekci, ale necvičí se ve vodě a nemá parkoviště.',
       },
       {
         name: 'Priya',
         text: "I've got a two-year-old son and I'm at home with him during the day. I'd love to do yoga or dance in the mornings, but only if someone can look after him while I exercise. I'd also feel more comfortable in a place just for women.",
         answer: 2,
         explanationCs:
-          'Studio Balance (C) je „for women only“, nabízí jógu a tanec dopoledne a „our trained staff will look after your children“ zdarma.',
+          'Balance Studio (C) je „for women only“, nabízí jógu a tanec dopoledne a „our trained staff will look after your children“ zdarma.',
       },
       {
         name: 'Jake',
@@ -548,10 +548,10 @@ export const SET_C: ExamSet = {
       },
       {
         name: 'Sophie',
-        text: "I'm 15 and I love being outside, especially near water. I'm a good swimmer, but I'd like to try a new sport where I can be part of a team and make new friends. During the week I'm busy with school, so I can only do it at weekends.",
+        text: "I'm 15 and I want a sport I can do outdoors, ideally on or near water. I'm a good swimmer, but I'd like to try something new where I can be part of a team and make new friends. During the week I'm busy with school, so I can only do it at weekends.",
         answer: 1,
         explanationCs:
-          'Veslařský klub (B) trénuje venku na řece „on Saturday and Sunday mornings“, vesluje se „in teams of four or eight“ a začátečníci jsou vítáni. Tenisové ligy (G) jsou sice o víkendu, ale na krytých kurtech.',
+          'Veslařský klub (B) trénuje venku na řece „on Saturday and Sunday mornings“, vesluje se „in teams of four or eight“ a začátečníci jsou vítáni. Tenisové ligy (G) jsou sice o víkendu a v týmech, ale hraje se uvnitř („Six indoor courts“).',
       },
     ],
     offers: [

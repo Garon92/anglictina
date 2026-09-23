@@ -84,10 +84,10 @@ export const SET_B: ExamSet = {
           "W: That's right, thanks.",
         ].join('\n'),
         options: [
-          { emoji: '🍫☕ 🍎🍰', caption: 'Hot chocolate, apple cake' },
+          { emoji: '🍫☕ 🍎🍰', caption: 'Hot chocolate and apple cake' },
           { emoji: '🫖 🧁', caption: 'Tea and a muffin' },
           { emoji: '🫖 🍰', caption: 'Tea and cheesecake' },
-          { emoji: '🍫☕ 🧁', caption: 'Hot chocolate, muffin' },
+          { emoji: '🍫☕ 🧁', caption: 'Hot chocolate and a muffin' },
         ],
         answer: 1,
         explanationCs:
@@ -258,7 +258,7 @@ export const SET_B: ExamSet = {
         ],
         answer: 1,
         explanationCs:
-          'Let má zpoždění kvůli technické závadě: „there is a small technical problem with the plane“. Počasí v Dublinu je dobré a změna brány je jen důsledek zpoždění.',
+          'Let má zpoždění kvůli technické závadě: „there is a small technical problem with the plane“. Počasí v Dublinu je dobré a změna brány důvodem zpoždění není.',
       },
       {
         question: 'What will the weather be like on Saturday?',
@@ -413,9 +413,9 @@ export const SET_B: ExamSet = {
         explanationCs: 'Parkování je zdarma: „there is free parking for guests who arrive by car“.',
       },
       {
-        text: 'Every room has a private bathroom.',
+        text: 'Every room has its own bathroom.',
         answer: true,
-        explanationCs: '„Every room has its own shower and toilet.“',
+        explanationCs: 'Každý pokoj má vlastní sprchu a toaletu: „Every room has its own shower and toilet.“',
       },
       {
         text: 'Guests under 18 pay less than adults.',
@@ -568,14 +568,14 @@ export const SET_B: ExamSet = {
         text: 'Nine members of the Patel family, from the grandparents to the grandchildren, are meeting for a week together. The children want to swim every day, but not in a busy public pool. The adults would like to cook big dinners and eat together at one table.',
         answer: 4,
         explanationCs:
-          'Oak Farmhouse má místo pro deset lidí, vyhřívaný bazén jen pro hosty a jídelní stůl pro dvanáct osob. Mountain Lodge je dost velká, ale bazén nemá.',
+          'Oak Farmhouse má místo pro deset lidí, vyhřívaný bazén jen pro hosty a jídelní stůl pro dvanáct osob. Mountain Lodge má místo jen pro osm lidí a ostatní chaty jsou ještě menší.',
       },
       {
         name: 'The Greens',
         text: 'Sophie and Tom Green are going on holiday with their baby daughter. They are looking for a quiet place with no neighbours nearby. Tom loves fishing and wants to go every morning. He also has to work online for an hour or two each day.',
         answer: 2,
         explanationCs:
-          'Willow Lodge stojí osamoceně u jezera, nabízí loďku a vybavení na rybaření i rychlé Wi-Fi. Mountain Lodge je také klidná a u řeky, ale nemá internet.',
+          'Willow Lodge stojí osamoceně u jezera, nabízí loďku a vybavení na rybaření i rychlé Wi-Fi. Mountain Lodge je také klidná a u řeky, ale nemá internet, a Hillside Barn nemá Wi-Fi ani možnost rybaření.',
       },
     ],
     offers: [
@@ -585,7 +585,7 @@ export const SET_B: ExamSet = {
       },
       {
         title: 'Mountain Lodge',
-        text: 'High in the mountains, this large wooden lodge sleeps up to ten people. All five bedrooms are upstairs. It is a wonderful base for walking, and dogs are welcome. There is a river nearby for fishing, and there are no neighbours for miles. Please note: there is no internet or mobile signal here, and you will need a car for the steep road. £1,200 per week.',
+        text: 'High in the mountains, this large wooden lodge sleeps up to eight people. All four bedrooms are upstairs. It is a wonderful base for walking, and dogs are welcome. There is a river nearby for fishing, and there are no neighbours for miles. Please note: there is no internet or mobile signal here, and you will need a car for the steep road. £1,200 per week.',
       },
       {
         title: 'Willow Lodge',
@@ -593,7 +593,7 @@ export const SET_B: ExamSet = {
       },
       {
         title: 'Seagull Cottage',
-        text: 'This bright cottage in the seaside village of Porthmoor sleeps six in three bedrooms. A sandy beach is just two minutes\' walk down the lane. Behind the house there is a large garden with a fence all around it, a swing and a small football goal – perfect for young children. Sorry, no pets. £850 per week.',
+        text: 'This bright cottage in the lively seaside village of Porthmoor sleeps six in three bedrooms. A sandy beach is just two minutes\' walk down the lane. Behind the house there is a large garden with a fence all around it, a swing and a small football goal – perfect for young children. Sorry, no pets. £850 per week.',
       },
       {
         title: 'Oak Farmhouse',
@@ -605,7 +605,7 @@ export const SET_B: ExamSet = {
       },
       {
         title: 'Hillside Barn',
-        text: 'This old stone barn has been turned into a comfortable home for four people. Everything is on one level, so there are no stairs at all. Walking paths into the hills start right from the front door, and there are maps in the kitchen. Well-behaved dogs are welcome. You will need a car, as the nearest shop is eight kilometres away. £650 per week.',
+        text: 'This old stone barn has been turned into a comfortable home for four people. Everything is on one level, so there are no stairs at all. Walking paths into the hills start right from the front door, and there are maps in the kitchen. Well-behaved dogs are welcome. There is no Wi-Fi, so it is the perfect place for a real break. You will need a car, as the nearest shop is eight kilometres away. £650 per week.',
       },
     ],
   },

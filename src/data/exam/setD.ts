@@ -30,7 +30,7 @@ export const SET_D: ExamSet = {
         ],
         answer: 1,
         explanationCs:
-          'Žena radí: „You need the thirty-seven.“ Dvanáctka už ke stadionu nejezdí, tramvaje tento týden kvůli opravě nejezdí a sedmadvacítka jede na letiště.',
+          'Žena radí: „You need the thirty-seven.“ Dvanáctka už ke stadionu nejezdí, tramvaje tento týden kvůli opravě trati nejedou a sedmadvacítka jede na letiště.',
       },
       {
         question: 'What did the girl lose at the swimming pool?',
@@ -107,7 +107,7 @@ export const SET_D: ExamSet = {
       'W: Poor you. Did anyone shout at you?',
       'M: One man did. He said he always has popcorn at the cinema, and he wanted his money back for the tickets. But most people were fine about it. A lot of them just bought extra ice cream.',
       'W: Did they fix the machine?',
-      'M: Not until Sunday morning. A technician came at nine, before we opened.',
+      'M: Not until Sunday morning. A technician came at nine and fixed it before we opened.',
       'W: So was that the end of the problems?',
       'M: No! During the eight o\'clock show in screen three, the fire alarm went off.',
       'W: Was there a fire?',
@@ -149,7 +149,7 @@ export const SET_D: ExamSet = {
         text: 'The popcorn machine was repaired before the cinema opened on Sunday.',
         answer: true,
         explanationCs:
-          'Technik přišel v neděli ráno: „A technician came at nine, before we opened.“',
+          'Technik ho opravil v neděli ráno ještě před otevřením: „A technician came at nine and fixed it before we opened.“',
       },
       {
         text: 'The customers had to wait outside in bad weather.',
@@ -263,6 +263,8 @@ export const SET_D: ExamSet = {
         question: 'What was Megan Price ten years ago?',
         accept: [
           'British junior champion',
+          'the British champion',
+          'British champion',
           'junior champion',
           'a junior champion',
           'the junior champion',
@@ -617,7 +619,7 @@ export const SET_D: ExamSet = {
         text: "My grandparents have been married for fifty years, and we want to celebrate with a big family lunch on Sunday. There will be about twenty-five of us, so we need a room just for our group. Grandad uses a wheelchair, so we can't have any stairs. They both love good old-fashioned British food.",
         answer: 5,
         explanationCs:
-          'Nabídka F: tradiční britská kuchyně, nedělní oběd („every Sunday from 12 to 4 pm“) a soukromý sál v přízemí „with step-free access“. Restaurace B má soukromý sál v prvním patře bez výtahu.',
+          'Nabídka F: tradiční britská kuchyně, nedělní oběd („every Sunday from 12 to 4 pm“) a soukromý sál v přízemí „with step-free access“. Restaurace B má soukromý sál v prvním patře bez výtahu a restaurace E má v neděli zavřeno.',
       },
       {
         name: 'Kieran',
@@ -667,7 +669,7 @@ export const SET_D: ExamSet = {
       },
       {
         title: "Captain Jack's Beach Shack",
-        text: "Fish and chips, seafood platters and burgers right on the beach! Children love our kids' menu and the pirate-ship playground outside. On Friday nights there are live rock bands and a karaoke competition, so it gets loud and lively! Most main dishes cost around £20. We are a 25-minute bus ride from the town centre. Birthday cakes can be ordered from our kitchen – sorry, no food from outside.",
+        text: "Fish and chips, seafood platters and burgers right on the beach! Children love our kids' menu and the pirate-ship playground outside. On Friday nights there are live rock bands and a karaoke competition, so it gets loud and lively! Most main dishes cost around £20. We are a 25-minute bus ride from the town centre. Birthday cakes can be ordered from our kitchen – sorry, no food from outside. Closed on Sundays.",
       },
       {
         title: 'The Old Oak Inn',

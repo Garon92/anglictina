@@ -594,31 +594,6 @@
     background: var(--g92-warning-soft);
     color: var(--g92-warning);
   }
-  .app-update {
-    position: fixed;
-    left: 50%;
-    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
-    z-index: var(--g92-z-toast);
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: min(92vw, 30rem);
-    padding: 0.5rem 0.5rem 0.5rem 1rem;
-    border-radius: var(--g92-radius-lg);
-    background: var(--g92-surface);
-    border: 1px solid var(--accent-border);
-    box-shadow: var(--g92-shadow-3);
-    font-size: var(--g92-fs-sm);
-    font-weight: var(--g92-fw-medium);
-    animation: slideUp var(--g92-dur-3) var(--g92-ease-out);
-  }
-  @media (min-width: 1024px) {
-    .app-update {
-      bottom: 1.5rem;
-    }
-  }
-
   .app-help ol {
     padding-left: 1.2rem;
     display: grid;
@@ -720,17 +695,17 @@
 
   .exam-partnav {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.35rem;
     margin-top: 0.75rem;
-    overflow-x: auto;
     padding-bottom: 0.25rem;
   }
   .exam-partnav__item {
     flex: none;
     display: grid;
     place-items: center;
-    width: 2.6rem;
-    height: 2.6rem;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     border: 1.5px solid var(--g92-border-strong);
     background: var(--g92-surface);
@@ -973,12 +948,6 @@
   }
 }
 
-@media (max-width: 479px) {
-  .appbar-action {
-    display: none;
-  }
-}
-
 /* Long filter labels may wrap instead of overflowing on narrow phones. */
 @layer components {
   .g92-chip {
@@ -988,4 +957,57 @@
 
 @layer components {
   .exam-wave span { height: 10px; }
+}
+
+/* Phone in landscape: every pixel of height counts. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-tabbar {
+    padding-block: 0.15rem calc(0.15rem + env(safe-area-inset-bottom, 0px));
+  }
+  .app-tabbar__item {
+    flex-direction: row;
+    gap: 0.4rem;
+    min-height: 40px;
+  }
+  .app-tabbar__icon {
+    width: 32px;
+    height: 26px;
+  }
+  .app-main {
+    padding-top: 0.75rem;
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  /* Flashcard left, actions right — everything fits without scrolling. */
+  .vocab-session {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    gap: 0.75rem;
+    align-items: start;
+  }
+  .vocab-card {
+    min-height: 0;
+    padding: 1rem 0.75rem 0.75rem !important;
+  }
+  .vocab-card h2 {
+    font-size: 1.75rem;
+  }
+  .vocab-actions {
+    margin-top: 0 !important;
+  }
+  .vocab-grades {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .vocab-grade {
+    min-height: 52px;
+  }
+  .vocab-hint {
+    display: none;
+  }
+}
+
+/* Toasts sit above the bottom tab bar on phones/tablets. */
+@media (max-width: 1023px) {
+  body:has(.app-tabbar) .g92-toasts {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  }
 }

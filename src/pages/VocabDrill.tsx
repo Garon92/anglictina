@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { getAllSRSStates, saveSRSState, addReviewLog, getStats, saveStats } from '../db';
+import { getAllSRSStates, saveSRSState, addReviewLog, deleteReviewLog, getStats, saveStats } from '../db';
 import {
   processReview, createInitialSRSState, nextIntervalDays, intervalLabel, isPass, requeue,
   GRADE_AGAIN, GRADE_HARD, GRADE_GOOD, GRADE_EASY, type Grade,
@@ -14,7 +14,8 @@ import { playFlip, playCorrect, playIncorrect } from '../sounds';
 import { toggleFavorite, useFavorites } from '../favorites';
 import { useSettings } from '../App';
 import { getDeckOverview, newWordQueue, type DeckOverview } from '../vocabDeck';
-import { recordSession } from '../progress';
+import { recordSession, savePendingSession, clearPendingSession } from '../progress';
+import { setActiveSession } from '../lib/activeSession';
 import { appStore } from '../lib/appStore';
 import { startOfDay, czechPlural } from '../lib/dates';
 import { DrillTopBar, FilterGroup, Chip, ResultScreen } from '../components/drill';
@@ -48,10 +49,13 @@ export default function VocabDrill() {
   const [queue, setQueue] = useState<CardItem[]>([]);
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [history, setHistory] = useState<{ idx: number; prev: SRSState; card: CardItem; queue: CardItem[]; summary: { graded: number; passed: number; newLearned: number } }[]>([]);
+  const [history, setHistory] = useState<{ idx: number; prev: SRSState; card: CardItem; queue: CardItem[]; summary: { graded: number; passed: number; newLearned: number }; logId?: number }[]>([]);
   const [summary, setSummary] = useState({ graded: 0, passed: 0, newLearned: 0 });
   const busy = useRef(false);
   const startedAt = useRef(Date.now());
+  const sessionId = useRef('vocab');
+  const finished = useRef(false);
+  const summaryRef = useRef({ graded: 0, passed: 0, newLearned: 0 });
   const favorites = useFavorites();
 
   const refresh = useCallback(async () => {
@@ -101,6 +105,9 @@ export default function VocabDrill() {
     setHistory([]);
     setSummary({ graded: 0, passed: 0, newLearned: 0 });
     startedAt.current = Date.now();
+    sessionId.current = `vocab-${Date.now().toString(36)}`;
+    finished.current = false;
+    summaryRef.current = { graded: 0, passed: 0, newLearned: 0 };
     setPhase('session');
   }
 
@@ -129,14 +136,17 @@ export default function VocabDrill() {
     if (settings.ttsEnabled) void speak(card.word.en, settings.ttsRate);
   }, [card, revealed, settings.ttsEnabled, settings.ttsRate]);
 
-  async function finish(final: typeof summary) {
-    setPhase('done');
+  async function finish(final: typeof summary, leaving = false) {
+    if (finished.current) return;
+    finished.current = true;
+    if (!leaving) setPhase('done');
     const endedAt = Date.now();
-    await recordSession({ module: 'vocab', type: 'vocab', startedAt: startedAt.current, endedAt, total: final.graded, correct: final.passed, tags: ['srs'] });
+    await recordSession({ module: 'vocab', type: 'vocab', startedAt: startedAt.current, endedAt, total: final.graded, correct: final.passed, tags: ['srs'], sid: sessionId.current });
     const states = await getAllSRSStates('vocab');
     const stats = await getStats();
     stats.totalCardsLearned = states.filter((s) => s.totalReviews > 0).length;
     await saveStats(stats);
+    void clearPendingSession(sessionId.current);
     void refresh();
   }
 
@@ -147,7 +157,7 @@ export default function VocabDrill() {
       const prev = card.srs;
       const next = processReview(prev, g);
       await saveSRSState(next);
-      await addReviewLog({ timestamp: Date.now(), cardId: card.word.id, deckId: 'vocab', grade: g, responseMs: 0 });
+      const logId = await addReviewLog({ timestamp: Date.now(), cardId: card.word.id, deckId: 'vocab', grade: g, responseMs: 0 });
       if (isPass(g)) playCorrect();
       else playIncorrect();
 
@@ -155,13 +165,15 @@ export default function VocabDrill() {
       if (!isPass(g) && card.fails < 3) {
         nextQueue = requeue(nextQueue, idx, { ...card, srs: next, fails: card.fails + 1, isNew: false }, 4);
       }
-      setHistory((h) => [...h.slice(-19), { idx, prev, card, queue, summary }]);
+      setHistory((h) => [...h.slice(-19), { idx, prev, card, queue, summary, logId }]);
       const s = {
         graded: summary.graded + 1,
         passed: summary.passed + (isPass(g) ? 1 : 0),
         newLearned: summary.newLearned + (card.isNew ? 1 : 0),
       };
       setSummary(s);
+      summaryRef.current = s;
+      void savePendingSession({ id: sessionId.current, module: 'vocab', type: 'vocab', tags: ['srs'], startedAt: startedAt.current, updatedAt: Date.now(), total: s.graded, correct: s.passed });
       setQueue(nextQueue);
       if (idx + 1 >= nextQueue.length) {
         await finish(s);
@@ -181,6 +193,8 @@ export default function VocabDrill() {
     busy.current = true;
     try {
       await saveSRSState(last.prev);
+      if (last.logId !== undefined) await deleteReviewLog(last.logId);
+      summaryRef.current = last.summary;
       setQueue(last.queue);
       setIdx(last.idx);
       setRevealed(true);
@@ -190,6 +204,31 @@ export default function VocabDrill() {
       busy.current = false;
     }
   }
+
+  // Graded cards are always saved — leaving asks first (and records the partial session).
+  const hasWork = phase === 'session' && summary.graded > 0;
+  useEffect(() => {
+    if (!hasWork) return;
+    return setActiveSession({
+      id: sessionId.current,
+      confirm: true,
+      title: 'Ukončit opakování?',
+      message: 'Ohodnocené kartičky jsou uložené, dnešní sezení se zapíše do statistik.',
+      finalize: () => finish(summaryRef.current, true),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasWork]);
+  useEffect(() => {
+    const onPageHide = () => {
+      if (summaryRef.current.graded > 0 && !finished.current) void finish(summaryRef.current, true);
+    };
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      onPageHide();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useKeyboard(
     phase !== 'session' || !card
@@ -306,10 +345,11 @@ export default function VocabDrill() {
         onExit={() => void finish(summary)}
         title={card.isNew ? 'Nové slovo' : card.fails > 0 ? 'Znovu' : 'Opakování'}
         extra={history.length > 0 ? (
-          <button type="button" className="btn-ghost btn-sm" onClick={() => void undo()} title="Vrátit poslední hodnocení">↩ Zpět</button>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => void undo()} title="Vrátit poslední hodnocení">↩ Vrátit</button>
         ) : undefined}
       />
 
+      <div className="vocab-session">
       <div
         className={`vocab-card card ${revealed ? 'is-revealed' : ''}`}
         {...swipe}
@@ -365,10 +405,10 @@ export default function VocabDrill() {
       </div>
 
       {!revealed ? (
-        <button type="button" className="btn-primary btn-lg mt-4 w-full" onClick={reveal}>Otočit kartičku</button>
+        <button type="button" className="vocab-actions btn-primary btn-lg mt-4 w-full" onClick={reveal}>Otočit kartičku</button>
       ) : (
-        <div className="mt-4">
-          <div className="grid grid-cols-4 gap-2">
+        <div className="vocab-actions mt-4">
+          <div className="vocab-grades grid grid-cols-4 gap-2">
             {grades.map((gr) => (
               <button key={gr.g} type="button" className={`vocab-grade ${gr.cls}`} onClick={() => void grade(gr.g)}>
                 <span className="font-black">{gr.label}</span>
@@ -376,11 +416,12 @@ export default function VocabDrill() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-center text-xs text-muted">
+          <p className="vocab-hint mt-2 text-center text-xs text-muted">
             Klávesy 1–4 · na mobilu swipe ← znovu / → dobře · hodnoť poctivě, podle toho se plánuje další opakování
           </p>
         </div>
       )}
+      </div>
     </div>
   );
 }

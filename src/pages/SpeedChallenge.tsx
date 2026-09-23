@@ -158,10 +158,35 @@ export default function SpeedChallenge() {
   }
   const onTimeout = useEffectEvent(() => answer(null));
 
+  // Switching tabs/apps pauses the question: the remaining time is kept and the deadline moved.
+  useEffect(() => {
+    if (phase !== 'game' || result !== null) return;
+    let hiddenLeft: number | null = null;
+    const onVis = () => {
+      if (document.hidden) hiddenLeft = Math.max(0, deadline.current - Date.now());
+      else if (hiddenLeft !== null) {
+        deadline.current = Date.now() + hiddenLeft;
+        hiddenLeft = null;
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [phase, idx, result]);
+
   // Deadline-based countdown; runs only while a question is open (paused during feedback).
   useEffect(() => {
     if (phase !== 'game' || result !== null) return;
+    let lastTick = Date.now();
     const id = window.setInterval(() => {
+      const now = Date.now();
+      const dt = now - lastTick;
+      lastTick = now;
+      if (document.hidden) return; // paused (see above)
+      // An open dialog (e.g. "Ukončit cvičení?") also stops the clock.
+      if (document.querySelector('dialog[open]')) {
+        deadline.current += dt;
+        return;
+      }
       const left = deadline.current - Date.now();
       if (left <= 0) {
         window.clearInterval(id);

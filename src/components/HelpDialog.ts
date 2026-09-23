@@ -3,7 +3,7 @@ import { setHelp } from '../kit';
 /** Help shown by the app bar's "?" button (kit pictogram dialog). */
 export function registerHelp() {
   return setHelp({
-    title: 'Jak se s aplikací učit',
+    title: 'Jak na to',
     intro: 'Stačí 15–25 minut denně. Aplikace sama hlídá, co je potřeba zopakovat.',
     howTo: [
       { icon: '🏠', text: 'Dnes — plán na dnešek: opakování slovíček, nová slovíčka, oprava chyb a jedno doporučené cvičení.' },

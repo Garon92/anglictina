@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { confirmDialog, toast } from '../kit';
+import { toast } from '../kit';
+import { safeConfirm } from '../lib/confirm';
+import { setActiveSession, enterFocusMode } from '../lib/activeSession';
 import { stopSpeaking } from '../tts';
 import { playComplete } from '../sounds';
 import PartView from './PartViews';
@@ -87,6 +89,29 @@ export default function ExamRunner() {
       onHide();
     };
   }, []);
+  const running = view.kind === 'run';
+  const runId = view.kind === 'run' ? view.run.id : '';
+  useEffect(() => {
+    if (!running) return;
+    const exitFocus = enterFocusMode();
+    const off = setActiveSession({
+      id: runId,
+      confirm: true,
+      title: 'Přerušit test?',
+      message: 'Rozpracovaný test zůstane uložený (i se zbývajícím časem) a dokončíš ho později v sekci Maturita.',
+      confirmLabel: 'Přerušit',
+      cancelLabel: 'Pokračovat v testu',
+      finalize: async () => {
+        stopSpeaking();
+        if (runRef.current && !submitting.current) await saveRun(pauseRun(runRef.current));
+      },
+    });
+    return () => {
+      off();
+      exitFocus();
+    };
+  }, [running, runId]);
+
   useEffect(() => {
     if (!run) return;
     const t = window.setTimeout(() => {
@@ -151,19 +176,11 @@ export default function ExamRunner() {
     );
   }
 
-  return <RunScreen run={view.run} update={update} remaining={remaining} onSubmit={(r) => void submit(r)} onQuit={async () => {
-    const ok = await confirmDialog({
-      title: 'Přerušit test?',
-      message: 'Rozpracovaný test zůstane uložený a můžeš se k němu vrátit z přehledu maturity.',
-      confirmLabel: 'Přerušit',
-      cancelLabel: 'Pokračovat',
-    });
-    if (ok) {
-      stopSpeaking();
-      navigate('/exam');
-    }
-  }} />;
+  // Leaving (✕, tab bar, Back, "‹ Menu") asks first; the run stays saved and paused.
+  return <RunScreen run={view.run} update={update} remaining={remaining} onSubmit={(r) => void submit(r)} onQuit={() => navigate('/exam')} />;
 }
+
+const SHORT_MODE: Record<ExamMode, string> = { full: 'Celý test', listening: 'Poslech', reading: 'Čtení + jazyk', part: 'Trénink' };
 
 function RunScreen({
   run,
@@ -184,12 +201,11 @@ function RunScreen({
   const idx = parts.indexOf(current);
   const info = partInfo(current);
   const set = src(current);
-  const topRef = useRef<HTMLDivElement>(null);
-
   const goto = (p: PartNo) => {
     stopSpeaking();
     update((r) => ({ ...r, current: p }));
-    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    // The top bar is sticky (always "in view"), so scroll the page itself to the part heading.
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
   };
 
   const totalItems = parts.reduce((s, p) => s + partInfo(p).items, 0);
@@ -197,7 +213,7 @@ function RunScreen({
 
   async function askSubmit() {
     const missing = totalItems - answered;
-    const ok = await confirmDialog({
+    const ok = await safeConfirm({
       title: run.mode === 'part' ? 'Zkontrolovat odpovědi?' : 'Odevzdat test?',
       message: missing > 0
         ? `Nevyplněno: ${missing} z ${totalItems} úloh. Za prázdnou odpověď se body neodečítají, ale ani nepřičítají.`
@@ -214,18 +230,20 @@ function RunScreen({
 
   return (
     <div className="page-container page-container--wide">
-      <div className="exam-topbar" ref={topRef}>
-        <button type="button" className="btn-ghost btn-sm" onClick={onQuit} aria-label="Přerušit test">✕ <span className="hidden sm:inline">Přerušit</span></button>
+      <div className="exam-topbar">
+        <button type="button" className="btn-ghost !px-2.5" onClick={onQuit} aria-label="Přerušit test">✕ <span className="hidden sm:inline">Přerušit</span></button>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-black text-fg">{run.mode === 'part' ? `Trénink · ${setTitle(run)}` : `${setTitle(run)} · ${MODE_LABELS[run.mode]}`}</div>
-          <div className="text-xs text-muted">{answered} / {totalItems} vyplněno</div>
+          <div className="truncate text-sm font-black text-fg">{setTitle(run)}</div>
+          <div className="truncate text-xs text-muted">
+            {SHORT_MODE[run.mode]} · {answered}/{totalItems} vyplněno
+          </div>
         </div>
         {remaining !== null && (
           <div className={`exam-timer ${low ? 'is-low' : warn ? 'is-warn' : ''}`} role="timer" aria-live="off" aria-label={`Zbývá ${Math.ceil(remaining / 60)} minut`}>
             ⏱ {fmt(remaining)}
           </div>
         )}
-        <button type="button" className="btn-primary btn-sm" onClick={askSubmit}>
+        <button type="button" className="btn-primary !px-3" onClick={askSubmit}>
           {run.mode === 'part' ? 'Zkontrolovat' : 'Odevzdat'}
         </button>
       </div>
@@ -254,7 +272,7 @@ function RunScreen({
 
       <header className="mb-4 mt-4">
         <div className="eyebrow">
-          {partLabel(current)} · {partInfo(current).items * partInfo(current).pointsPerItem} bodů / {info.pointsPerItem} {info.pointsPerItem === 1 ? 'bod' : 'body'}
+          {partLabel(current)} · {info.items * info.pointsPerItem} bodů ({info.pointsPerItem} {info.pointsPerItem === 1 ? 'bod' : 'body'} za úlohu)
         </div>
         <h1 className="mt-0.5 text-2xl font-black text-fg">{info.icon} {info.title}</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted">{intro}</p>

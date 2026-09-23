@@ -14,10 +14,11 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { getDrillSessions, getAllMistakes } from '../db';
 import { getModuleByPath, sessionModule } from '../modules';
 import { dayKey, addDays, parseDayKey, czechPlural } from '../lib/dates';
-import { recordAnswer, recordSession, forgiveMistake, type AnswerInput } from '../progress';
+import { recordAnswer, recordSession, forgiveMistake, savePendingSession, clearPendingSession, type AnswerInput } from '../progress';
+import { setActiveSession, enterFocusMode } from '../lib/activeSession';
+import { safeConfirm } from '../lib/confirm';
 import { playComplete, playCorrect, playIncorrect } from '../sounds';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { confirmDialog } from '../kit';
 import { displayAnswer } from '../lib/answer';
 import { guessLang } from '../utils';
 import { PageHeader, ProgressBar, Stars, starsFor } from './ui';
@@ -52,22 +53,55 @@ export interface DrillSession {
   markLastCorrect: () => void;
 }
 
-export function useDrillSession(module: string, opts: { type?: string; tags?: string[] } = {}): DrillSession {
+export function useDrillSession(module: string, opts: { type?: string; tags?: string[]; guard?: boolean } = {}): DrillSession {
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [finished, setFinished] = useState(false);
   const startedAt = useRef(Date.now());
   const finishing = useRef(false);
   const answersRef = useRef<AnswerRecord[]>([]);
+  const idRef = useRef(newSessionId());
   const optsRef = useRef(opts);
   optsRef.current = opts;
 
   const start = useCallback(() => {
+    // A new round: whatever the previous round had is saved by finish() before this is called.
     startedAt.current = Date.now();
     finishing.current = false;
+    idRef.current = newSessionId();
     answersRef.current = [];
     setAnswers([]);
     setFinished(false);
   }, []);
+
+  const finishImpl = useCallback(async (silent: boolean) => {
+    const list = answersRef.current;
+    const correct = list.filter((x) => x.correct).length;
+    const ratio = list.length ? correct / list.length : 0;
+    if (finishing.current) return ratio;
+    finishing.current = true;
+    setFinished(true);
+    const id = idRef.current;
+    if (list.length > 0) {
+      if (!silent) playComplete(ratio);
+      try {
+        await recordSession({
+          module,
+          type: optsRef.current.type,
+          startedAt: startedAt.current,
+          total: list.length,
+          correct,
+          tags: optsRef.current.tags,
+          sid: id,
+        });
+      } catch (e) {
+        console.warn('recordSession failed', e);
+      }
+    }
+    void clearPendingSession(id);
+    return ratio;
+  }, [module]);
+
+  const finish = useCallback(() => finishImpl(false), [finishImpl]);
 
   const answer = useCallback<DrillSession['answer']>((a) => {
     const rec: AnswerRecord = {
@@ -86,33 +120,42 @@ export function useDrillSession(module: string, opts: { type?: string; tags?: st
     }
     const { silent: _silent, noTrack, ...input } = a;
     if (!noTrack) void recordAnswer({ ...input, module });
+    const list = answersRef.current;
+    void savePendingSession({
+      id: idRef.current,
+      module,
+      type: optsRef.current.type,
+      tags: optsRef.current.tags,
+      startedAt: startedAt.current,
+      updatedAt: Date.now(),
+      total: list.length,
+      correct: list.filter((x) => x.correct).length,
+    });
     return a.correct;
   }, [module]);
 
-  const finish = useCallback(async () => {
-    const list = answersRef.current;
-    const correct = list.filter((x) => x.correct).length;
-    const ratio = list.length ? correct / list.length : 0;
-    if (finishing.current) return ratio;
-    finishing.current = true;
-    setFinished(true);
-    if (list.length > 0) {
-      playComplete(ratio);
-      try {
-        await recordSession({
-          module,
-          type: optsRef.current.type,
-          startedAt: startedAt.current,
-          total: list.length,
-          correct,
-          tags: optsRef.current.tags,
-        });
-      } catch (e) {
-        console.warn('recordSession failed', e);
-      }
-    }
-    return ratio;
-  }, [module]);
+  // While answers are unsaved, leaving the page asks first (and saves them).
+  const hasWork = answers.length > 0 && !finished;
+  useEffect(() => {
+    if (!hasWork) return;
+    return setActiveSession({
+      id: idRef.current,
+      confirm: opts.guard !== false,
+      finalize: () => finishImpl(true).then(() => undefined),
+    });
+  }, [hasWork, finishImpl, opts.guard]);
+
+  // Leaving by any other route (unmount, closing/leaving the page) still records the partial session.
+  useEffect(() => {
+    const onPageHide = () => {
+      if (answersRef.current.length > 0 && !finishing.current) void finishImpl(true);
+    };
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      onPageHide();
+    };
+  }, [finishImpl]);
 
   const markLastCorrect = useCallback(() => {
     const list = answersRef.current;
@@ -135,6 +178,10 @@ export function useDrillSession(module: string, opts: { type?: string; tags?: st
     answer,
     finish,
   };
+}
+
+function newSessionId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 /* ─── Setup screen ────────────────────────────────────────────────── */
@@ -298,9 +345,10 @@ export function DrillTopBar({
   title?: string;
   extra?: ReactNode;
 }) {
+  useEffect(() => enterFocusMode(), []);
   const askExit = async () => {
     if (current === 0) return onExit();
-    const ok = await confirmDialog({
+    const ok = await safeConfirm({
       title: 'Ukončit cvičení?',
       message: 'Dosavadní odpovědi se uloží a uvidíš výsledek.',
       confirmLabel: 'Ukončit',
@@ -311,7 +359,7 @@ export function DrillTopBar({
   return (
     <div className="mb-5">
       <div className="mb-2 flex items-center gap-2">
-        <button type="button" className="btn-ghost btn-sm -ml-2" onClick={askExit} aria-label="Ukončit cvičení">
+        <button type="button" className="btn-ghost -ml-2 !px-2.5" onClick={askExit} aria-label="Ukončit cvičení">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6 6 18" />
           </svg>
@@ -615,6 +663,7 @@ export function ResultScreen({
   backLabel = 'Zpět na přehled',
   title,
   children,
+  hideMistakesLink = false,
 }: {
   correct: number;
   total: number;
@@ -625,6 +674,8 @@ export function ResultScreen({
   backLabel?: string;
   title?: string;
   children?: ReactNode;
+  /** Hide the "Procvičit chyby →" link (e.g. on the mistakes drill itself). */
+  hideMistakesLink?: boolean;
 }) {
   const navigate = useNavigate();
   const ratio = total > 0 ? correct / total : 0;
@@ -664,7 +715,7 @@ export function ResultScreen({
         <section className="mt-5">
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="section-title !mb-0">Chyby k zapamatování ({mistakes.length})</h2>
-            <Link to="/mistakes" className="text-sm font-bold">Procvičit chyby →</Link>
+            {!hideMistakesLink && <Link to="/mistakes" className="text-sm font-bold">Procvičit chyby →</Link>}
           </div>
           <ul className="space-y-2">
             {mistakes.map((m, i) => (

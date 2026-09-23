@@ -1,12 +1,14 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { useLocation, useNavigate, Outlet } from 'react-router';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useLocation, useNavigate, useBlocker, Outlet } from 'react-router';
 import { TabBar, SideNav } from './AppNav';
 import OfflineBanner from './OfflineBanner';
 import { stopSpeaking } from '../tts';
 import { registerHelp } from './HelpDialog';
-import { getDueMistakes, onSessionRecorded, onMilestone } from '../progress';
+import { getDueMistakes, onSessionRecorded, onMilestone, recoverPendingSessions } from '../progress';
 import { sfx, toast, UI_ICONS } from '../kit';
 import { reportActivity } from '../lib/activity';
+import { confirmLeave, getActiveSession, isFocusMode, subscribeActiveSession } from '../lib/activeSession';
+import { routeTitle } from '../lib/titles';
 
 /** Routes that take over the whole screen (no tab bar / side nav). */
 function isFocusRoute(pathname: string) {
@@ -17,9 +19,68 @@ export default function Layout({ children }: { children?: ReactNode }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [mistakesDue, setMistakesDue] = useState(0);
-  const focus = isFocusRoute(pathname);
+  const focusMode = useSyncExternalStore(subscribeActiveSession, isFocusMode, () => false);
+  const focus = focusMode || isFocusRoute(pathname);
+  const appbarRef = useRef<HTMLElement>(null);
 
   useEffect(() => registerHelp(), []);
+
+  // Work left behind by a closed tab becomes a normal session.
+  useEffect(() => {
+    void recoverPendingSessions();
+  }, [pathname]);
+
+  // Per-route document title (history, tabs, screen readers).
+  useEffect(() => {
+    document.title = routeTitle(pathname);
+  }, [pathname]);
+
+  // ── Leaving a running session: in-app navigation and browser Back ──
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => !!getActiveSession() && currentLocation.pathname !== nextLocation.pathname);
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    let alive = true;
+    void confirmLeave().then((ok) => {
+      if (!alive) return;
+      if (ok) blocker.proceed();
+      else blocker.reset();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [blocker]);
+
+  // ── …and the app bar's "‹ Menu" (leaves the SPA) ──
+  useEffect(() => {
+    const bar = appbarRef.current;
+    if (!bar) return;
+    const onClick = (e: MouseEvent) => {
+      if (!getActiveSession()) return;
+      const back = e.composedPath().find((el): el is HTMLAnchorElement => el instanceof HTMLAnchorElement && (el.getAttribute('part') ?? '').split(' ').includes('back'));
+      if (!back) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const href = back.href;
+      void confirmLeave().then((ok) => {
+        if (ok) location.href = href;
+      });
+    };
+    // Future kit contract (v0.7): a cancelable `g92-back` event.
+    const onBack = (e: Event) => {
+      if (!getActiveSession()) return;
+      e.preventDefault();
+      const href = (e as CustomEvent<{ href?: string }>).detail?.href ?? '/menu/';
+      void confirmLeave().then((ok) => {
+        if (ok) location.href = href;
+      });
+    };
+    bar.addEventListener('click', onClick, true);
+    bar.addEventListener('g92-back', onBack);
+    return () => {
+      bar.removeEventListener('click', onClick, true);
+      bar.removeEventListener('g92-back', onBack);
+    };
+  }, []);
 
   // Small celebrations: daily goal reached, streak milestones.
   useEffect(
@@ -28,7 +89,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
         window.setTimeout(() => {
           if (m.kind === 'daily-goal') {
             sfx.levelUp();
-            toast(`Denní cíl splněn — ${m.value} úloh! 🎯`, { variant: 'success', icon: UI_ICONS.trophy, duration: 4000 });
+            toast(`Denní cíl splněn — ${m.value} minut procvičování! 🎯`, { variant: 'success', icon: UI_ICONS.trophy, duration: 4000 });
           } else {
             toast(`${m.value} dní v řadě! Jen tak dál 🔥`, { variant: 'accent', icon: UI_ICONS.flame, duration: 4500 });
           }
@@ -59,13 +120,14 @@ export default function Layout({ children }: { children?: ReactNode }) {
   return (
     <div className={`g92-app app-shell${focus ? ' app-shell--focus' : ''}`}>
       <g92-appbar
+        ref={appbarRef}
         app="anglictina"
         ong92-settings={(e: CustomEvent) => {
           e.preventDefault();
           navigate('/settings');
         }}
       >
-        {!focus && (
+        {!focus && pathname !== '/search' && (
           <button
             slot="actions"
             type="button"

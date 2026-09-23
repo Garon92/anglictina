@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { getModuleByPath } from '../modules';
 
 type Section = 'home' | 'practice' | 'exam' | 'progress';
@@ -85,10 +85,10 @@ export function TabBar() {
       {NAV_ITEMS.map((item) => {
         const active = section === item.id;
         return (
-          <NavLink key={item.id} to={item.to} className="app-tabbar__item" aria-current={active ? 'page' : undefined}>
+          <Link key={item.id} to={item.to} className="app-tabbar__item" aria-current={active ? 'page' : undefined}>
             <span className="app-tabbar__icon">{item.icon(active)}</span>
             <span className="app-tabbar__label">{item.label}</span>
-          </NavLink>
+          </Link>
         );
       })}
     </nav>
@@ -106,10 +106,10 @@ export function SideNav({ mistakesDue }: { mistakesDue: number }) {
           const active = section === item.id;
           return (
             <li key={item.id}>
-              <NavLink to={item.to} className="app-sidenav__item" aria-current={active ? 'page' : undefined}>
+              <Link to={item.to} className="app-sidenav__item" aria-current={active ? 'page' : undefined}>
                 <span className="app-sidenav__icon">{item.icon(active)}</span>
                 <span>{item.label}</span>
-              </NavLink>
+              </Link>
             </li>
           );
         })}
@@ -117,29 +117,17 @@ export function SideNav({ mistakesDue }: { mistakesDue: number }) {
       <div className="app-sidenav__sep" />
       <ul>
         <li>
-          <NavLink to="/mistakes" className="app-sidenav__item app-sidenav__item--small" aria-current={pathname === '/mistakes' ? 'page' : undefined}>
+          <Link to="/mistakes" className="app-sidenav__item app-sidenav__item--small" aria-current={pathname === '/mistakes' ? 'page' : undefined}>
             <span className="app-sidenav__emoji" aria-hidden="true">🔁</span>
             <span className="flex-1">Chyby k opakování</span>
             {mistakesDue > 0 && <span className="app-sidenav__count">{mistakesDue}</span>}
-          </NavLink>
+          </Link>
         </li>
         <li>
-          <NavLink to="/search" className="app-sidenav__item app-sidenav__item--small" aria-current={pathname === '/search' ? 'page' : undefined}>
-            <span className="app-sidenav__emoji" aria-hidden="true">🔍</span>
-            <span>Hledání ve slovníku</span>
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/favorites" className="app-sidenav__item app-sidenav__item--small" aria-current={pathname === '/favorites' ? 'page' : undefined}>
+          <Link to="/favorites" className="app-sidenav__item app-sidenav__item--small" aria-current={pathname === '/favorites' ? 'page' : undefined}>
             <span className="app-sidenav__emoji" aria-hidden="true">⭐</span>
             <span>Oblíbené</span>
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/settings" className="app-sidenav__item app-sidenav__item--small" aria-current={pathname === '/settings' ? 'page' : undefined}>
-            <span className="app-sidenav__emoji" aria-hidden="true">⚙️</span>
-            <span>Nastavení</span>
-          </NavLink>
+          </Link>
         </li>
       </ul>
     </nav>

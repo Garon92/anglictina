@@ -56,7 +56,7 @@ export default function DailyChallenge({ onDone }: { onDone?: () => void }) {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const session = useDrillSession('daily');
+  const session = useDrillSession('daily', { guard: false });
 
   useEffect(() => {
     kvGet<DailyResult>(`daily:${day}`).then((r) => setResult(r ?? null)).catch(() => setResult(null));
@@ -116,7 +116,10 @@ export default function DailyChallenge({ onDone }: { onDone?: () => void }) {
           <span className="block font-bold text-fg">Denní výzva</span>
           <span className="block text-xs text-muted">5 rychlých otázek — každý den jiné</span>
         </span>
-        <span className="btn-soft btn-sm">Začít</span>
+        <span className="btn-soft btn-sm hidden sm:inline-flex">Začít</span>
+        <svg className="shrink-0 text-subtle sm:hidden" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
       </button>
     );
   }

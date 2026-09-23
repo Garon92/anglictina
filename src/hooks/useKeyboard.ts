@@ -17,6 +17,8 @@ export function useKeyboard(keyMap: KeyMap, enabled = true, allowInInputs: strin
     if (!enabled) return;
     function handler(e: KeyboardEvent) {
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      // Shortcuts are inert while a modal dialog is open (it owns the keyboard).
+      if (document.querySelector('dialog[open]')) return;
       const t = e.target as HTMLElement | null;
       const inField = !!t && (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || t.isContentEditable);
       if (inField && !allowRef.current.includes(e.key)) return;

@@ -16,7 +16,7 @@ const STATIC: Record<string, string> = {
 /** Document title for a route, e.g. "Členy · Angličtina". */
 export function routeTitle(pathname: string): string {
   const p = pathname.replace(/\/+$/, '') || '/';
-  if (p === '/') return `${APP} — příprava na maturitu`;
+  if (p === '/') return `${APP} – příprava na maturitu`;
   const name = STATIC[p] ?? getModuleByPath(p)?.title ?? (p.startsWith('/exam/history') ? 'Výsledek testu' : null);
   return name ? `${name} · ${APP}` : APP;
 }

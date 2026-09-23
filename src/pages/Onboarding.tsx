@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { saveSettings } from '../db';
 import type { UserSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
 import { setAppName } from '../lib/name';
 import { daysUntil, czechPlural } from '../lib/dates';
+import { registerHelp } from '../components/HelpDialog';
 
 interface Props {
   onComplete: (s: UserSettings) => void;
@@ -28,6 +29,8 @@ export default function Onboarding({ onComplete }: Props) {
   }));
   const update = (patch: Partial<UserSettings>) => setSettings((s) => ({ ...s, ...patch }));
   const days = daysUntil(settings.examDate);
+  // The appbar "?" works from the first screen too (C-11).
+  useEffect(() => registerHelp(), []);
 
   async function finish(goTo?: string) {
     const final = { ...settings, onboardingDone: true };

@@ -46,7 +46,7 @@ export const MODULES: ModuleDef[] = [
 
   // Gramatika
   { id: 'grammar', path: '/grammar', title: 'Gramatika – mix', desc: 'Časy, modální slovesa, stupňování…', icon: '✏️', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'grammar mix' },
-  { id: 'tenses', path: '/tenses', title: 'Přehled časů', desc: '12 časů s příklady a testem', icon: '⏱️', group: 'grammar', keywords: 'tenses casy present past' },
+  { id: 'tenses', path: '/tenses', title: 'Přehled časů', desc: 'Časová osa, vzorce a příklady', icon: '⏱️', group: 'grammar', keywords: 'tenses casy present past' },
   { id: 'articles', path: '/articles', title: 'Členy', desc: 'a / an / the / –', icon: '📐', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'articles a an the' },
   { id: 'prepositions', path: '/prepositions', title: 'Předložky', desc: 'in / on / at a další', icon: '📌', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'prepositions in on at' },
   { id: 'conditionals', path: '/conditionals', title: 'Podmínkové věty', desc: 'If… typy 0–3', icon: '🔀', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'conditionals if' },

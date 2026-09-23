@@ -4,7 +4,8 @@ import { TabBar, SideNav } from './AppNav';
 import OfflineBanner from './OfflineBanner';
 import { stopSpeaking } from '../tts';
 import { registerHelp } from './HelpDialog';
-import { getDueMistakes, onSessionRecorded } from '../progress';
+import { getDueMistakes, onSessionRecorded, onMilestone } from '../progress';
+import { sfx, toast, UI_ICONS } from '../kit';
 import { reportActivity } from '../lib/activity';
 
 /** Routes that take over the whole screen (no tab bar / side nav). */
@@ -19,6 +20,22 @@ export default function Layout({ children }: { children?: ReactNode }) {
   const focus = isFocusRoute(pathname);
 
   useEffect(() => registerHelp(), []);
+
+  // Small celebrations: daily goal reached, streak milestones.
+  useEffect(
+    () =>
+      onMilestone((m) => {
+        window.setTimeout(() => {
+          if (m.kind === 'daily-goal') {
+            sfx.levelUp();
+            toast(`Denní cíl splněn — ${m.value} úloh! 🎯`, { variant: 'success', icon: UI_ICONS.trophy, duration: 4000 });
+          } else {
+            toast(`${m.value} dní v řadě! Jen tak dál 🔥`, { variant: 'accent', icon: UI_ICONS.flame, duration: 4500 });
+          }
+        }, 900);
+      }),
+    [],
+  );
 
   useEffect(() => {
     stopSpeaking();

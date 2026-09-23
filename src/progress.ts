@@ -36,6 +36,16 @@ export function creditedMinutes(startedAt: number, endedAt: number, total: numbe
 type SessionListener = (s: DrillSession) => void;
 const listeners = new Set<SessionListener>();
 
+export type Milestone = { kind: 'daily-goal' | 'streak'; value: number };
+type MilestoneListener = (m: Milestone) => void;
+const milestoneListeners = new Set<MilestoneListener>();
+
+/** Subscribe to celebrations: daily goal reached, streak milestones. */
+export function onMilestone(fn: MilestoneListener): () => void {
+  milestoneListeners.add(fn);
+  return () => milestoneListeners.delete(fn);
+}
+
 /** Subscribe to completed sessions (used for activity reporting / dashboard refresh). */
 export function onSessionRecorded(fn: SessionListener): () => void {
   listeners.add(fn);
@@ -68,10 +78,18 @@ export async function recordSession(input: SessionInput): Promise<UserStats | nu
   stats.totalStudyMinutes += minutes;
   await saveStats(stats);
   const updated = await updateStreak(dayKey(endedAt));
+  let goalReached = false;
   try {
-    daily.record(input.total, new Date(endedAt));
+    goalReached = daily.record(input.total, new Date(endedAt)).reachedNow;
   } catch {
     /* best-effort */
+  }
+  const streakGrew = updated.lastActiveDate === dayKey(endedAt) && updated.streakDays !== stats.streakDays;
+  for (const fn of milestoneListeners) {
+    try {
+      if (goalReached) fn({ kind: 'daily-goal', value: daily.goal() });
+      if (streakGrew && [3, 7, 14, 30, 50, 100].includes(updated.streakDays)) fn({ kind: 'streak', value: updated.streakDays });
+    } catch { /* ignore */ }
   }
   for (const fn of listeners) {
     try { fn(session as DrillSession); } catch { /* ignore */ }

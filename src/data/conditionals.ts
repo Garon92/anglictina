@@ -145,8 +145,8 @@ export const CONDITIONAL_EXERCISES: ConditionalExercise[] = [
     type: 'fill',
     conditionalType: '0',
     level: 'B1',
-    prompt: 'Plants ___ (die) if they ___ (not/get) enough sunlight. (Odpovědi odděl čárkou.)',
-    answer: 'die, don\'t get',
+    prompt: 'Plants ___ (die) if they ___ (not/get) enough sunlight.',
+    answer: 'die ... don\'t get',
     explanationCs: 'Nultý kondicionál – oba tvary jsou v přítomném čase prostém. „Plants die" a „they don\'t get".',
   },
   {

@@ -1,421 +1,271 @@
-import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import {
-  WORD_FORMATION_EXERCISES,
-  WORD_FAMILIES,
-  WF_CATEGORIES,
-  type WordFormationExercise,
-} from '../data/wordFormation';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
-import { useKeyboard } from '../hooks/useKeyboard';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { trackError } from '../errorTracker';
+import { Fragment, useMemo, useRef, useState } from 'react';
+import { WORD_FORMATION_EXERCISES, WORD_FAMILIES, WF_CATEGORIES, type WordFormationExercise } from '../data/wordFormation';
 import { shuffleArray } from '../utils';
+import { isAnswerCorrect, normalizeAnswer, primaryAnswer } from '../lib/answer';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { useSettings } from '../App';
+import { speak } from '../tts';
+import { SpeakButton } from '../components/ui';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, TextAnswer, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
-type TabMode = 'reference' | 'drill';
-type Phase = 'select' | 'drill' | 'result';
-type LevelFilter = 'Vše' | 'A2' | 'B1';
+type Phase = 'setup' | 'drill' | 'result';
 
-const REFERENCE_FAMILIES = WORD_FAMILIES.slice(0, 30);
-const CATEGORY_KEYS = Object.keys(WF_CATEGORIES);
+const LEVELS = ['all', 'A2', 'B1'] as const;
+const CATEGORIES = Object.keys(WF_CATEGORIES);
 
-function isAnswerCorrect(userAnswer: string, correctAnswer: string): boolean {
-  return userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+/** Split "It was a _____ day. (BEAUTY)" into the sentence and the base word. */
+function splitSentence(ex: WordFormationExercise): { text: string; base: string } {
+  const m = ex.sentence.match(/\s*\(([^)]+)\)\s*$/);
+  return m && m.index !== undefined
+    ? { text: ex.sentence.slice(0, m.index).trim(), base: m[1].trim() }
+    : { text: ex.sentence, base: ex.baseWord };
 }
 
-function renderSentenceWithBaseWord(sentence: string, baseWord: string) {
-  const match = sentence.match(/\(([^)]+)\)\s*$/);
-  if (!match) return sentence;
-  const before = sentence.slice(0, match.index);
+function GapSentence({ text, fill }: { text: string; fill?: string }) {
+  const chunks = text.split(/_{3,}/);
   return (
     <>
-      {before}
-      <span className="text-amber-600 dark:text-amber-400 font-semibold">({baseWord})</span>
+      {chunks.map((chunk, i) => (
+        <Fragment key={i}>
+          {chunk}
+          {i < chunks.length - 1 &&
+            (fill ? (
+              <span className="rounded-md bg-success-soft px-1.5 text-success">{fill}</span>
+            ) : (
+              <span className="mx-0.5 inline-block min-w-[4rem] border-b-2 border-accent align-baseline">
+                <span className="sr-only">mezera</span>&nbsp;
+              </span>
+            ))}
+        </Fragment>
+      ))}
     </>
   );
 }
 
 export default function WordFormationDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
-  const [tabMode, setTabMode] = useState<TabMode>('drill');
-  const [phase, setPhase] = useState<Phase>('select');
-  const [selectedCats, setSelectedCats] = useState<string[]>([]);
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>('Vše');
-  const [exercises, setExercises] = useState<WordFormationExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [showResult, setShowResult] = useState(false);
-  const [stats, setStats] = useState({ correct: 0, total: 0 });
-  const [startTime, setStartTime] = useState(0);
-  const [expandedFamily, setExpandedFamily] = useState<string | null>(null);
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [level, setLevel] = useState<(typeof LEVELS)[number]>('all');
+  const [cats, setCats] = useState<string[]>([]);
+  const [count, setCount] = useState(15);
+  const [items, setItems] = useState<WordFormationExercise[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<boolean | null>(null);
+  const answered = useRef(false);
+  const session = useDrillSession('word_formation', {
+    tags: [...(cats.length ? cats : ['all']), ...(level !== 'all' ? [level] : [])],
+  });
 
-  function toggleCat(cat: string) {
-    setSelectedCats((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+  const pool = useMemo(
+    () => WORD_FORMATION_EXERCISES.filter((e) => (!cats.length || cats.includes(e.category)) && (level === 'all' || e.level === level)),
+    [cats, level],
+  );
+
+  const ex = items[idx];
+
+  function resetItem() {
+    answered.current = false;
+    setText('');
+    setResult(null);
   }
 
-  function startDrill() {
-    let pool = WORD_FORMATION_EXERCISES;
-    if (selectedCats.length > 0) {
-      pool = pool.filter((e) => selectedCats.includes(e.category));
-    }
-    if (levelFilter === 'A2') {
-      pool = pool.filter((e) => e.level === 'A2');
-    } else if (levelFilter === 'B1') {
-      pool = pool.filter((e) => e.level === 'B1');
-    }
-    const selected = shuffleArray(pool).slice(0, 15);
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setUserAnswer('');
-      setShowResult(false);
-      setStats({ correct: 0, total: 0 });
-      setStartTime(Date.now());
-      setPhase('drill');
+  function start() {
+    setItems(shuffleArray(pool).slice(0, count));
+    setIdx(0);
+    resetItem();
+    session.start();
+    setPhase('drill');
+  }
+
+  function submit() {
+    if (!ex || result !== null || answered.current) return;
+    const user = text.trim();
+    if (!user) return;
+    const correct = isAnswerCorrect(user, ex.answer);
+    answered.current = true;
+    setResult(correct);
+    session.answer({
+      itemId: ex.id,
+      category: ex.category,
+      prompt: ex.sentence,
+      kind: 'text',
+      answer: ex.answer,
+      userAnswer: user,
+      explanation: ex.hintCs,
+      correct,
     });
   }
 
-  function checkAnswer() {
-    const ex = exercises[currentIndex];
-    const correct = isAnswerCorrect(userAnswer, ex.answer);
-
-    if (correct) {
-      playCorrect();
+  async function next() {
+    if (idx + 1 >= items.length) {
+      await session.finish();
+      setPhase('result');
     } else {
-      playIncorrect();
-      trackError('word_formation', ex.category, ex.sentence, userAnswer.trim(), ex.answer);
-    }
-
-    setStats((prev) => ({
-      correct: prev.correct + (correct ? 1 : 0),
-      total: prev.total + 1,
-    }));
-    setShowResult(true);
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      setCurrentIndex((i) => i + 1);
-      setUserAnswer('');
-      setShowResult(false);
+      setIdx(idx + 1);
+      resetItem();
     }
   }
 
-  async function finishDrill() {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += stats.total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
+  useKeyboard(result !== null ? { Enter: () => void next(), ' ': () => void next() } : {}, phase === 'drill');
 
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'word_formation',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: stats.total,
-      correctItems: stats.correct,
-      tags: selectedCats.length > 0 ? selectedCats : ['all'],
-    });
-
-    setPhase('result');
-    playComplete();
-  }
-
-  const keyMap = useMemo((): Record<string, () => void> => {
-    if (phase !== 'drill' || !exercises[currentIndex]) return {};
-    const ex = exercises[currentIndex];
-    if (showResult) {
-      return { Enter: nextExercise };
-    }
-    return {
-      Enter: () => {
-        if (userAnswer.trim()) checkAnswer();
-      },
-    };
-  }, [phase, exercises, currentIndex, showResult, userAnswer]);
-
-  useKeyboard(keyMap, phase === 'drill');
-
-  const isRef = tabMode === 'reference';
-
-  // ── Reference mode ──
-  if (isRef) {
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate(-1)}>
-          ← Zpět
-        </button>
-        <h1 className="page-title">Tvoření slov</h1>
-        <p className="page-subtitle">Přehled slovních rodin — 30 základních slov.</p>
-
-        <div className="flex gap-2 mb-6">
-          <button
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-primary-500 text-white"
-            onClick={() => setTabMode('reference')}
-          >
-            Přehled
-          </button>
-          <button
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-            onClick={() => setTabMode('drill')}
-          >
-            Cvičení
-          </button>
-        </div>
-
-        <div className="space-y-2">
-          {REFERENCE_FAMILIES.map((family) => (
-            <div key={family.base} className="card overflow-hidden">
-              <button
-                className="w-full text-left flex items-center justify-between py-2"
-                onClick={() =>
-                  setExpandedFamily(expandedFamily === family.base ? null : family.base)
-                }
-              >
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
-                  {family.base}
-                </span>
-                <span className="text-slate-400 dark:text-slate-500">
-                  {expandedFamily === family.base ? '▼' : '▶'}
-                </span>
-              </button>
-              {expandedFamily === family.base && (
-                <ul className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600 space-y-1.5">
-                  {family.forms.map((f) => (
-                    <li
-                      key={f.word}
-                      className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2"
-                    >
-                      <span className="font-medium">{f.word}</span>
-                      <span className="text-slate-500 dark:text-slate-400">
-                        — {f.posCs}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+      <DrillSetup
+        title="Tvoření slov"
+        subtitle="Utvoř ze slova psaného VELKÝMI písmeny správný tvar – přípony, předpony a záporné tvary jako u maturity."
+        icon="🔧"
+        back="/practice"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+        footer={<WordFamilies />}
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
           ))}
-        </div>
-      </div>
+        </FilterGroup>
+        <FilterGroup label={`Kategorie${cats.length ? ` (${cats.length})` : ' (vše)'}`}>
+          {CATEGORIES.map((c) => (
+            <Chip key={c} active={cats.includes(c)} onClick={() => setCats((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}>
+              {WF_CATEGORIES[c] || c}
+            </Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ── Drill: select phase ──
-  if (phase === 'select') {
-    return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate(-1)}>
-          ← Zpět
-        </button>
-        <h1 className="page-title">Tvoření slov</h1>
-        <p className="page-subtitle">Doplň správný tvar slova podle zadaného základu.</p>
-
-        <div className="flex gap-2 mb-6">
-          <button
-            className="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-            onClick={() => setTabMode('reference')}
-          >
-            Přehled
-          </button>
-          <button
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              !isRef
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-            onClick={() => setTabMode('drill')}
-          >
-            Cvičení
-          </button>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="section-title">Úroveň</h3>
-          <div className="flex gap-2">
-            {(['Vše', 'A2', 'B1'] as const).map((lvl) => (
-              <button
-                key={lvl}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  levelFilter === lvl
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => setLevelFilter(lvl)}
-              >
-                {lvl}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="section-title">
-            Kategorie {selectedCats.length > 0 && `(${selectedCats.length})`}
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORY_KEYS.map((cat) => (
-              <button
-                key={cat}
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  selectedCats.includes(cat)
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => toggleCat(cat)}
-              >
-                {WF_CATEGORIES[cat] || cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button className="btn-primary btn-lg w-full" onClick={startDrill}>
-          Začít cvičení (15 úloh)
-        </button>
-      </div>
-    );
-  }
-
-  // ── Drill: result phase ──
   if (phase === 'result') {
-    const pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Cvičení hotové!
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-1">
-          {stats.correct} / {stats.total} správně ({pct}%)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80
-            ? 'Skvělé, tvoření slov zvládáš!'
-            : pct >= 50
-              ? 'Dobrý základ, pokračuj.'
-              : 'Zkus si projít přehled slovních rodin.'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate(-1)}>
-            Zpět
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setPhase('select');
-              setSelectedCats([]);
-            }}
-          >
-            Další cvičení
-          </button>
+      <ResultScreen correct={session.correct} total={session.total} mistakes={session.mistakes} onRestart={start} restartLabel="Nové kolo">
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr nebo projít slovní rodiny</button>
         </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  // ── Drill: active exercise ──
-  const ex = exercises[currentIndex];
   if (!ex) return null;
-
-  const isCorrect = showResult && isAnswerCorrect(userAnswer, ex.answer);
+  const revealed = result !== null;
+  const last = idx + 1 >= items.length;
+  const { text: sentence, base } = splitSentence(ex);
+  const answer = primaryAnswer(ex.answer);
+  const full = sentence.replace(/_{3,}/, answer);
+  const family = ex.wordFamily ?? [];
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-4">
-        <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>
-          ← Zpět
-        </button>
-        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          {stats.correct} / {stats.total} • {currentIndex + 1} / {exercises.length}
-        </span>
-      </div>
+      <DrillTopBar
+        current={idx}
+        total={items.length}
+        correct={session.correct}
+        onExit={() => void session.finish().then(() => setPhase('result'))}
+        title="Tvoření slov"
+      />
 
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${((currentIndex + (showResult ? 1 : 0)) / exercises.length) * 100}%`,
-          }}
-        />
-      </div>
-
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            {WF_CATEGORIES[ex.category] || ex.category}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">
-            {ex.level}
-          </span>
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{WF_CATEGORIES[ex.category] || ex.category}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
         </div>
 
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 leading-relaxed">
-          {renderSentenceWithBaseWord(ex.sentence, ex.baseWord)}
-        </h3>
+        <p className="mb-2 text-sm font-bold text-muted">Utvoř ze slova vpravo správný tvar a doplň ho:</p>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+          <p className="min-w-0 flex-1 text-xl leading-relaxed font-bold break-words text-fg" lang="en">
+            <GapSentence text={sentence} fill={revealed ? answer : undefined} />
+          </p>
+          <div className="flex items-center gap-2 self-start sm:flex-col sm:items-end">
+            <span
+              className="rounded-lg border-2 border-accent bg-accent-soft px-3 py-1 text-lg font-black tracking-widest break-all text-accent-text"
+              lang="en"
+            >
+              <span className="sr-only" lang="cs">Základní slovo: </span>
+              {base.toUpperCase()}
+            </span>
+            {revealed && <SpeakButton size="sm" label="Přehrát celou větu" onClick={() => void speak(full, settings.ttsRate)} />}
+          </div>
+        </div>
 
-        {!showResult && (
-          <input
-            type="text"
-            className="input text-lg"
-            placeholder="Doplň správný tvar..."
-            value={userAnswer}
-            onChange={(e) => setUserAnswer(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && userAnswer.trim()) checkAnswer();
-            }}
-            autoFocus
-          />
-        )}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex-1">
+            <TextAnswer
+              value={text}
+              onChange={setText}
+              onSubmit={submit}
+              disabled={revealed}
+              status={result === null ? null : result ? 'correct' : 'wrong'}
+              label={`Tvar slova ${base.toUpperCase()}`}
+              placeholder="Napiš správný tvar slova…"
+            />
+          </div>
+          {!revealed && (
+            <button type="button" className="btn-primary btn-lg" disabled={!text.trim()} onClick={submit}>Ověřit</button>
+          )}
+        </div>
 
-        {showResult && (
-          <div
-            className={`px-4 py-3 rounded-xl ${
-              isCorrect
-                ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-500'
-                : 'bg-red-50 dark:bg-red-900/30 border-2 border-red-500'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span>{isCorrect ? '✅' : '❌'}</span>
-              <span className="font-medium text-slate-900 dark:text-slate-100">
-                {isCorrect ? 'Správně!' : `Správná odpověď: ${ex.answer}`}
-              </span>
-            </div>
-            {!isCorrect && userAnswer && (
-              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                Tvoje odpověď: {userAnswer}
-              </p>
+        {revealed && (
+          <Feedback correct={!!result} answer={ex.answer} userAnswer={text.trim()} explanation={ex.hintCs}>
+            {family.length > 0 && (
+              <div className="mt-2">
+                <p className="eyebrow mb-1">Slovní rodina</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {family.map((w) => (
+                    <span
+                      key={w}
+                      lang="en"
+                      className={`badge ${normalizeAnswer(w) === normalizeAnswer(answer) ? '!bg-success-soft !text-success' : ''}`}
+                    >
+                      {w}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
-          </div>
+          </Feedback>
         )}
+        {revealed && <NextButton onClick={() => void next()} last={last} />}
+      </div>
+    </div>
+  );
+}
 
-        {showResult && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-            <p className="text-sm text-blue-800 dark:text-blue-300">💡 {ex.hintCs}</p>
-          </div>
+/* ─── Word families reference ─────────────────────────────────────── */
+
+function WordFamilies() {
+  const { settings } = useSettings();
+  const [selected, setSelected] = useState<string | null>(null);
+  const family = WORD_FAMILIES.find((f) => f.base === selected);
+  return (
+    <section aria-labelledby="wf-ref-title">
+      <h2 id="wf-ref-title" className="section-title">Slovní rodiny</h2>
+      <p className="-mt-2 mb-3 text-sm text-muted">Vyber základní slovo a uvidíš, jaká slova se od něj tvoří ({WORD_FAMILIES.length} rodin).</p>
+      <div className="card !p-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Základní slova">
+          {WORD_FAMILIES.map((f) => (
+            <Chip key={f.base} active={selected === f.base} onClick={() => setSelected(selected === f.base ? null : f.base)}>
+              <span lang="en">{f.base}</span>
+            </Chip>
+          ))}
+        </div>
+        {family ? (
+          <ul className="mt-4 divide-y divide-border border-t border-border" aria-live="polite">
+            {family.forms.map((f) => (
+              <li key={f.word} className="flex items-center gap-3 py-2">
+                <SpeakButton size="sm" label={`Přehrát: ${f.word}`} onClick={() => void speak(f.word, settings.ttsRate)} />
+                <span className="min-w-0 flex-1 font-bold break-words text-fg" lang="en">{f.word}</span>
+                <span className="shrink-0 text-right text-sm text-muted">{f.posCs}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted">Klepni na slovo výše.</p>
         )}
       </div>
-
-      {!showResult ? (
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={!userAnswer.trim()}
-          onClick={checkAnswer}
-        >
-          Zkontrolovat
-        </button>
-      ) : (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length ? 'Zobrazit výsledky' : 'Další úloha →'}
-        </button>
-      )}
-    </div>
+    </section>
   );
 }

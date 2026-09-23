@@ -849,7 +849,7 @@ export const PASSIVE_EXERCISES: PassiveExercise[] = [
     tense: 'mixed',
     level: 'A2',
     prompt: 'Spanish _____ in most countries of South America. (speak)',
-    answer: 'is grown',
+    answer: 'is spoken',
     explanationCs: 'Obecný fakt → present simple passive → „is spoken" (speak–spoke–spoken).',
   },
 ];

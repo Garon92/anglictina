@@ -1,698 +1,425 @@
-import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
-import {
-  CONDITIONAL_TYPES,
-  CONDITIONAL_EXERCISES,
-} from '../data/conditionals';
-import type { ConditionalExercise } from '../data/conditionals';
-import { shuffleArray } from '../utils';
+import { Fragment, useMemo, useRef, useState } from 'react';
+import { CONDITIONAL_TYPES, CONDITIONAL_EXERCISES, type ConditionalExercise } from '../data/conditionals';
+import { shuffleArray, uniqueBy } from '../utils';
+import { isAnswerCorrect, isGapAnswerCorrect, isMultiGap, gapVariants, primaryAnswer } from '../lib/answer';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { trackError } from '../errorTracker';
+import { useSettings } from '../App';
+import { speak } from '../tts';
+import { Kbd, SpeakButton } from '../components/ui';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, TextAnswer, MultiGapAnswer,
+  Feedback, NextButton, ResultScreen, countGaps,
+} from '../components/drill';
 
-type Phase = 'select' | 'reference' | 'drill' | 'result';
-type Tab = 'reference' | 'drill';
-type CondTypeFilter = 'all' | '0' | '1' | '2' | '3' | 'mixed';
-
-const TYPE_LABELS: Record<string, string> = {
-  all: 'Vše',
-  '0': 'Typ 0',
-  '1': 'Typ 1',
-  '2': 'Typ 2',
-  '3': 'Typ 3',
-  mixed: 'Mix',
-};
-
-const MATCH_TYPE_OPTIONS = [
-  { value: '0', label: 'Typ 0' },
-  { value: '1', label: 'Typ 1' },
-  { value: '2', label: 'Typ 2' },
-  { value: '3', label: 'Typ 3' },
-  { value: 'mixed', label: 'Mix' },
-];
+type Phase = 'setup' | 'drill' | 'result';
+type CondType = ConditionalExercise['conditionalType'];
 
 const LEVELS = ['all', 'A2', 'B1'] as const;
-const COND_FILTERS: CondTypeFilter[] = ['all', '0', '1', '2', '3', 'mixed'];
-const DRILL_COUNT = 20;
+const TYPE_FILTERS = ['all', '0', '1', '2', '3', 'mixed'] as const;
+const TYPE_LABEL: Record<CondType, string> = { '0': 'Typ 0', '1': 'Typ 1', '2': 'Typ 2', '3': 'Typ 3', mixed: 'Smíšený' };
+/** Fixed order for "which type is it?" questions (keys 1–5). */
+const MATCH_OPTIONS = (['0', '1', '2', '3', 'mixed'] as CondType[]).map((t) => TYPE_LABEL[t]);
+const KIND_LABEL: Record<ConditionalExercise['type'], string> = { fill: 'Doplň', mcq: 'Výběr', match_type: 'Urči typ' };
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/['']/g, "'").trim();
+/** One exercise prepared for a round (options shuffled once, answer normalised). */
+interface Item {
+  ex: ConditionalExercise;
+  prompt: string;
+  answer: string;
+  options?: string[];
+  correctIndex: number;
+  /** Number of separate inputs for fill exercises (1 = single box). */
+  inputs: number;
+}
+
+function buildItem(ex: ConditionalExercise): Item {
+  // Older data told the learner to separate answers with commas — the page now has one box per gap.
+  const prompt = ex.prompt.replace(/\s*\(Odpovědi odděl čárkou\.?\)/i, '').trim();
+  const nGaps = countGaps(prompt);
+
+  if (ex.type === 'match_type') {
+    const answer = TYPE_LABEL[ex.answer as CondType] ?? ex.answer;
+    return { ex, prompt, answer, options: MATCH_OPTIONS, correctIndex: MATCH_OPTIONS.indexOf(answer), inputs: 0 };
+  }
+  if (ex.type === 'mcq' && ex.options?.length) {
+    const unique = uniqueBy([ex.answer, ...ex.options.filter((o) => o !== ex.answer)], (o) => o.trim().toLowerCase());
+    const options = shuffleArray(unique);
+    return { ex, prompt, answer: ex.answer, options, correctIndex: options.indexOf(ex.answer), inputs: 0 };
+  }
+
+  let answer = ex.answer;
+  if (nGaps > 1 && !isMultiGap(answer)) {
+    const parts = answer.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length === nGaps) answer = parts.join(' ... ');
+  }
+  const parts = isMultiGap(answer) ? gapVariants(answer)[0]?.length ?? 1 : 1;
+  return { ex, prompt, answer, correctIndex: -1, inputs: parts > 1 && parts === nGaps ? parts : 1 };
+}
+
+/** The (first) correct answer split into one part per gap. */
+function answerParts(answer: string, gaps: number): string[] {
+  const primary = primaryAnswer(answer);
+  const parts = primary.split(/\s*(?:\.\.\.|…)\s*/).filter(Boolean);
+  if (parts.length === gaps) return parts;
+  const words = primary.split(/\s+/);
+  if (parts.length === 1 && gaps > 1 && words.length === gaps) return words;
+  return [primary];
+}
+
+/** Whole sentence with the answer filled in (hints in brackets removed) — for listening. */
+function fullSentence(prompt: string, answer: string): string {
+  const gaps = countGaps(prompt);
+  if (!gaps) return prompt;
+  const parts = answerParts(answer, gaps);
+  let i = 0;
+  return prompt
+    .replace(/_{3,}(\s*\([^)]*\))?/g, () => parts[i++] ?? '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/\s+([.,!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/** Prompt with visible blanks; after answering the blanks show the correct parts. */
+function GapSentence({ text, fills }: { text: string; fills?: string[] }) {
+  const chunks = text.split(/_{3,}/);
+  return (
+    <>
+      {chunks.map((chunk, i) => (
+        <Fragment key={i}>
+          {chunk}
+          {i < chunks.length - 1 &&
+            (fills?.[i] ? (
+              <span className="rounded-md bg-success-soft px-1.5 text-success">{fills[i]}</span>
+            ) : (
+              <span className="mx-0.5 inline-block min-w-[3.5rem] border-b-2 border-accent align-baseline">
+                <span className="sr-only">mezera</span>&nbsp;
+              </span>
+            ))}
+        </Fragment>
+      ))}
+    </>
+  );
 }
 
 export default function ConditionalsDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [type, setType] = useState<(typeof TYPE_FILTERS)[number]>('all');
+  const [level, setLevel] = useState<(typeof LEVELS)[number]>('all');
+  const [count, setCount] = useState(20);
+  const [items, setItems] = useState<Item[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [text, setText] = useState('');
+  const [gaps, setGaps] = useState<string[]>([]);
+  const [result, setResult] = useState<boolean | null>(null);
+  const [overridden, setOverridden] = useState(false);
+  const answered = useRef(false);
+  const session = useDrillSession('conditionals', {
+    tags: [type === 'all' ? 'all' : `cond_${type}`, ...(level !== 'all' ? [level] : [])],
+  });
 
-  const [phase, setPhase] = useState<Phase>('select');
-  const [tab, setTab] = useState<Tab>('drill');
-  const [selectedType, setSelectedType] = useState<CondTypeFilter>('all');
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [expandedRef, setExpandedRef] = useState<string | null>(null);
+  const pool = useMemo(
+    () => CONDITIONAL_EXERCISES.filter((e) => (type === 'all' || e.conditionalType === type) && (level === 'all' || e.level === level)),
+    [type, level],
+  );
 
-  const [exercises, setExercises] = useState<ConditionalExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [checked, setChecked] = useState(false);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [startTime, setStartTime] = useState(0);
+  const item = items[idx];
 
-  function filteredPool() {
-    let pool: ConditionalExercise[] = CONDITIONAL_EXERCISES;
-    if (selectedType !== 'all') {
-      pool = pool.filter((e) => e.conditionalType === selectedType);
-    }
-    if (selectedLevel !== 'all') {
-      pool = pool.filter((e) => e.level === selectedLevel);
-    }
-    return pool;
+  function resetItem() {
+    answered.current = false;
+    setSelected(null);
+    setText('');
+    setGaps([]);
+    setResult(null);
+    setOverridden(false);
   }
 
-  function startDrill() {
-    const pool = filteredPool();
-    const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setChecked(false);
-      setUserAnswer('');
-      setSelectedOption(null);
-      setIsCorrect(false);
-      setScore({ correct: 0, total: 0 });
-      setStartTime(Date.now());
-      setPhase('drill');
+  function start() {
+    setItems(shuffleArray(pool).slice(0, count).map(buildItem));
+    setIdx(0);
+    resetItem();
+    session.start();
+    setPhase('drill');
+  }
+
+  function submit(opt?: number) {
+    if (!item || result !== null || answered.current) return;
+    const { ex } = item;
+    let correct: boolean;
+    let user: string;
+    if (item.options) {
+      if (opt === undefined) return;
+      setSelected(opt);
+      user = item.options[opt];
+      correct = opt === item.correctIndex;
+    } else if (item.inputs > 1) {
+      if (gaps.filter((g) => g?.trim()).length < item.inputs) return;
+      user = gaps.map((g) => g.trim()).join(' … ');
+      correct = isGapAnswerCorrect(gaps, item.answer);
+    } else {
+      user = text.trim();
+      if (!user) return;
+      correct = isAnswerCorrect(user, item.answer);
+    }
+    answered.current = true;
+    setResult(correct);
+    session.answer({
+      itemId: ex.id,
+      category: `type_${ex.conditionalType}`,
+      prompt: item.prompt,
+      options: item.options,
+      kind: item.options ? 'mcq' : 'text',
+      answer: item.answer,
+      userAnswer: user,
+      explanation: ex.explanationCs,
+      context: ex.type === 'match_type' ? 'Urči typ podmínkové věty.' : undefined,
+      correct,
     });
   }
 
-  function checkAnswer() {
-    const ex = exercises[currentIndex];
-    let correct = false;
-
-    if (ex.type === 'fill') {
-      const parts = ex.answer.split(',').map((s) => normalize(s));
-      const userParts = userAnswer.split(',').map((s) => normalize(s));
-      correct =
-        parts.length === userParts.length &&
-        parts.every((p, i) => p === userParts[i]);
-    } else if (ex.type === 'mcq') {
-      correct = selectedOption === ex.answer;
+  async function next() {
+    if (idx + 1 >= items.length) {
+      await session.finish();
+      setPhase('result');
     } else {
-      correct = selectedOption === ex.answer;
-    }
-
-    if (correct) {
-      playCorrect();
-    } else {
-      playIncorrect();
-      trackError(
-        'grammar',
-        'conditionals_' + ex.conditionalType,
-        ex.prompt,
-        ex.type === 'fill' ? userAnswer : selectedOption ?? '(prázdné)',
-        ex.answer,
-      );
-    }
-
-    setIsCorrect(correct);
-    setChecked(true);
-    setScore((prev) => ({
-      correct: prev.correct + (correct ? 1 : 0),
-      total: prev.total + 1,
-    }));
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      const nextIdx = currentIndex + 1;
-      setCurrentIndex(nextIdx);
-      setChecked(false);
-      setUserAnswer('');
-      setSelectedOption(null);
-      setIsCorrect(false);
+      setIdx(idx + 1);
+      resetItem();
     }
   }
 
-  async function finishDrill() {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += score.total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
+  useKeyboard(result !== null ? { Enter: () => void next(), ' ': () => void next() } : {}, phase === 'drill');
 
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: score.total,
-      correctItems: score.correct,
-      tags: [
-        'conditionals',
-        ...(selectedType !== 'all' ? ['cond_' + selectedType] : []),
-      ],
-    });
-
-    setPhase('result');
-    playComplete();
-  }
-
-  const ex = phase === 'drill' ? exercises[currentIndex] : null;
-
-  const keyMap = useMemo(() => {
-    if (!ex || phase !== 'drill') return {};
-
-    if (checked) return { Enter: nextExercise, ' ': nextExercise };
-
-    const map: Record<string, () => void> = {};
-
-    if (ex.type === 'mcq' && ex.options) {
-      ex.options.forEach((opt, i) => {
-        map[String(i + 1)] = () => setSelectedOption(opt);
-      });
-    }
-
-    if (ex.type === 'match_type') {
-      map['1'] = () => setSelectedOption('0');
-      map['2'] = () => setSelectedOption('1');
-      map['3'] = () => setSelectedOption('2');
-      map['4'] = () => setSelectedOption('3');
-      map['5'] = () => setSelectedOption('mixed');
-    }
-
-    map['Enter'] = () => {
-      if (ex.type === 'fill' && userAnswer.trim()) checkAnswer();
-      if ((ex.type === 'mcq' || ex.type === 'match_type') && selectedOption)
-        checkAnswer();
-    };
-
-    return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ex, phase, checked, userAnswer, selectedOption]);
-
-  useKeyboard(keyMap, phase === 'drill');
-
-  // ─── SELECT PHASE ───
-  if (phase === 'select') {
-    const poolSize = filteredPool().length;
-
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button
-          className="btn-ghost text-sm mb-4"
-          onClick={() => navigate('/')}
-        >
-          ← Zpět
-        </button>
-        <h1 className="page-title">Podmínkové věty (Conditionals)</h1>
-        <p className="page-subtitle">
-          If + podmínka → výsledek. Klíčová gramatika pro maturitu B1.
-        </p>
-
-        {/* Tab switch */}
-        <div className="flex gap-2 mb-6">
-          <button
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              tab === 'reference'
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-            onClick={() => setTab('reference')}
-          >
-            Přehled
-          </button>
-          <button
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              tab === 'drill'
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-            onClick={() => setTab('drill')}
-          >
-            Cvičení
-          </button>
-        </div>
-
-        {tab === 'reference' && (
-          <button
-            className="btn-primary btn-lg w-full"
-            onClick={() => setPhase('reference')}
-          >
-            Zobrazit přehled typů
-          </button>
-        )}
-
-        {tab === 'drill' && (
-          <>
-            {/* Level filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-                Úroveň
-              </h3>
-              <div className="flex gap-2">
-                {LEVELS.map((lvl) => (
-                  <button
-                    key={lvl}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      selectedLevel === lvl
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                    onClick={() => setSelectedLevel(lvl)}
-                  >
-                    {lvl === 'all' ? 'Vše' : lvl}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Conditional type filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-                Typ kondicionálu
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {COND_FILTERS.map((ct) => (
-                  <button
-                    key={ct}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                      selectedType === ct
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                    onClick={() => setSelectedType(ct)}
-                  >
-                    {TYPE_LABELS[ct]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              className="btn-primary btn-lg w-full"
-              onClick={startDrill}
-              disabled={poolSize === 0}
-            >
-              {poolSize > 0
-                ? `Začít (${Math.min(poolSize, DRILL_COUNT)} úloh)`
-                : 'Žádná cvičení pro tento filtr'}
-            </button>
-          </>
-        )}
-      </div>
+      <DrillSetup
+        title="Podmínkové věty"
+        subtitle="If + podmínka → výsledek. Typy 0–3 a smíšené kondicionály – klíčová gramatika k maturitě."
+        icon="🔀"
+        back="/practice"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+        footer={<ConditionalsReference />}
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label="Typ kondicionálu">
+          {TYPE_FILTERS.map((t) => (
+            <Chip key={t} active={type === t} onClick={() => setType(t)}>{t === 'all' ? 'Vše' : t === 'mixed' ? 'Smíšený' : TYPE_LABEL[t]}</Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ─── REFERENCE PHASE ───
-  if (phase === 'reference') {
-    return (
-      <div className="page-container">
-        <button
-          className="btn-ghost text-sm mb-4"
-          onClick={() => setPhase('select')}
-        >
-          ← Zpět
-        </button>
-        <h1 className="page-title">Přehled podmínkových vět</h1>
-        <p className="page-subtitle mb-6">
-          Klikni na typ pro zobrazení detailů, příkladů a vzorce.
-        </p>
-
-        <div className="space-y-3">
-          {CONDITIONAL_TYPES.map((ct) => {
-            const isOpen = expandedRef === ct.id;
-            return (
-              <div key={ct.id} className="card !p-0 overflow-hidden">
-                <button
-                  className="w-full px-5 py-4 flex items-center justify-between text-left"
-                  onClick={() =>
-                    setExpandedRef(isOpen ? null : ct.id)
-                  }
-                >
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                      {ct.nameCs}
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {ct.name}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180' : ''
-                    }`}
-                  >
-                    ▼
-                  </span>
-                </button>
-
-                {isOpen && (
-                  <div className="px-5 pb-5 border-t border-slate-100 dark:border-slate-700 pt-4 space-y-4">
-                    {/* Formula */}
-                    <div className="bg-primary-50 dark:bg-primary-900/30 rounded-xl px-4 py-3">
-                      <p className="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wide mb-1">
-                        Vzorec
-                      </p>
-                      <p className="text-sm font-mono text-primary-800 dark:text-primary-200">
-                        {ct.formula}
-                      </p>
-                    </div>
-
-                    {/* Usage */}
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                        Kdy používáme
-                      </p>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                        {ct.usageCs}
-                      </p>
-                    </div>
-
-                    {/* Examples */}
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                        Příklady
-                      </p>
-                      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 space-y-2">
-                        {ct.examples.map((ex, i) => (
-                          <div key={i}>
-                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                              {ex.en}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 italic">
-                              {ex.cs}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Signal words */}
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                        Signální slova
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ct.signalWords.map((sw) => (
-                          <span
-                            key={sw}
-                            className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                          >
-                            {sw}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── RESULT PHASE ───
   if (phase === 'result') {
-    const pct =
-      score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">
-          {pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}
+      <ResultScreen correct={session.correct} total={session.total} mistakes={session.mistakes} onRestart={start} restartLabel="Nové kolo">
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr nebo zopakovat pravidla</button>
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Podmínkové věty hotové!
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-1">
-          {score.correct} / {score.total} správně ({pct} %)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80
-            ? 'Výborně! Kondicionály ti jdou skvěle!'
-            : pct >= 50
-              ? 'Dobrý základ, projdi si přehled typů.'
-              : 'Projdi si přehled a zkus znovu – kondicionály chtějí praxi!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>
-            Domů
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setPhase('select');
-              setSelectedType('all');
-              setSelectedLevel('all');
-            }}
-          >
-            Znovu
-          </button>
-        </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  // ─── DRILL PHASE ───
-  if (!ex) return null;
-
-  const canCheck =
-    (ex.type === 'fill' && userAnswer.trim().length > 0) ||
-    ((ex.type === 'mcq' || ex.type === 'match_type') &&
-      selectedOption !== null);
-
-  const typeLabel =
-    ex.conditionalType === 'mixed'
-      ? 'Smíšený'
-      : `Typ ${ex.conditionalType}`;
+  if (!item) return null;
+  const { ex } = item;
+  const revealed = result !== null;
+  const last = idx + 1 >= items.length;
+  const nGaps = countGaps(item.prompt);
+  const status = result === null ? null : result || overridden ? 'correct' : 'wrong';
+  const sentence = ex.type === 'match_type' ? item.prompt : fullSentence(item.prompt, item.answer);
+  const instruction =
+    ex.type === 'match_type'
+      ? 'O jaký typ podmínkové věty jde?'
+      : ex.type === 'mcq'
+        ? 'Vyber správnou možnost:'
+        : item.inputs > 1
+          ? 'Doplň správné tvary do všech mezer:'
+          : nGaps > 1
+            ? 'Doplň všechny mezery (napiš je za sebou):'
+            : 'Doplň správný tvar:';
 
   return (
     <div className="page-container">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          className="btn-ghost text-sm"
-          onClick={() => setPhase('select')}
-        >
-          ← Zpět
-        </button>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-green-600 dark:text-green-400">
-            {score.correct}✓
-          </span>
-          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {currentIndex + 1} / {exercises.length}
-          </span>
-        </div>
-      </div>
+      <DrillTopBar
+        current={idx}
+        total={items.length}
+        correct={session.correct}
+        onExit={() => void session.finish().then(() => setPhase('result'))}
+        title="Podmínkové věty"
+      />
 
-      {/* Progress bar */}
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${(currentIndex / exercises.length) * 100}%`,
-          }}
-        />
-      </div>
-
-      {/* Exercise card */}
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            {typeLabel}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">
-            {ex.level}
-          </span>
-          <span className="badge bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
-            {ex.type === 'fill'
-              ? 'Doplň'
-              : ex.type === 'mcq'
-                ? 'Výběr'
-                : 'Urči typ'}
-          </span>
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {/* The type badge would give the answer away in "which type?" questions. */}
+          {(ex.type !== 'match_type' || revealed) && <span className="badge">{TYPE_LABEL[ex.conditionalType]}</span>}
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
+          <span className="badge">{KIND_LABEL[ex.type]}</span>
         </div>
 
-        {/* Prompt */}
-        <p className="text-lg leading-relaxed text-slate-900 dark:text-slate-100 mb-5">
-          {ex.prompt}
-        </p>
+        <p className="mb-1 text-sm font-bold text-muted">{instruction}</p>
+        <div className="mb-4 flex items-start gap-3">
+          <p className="min-w-0 flex-1 text-xl leading-relaxed font-bold break-words text-fg" lang="en">
+            <GapSentence text={item.prompt} fills={revealed && nGaps ? answerParts(item.answer, nGaps) : undefined} />
+          </p>
+          {revealed && <SpeakButton size="sm" label="Přehrát celou větu" onClick={() => void speak(sentence, settings.ttsRate)} />}
+        </div>
 
-        {/* FILL input */}
-        {ex.type === 'fill' && (
-          <div>
-            <input
-              className="input w-full"
-              type="text"
-              placeholder="Napiš správný tvar…"
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !checked && userAnswer.trim())
-                  checkAnswer();
-              }}
-              disabled={checked}
-              autoFocus
+        {item.options ? (
+          <>
+            <OptionList
+              options={item.options}
+              selected={selected}
+              correctIndex={item.correctIndex}
+              revealed={revealed}
+              onSelect={(i) => submit(i)}
+              lang={ex.type === 'match_type' ? 'cs' : 'en'}
+              columns={ex.type === 'mcq' ? 2 : 1}
             />
-            {checked && !isCorrect && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                Správná odpověď:{' '}
-                <span className="font-semibold text-green-600 dark:text-green-400">
-                  {ex.answer}
-                </span>
+            {!revealed && (
+              <p className="mt-3 hidden text-xs text-subtle sm:block">
+                Tip: odpověď vybereš i klávesou <Kbd>1</Kbd>–<Kbd>{item.options.length}</Kbd>.
               </p>
+            )}
+          </>
+        ) : item.inputs > 1 ? (
+          <>
+            <MultiGapAnswer count={item.inputs} values={gaps} onChange={setGaps} onSubmit={() => submit()} disabled={revealed} status={status} />
+            {!revealed && (
+              <button
+                type="button"
+                className="btn-primary btn-lg mt-3 w-full sm:w-auto"
+                disabled={gaps.filter((g) => g?.trim()).length < item.inputs}
+                onClick={() => submit()}
+              >
+                Ověřit
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex-1">
+              <TextAnswer
+                value={text}
+                onChange={setText}
+                onSubmit={() => submit()}
+                disabled={revealed}
+                status={status}
+                placeholder={nGaps > 1 ? 'Napiš tvary do mezer za sebou…' : 'Napiš správný tvar…'}
+              />
+            </div>
+            {!revealed && (
+              <button type="button" className="btn-primary btn-lg" disabled={!text.trim()} onClick={() => submit()}>Ověřit</button>
             )}
           </div>
         )}
 
-        {/* MCQ options */}
-        {ex.type === 'mcq' && ex.options && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {ex.options.map((opt, i) => {
-              let cls =
-                'w-full px-4 py-3 rounded-xl text-sm font-medium text-left transition-all border-2 ';
-
-              if (checked) {
-                if (opt === ex.answer) {
-                  cls +=
-                    'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-                } else if (opt === selectedOption && !isCorrect) {
-                  cls +=
-                    'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300';
-                } else {
-                  cls +=
-                    'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500';
-                }
-              } else if (selectedOption === opt) {
-                cls += 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300';
-              } else {
-                cls +=
-                  'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-primary-400 dark:hover:border-primary-500';
-              }
-
-              return (
-                <button
-                  key={opt}
-                  className={cls}
-                  onClick={() => !checked && setSelectedOption(opt)}
-                  disabled={checked}
-                >
-                  <span className="text-xs text-slate-400 dark:text-slate-500 mr-2">
-                    {i + 1}
-                  </span>
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
+        {revealed && (
+          <Feedback
+            correct={!!result || overridden}
+            answer={item.answer}
+            userAnswer={item.options ? undefined : item.inputs > 1 ? gaps.map((g) => g.trim()).join(' … ') : text.trim()}
+            explanation={ex.explanationCs}
+            title={overridden ? 'Uznáno' : undefined}
+          />
         )}
-
-        {/* MATCH_TYPE options */}
-        {ex.type === 'match_type' && (
-          <div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-              O jaký typ kondicionálu se jedná?
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {MATCH_TYPE_OPTIONS.map((opt) => {
-                let cls =
-                  'px-4 py-2.5 rounded-xl text-sm font-medium transition-all border-2 ';
-
-                if (checked) {
-                  if (opt.value === ex.answer) {
-                    cls +=
-                      'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-                  } else if (
-                    opt.value === selectedOption &&
-                    !isCorrect
-                  ) {
-                    cls +=
-                      'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300';
-                  } else {
-                    cls +=
-                      'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500';
-                  }
-                } else if (selectedOption === opt.value) {
-                  cls += 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300';
-                } else {
-                  cls +=
-                    'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-primary-400 dark:hover:border-primary-500';
-                }
-
-                return (
-                  <button
-                    key={opt.value}
-                    className={cls}
-                    onClick={() =>
-                      !checked && setSelectedOption(opt.value)
-                    }
-                    disabled={checked}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Keyboard hints */}
-        {!checked && ex.type === 'mcq' && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
-            Klávesy: 1–4 pro výběr, Enter pro potvrzení
-          </p>
-        )}
-        {!checked && ex.type === 'match_type' && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
-            Klávesy: 1 = Typ 0 · 2 = Typ 1 · 3 = Typ 2 · 4 = Typ 3 · 5 = Mix
-          </p>
-        )}
-
-        {/* Feedback */}
-        {checked && (
-          <>
-            <div
-              className={`mt-4 px-4 py-3 rounded-xl border-2 ${
-                isCorrect
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
-                  : 'border-red-500 bg-red-50 dark:bg-red-900/30'
-              }`}
-            >
-              <span className="font-medium dark:text-slate-100">
-                {isCorrect ? '✅ Správně!' : '❌ Špatně'}
-              </span>
-            </div>
-
-            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
-                💡 {ex.explanationCs}
-              </p>
-            </div>
-          </>
-        )}
+        {revealed && <NextButton onClick={() => void next()} last={last} />}
       </div>
-
-      {/* Action button */}
-      {!checked ? (
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={!canCheck}
-          onClick={checkAnswer}
-        >
-          Zkontrolovat
-        </button>
-      ) : (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length
-            ? 'Zobrazit výsledky'
-            : 'Další úloha →'}
-        </button>
-      )}
     </div>
+  );
+}
+
+/* ─── Reference of the conditional types ──────────────────────────── */
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`shrink-0 text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function ConditionalsReference() {
+  const { settings } = useSettings();
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <section aria-labelledby="cond-ref-title">
+      <h2 id="cond-ref-title" className="section-title">Přehled typů</h2>
+      <p className="-mt-2 mb-3 text-sm text-muted">Rozklikni typ a uvidíš vzorec, použití, příklady a signální slova.</p>
+      <div className="space-y-2">
+        {CONDITIONAL_TYPES.map((ct) => {
+          const isOpen = open === ct.id;
+          return (
+            <div key={ct.id} className="card overflow-hidden !p-0">
+              <button
+                type="button"
+                className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2"
+                aria-expanded={isOpen}
+                aria-controls={`${ct.id}-panel`}
+                onClick={() => setOpen(isOpen ? null : ct.id)}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold text-fg">{ct.nameCs}</span>
+                  <span className="block text-sm text-muted" lang="en">{ct.name}</span>
+                </span>
+                <Chevron open={isOpen} />
+              </button>
+              {isOpen && (
+                <div id={`${ct.id}-panel`} className="space-y-4 border-t border-border px-4 pt-4 pb-5">
+                  <div className="rounded-xl bg-accent-soft px-4 py-3">
+                    <p className="eyebrow mb-1">Vzorec</p>
+                    <p className="font-mono text-sm break-words text-accent-text" lang="en">{ct.formula}</p>
+                  </div>
+                  <div>
+                    <p className="eyebrow mb-1">Kdy používáme</p>
+                    <p className="text-sm leading-relaxed text-fg">{ct.usageCs}</p>
+                  </div>
+                  <div>
+                    <p className="eyebrow mb-2">Příklady</p>
+                    <ul className="space-y-2 rounded-xl bg-surface-2 p-3">
+                      {ct.examples.map((e) => (
+                        <li key={e.en} className="flex items-start gap-3">
+                          <SpeakButton size="sm" label={`Přehrát: ${e.en}`} onClick={() => void speak(e.en, settings.ttsRate)} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-bold text-fg" lang="en">{e.en}</span>
+                            <span className="block text-xs text-muted italic">{e.cs}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="eyebrow mb-2">Signální slova</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ct.signalWords.map((w) => (
+                        <span key={w} className="badge" lang="en">{w}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

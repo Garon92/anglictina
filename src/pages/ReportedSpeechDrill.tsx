@@ -1,649 +1,429 @@
-import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import {
-  REPORTED_SPEECH_RULES,
-  REPORTED_SPEECH_EXERCISES,
-  RS_CATEGORIES,
+  REPORTED_SPEECH_RULES, REPORTED_SPEECH_EXERCISES, RS_CATEGORIES, type ReportedSpeechExercise,
 } from '../data/reportedSpeech';
-import type { ReportedSpeechExercise } from '../data/reportedSpeech';
-import { shuffleArray } from '../utils';
+import { shuffleArray, uniqueBy } from '../utils';
+import { isAnswerCorrect, answerVariants, displayAnswer, primaryAnswer } from '../lib/answer';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { trackError } from '../errorTracker';
+import { useSettings } from '../App';
+import { speak } from '../tts';
+import { Kbd, SpeakButton } from '../components/ui';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, TextAnswer,
+  Feedback, NextButton, ResultScreen, countGaps,
+} from '../components/drill';
 
-type Phase = 'select' | 'reference' | 'drill' | 'result';
-type Tab = 'reference' | 'drill';
-type CategoryFilter = 'all' | 'statements' | 'questions' | 'commands' | 'mixed';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  all: 'Vše',
-  ...RS_CATEGORIES,
-};
+type Phase = 'setup' | 'drill' | 'result';
 
 const LEVELS = ['all', 'A2', 'B1'] as const;
-const CAT_FILTERS: CategoryFilter[] = ['all', 'statements', 'questions', 'commands', 'mixed'];
-const DRILL_COUNT = 20;
+const CATEGORIES = Object.keys(RS_CATEGORIES);
+const KIND_LABEL: Record<ReportedSpeechExercise['type'], string> = { transform: 'Přepiš', fill: 'Doplň', mcq: 'Výběr' };
 
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[''`]/g, "'")
-    .replace(/[""„]/g, '"')
-    .replace(/\s+/g, ' ')
-    .replace(/\.\s*$/, '')
+interface Item {
+  ex: ReportedSpeechExercise;
+  /** Direct speech part shown in the quote box (e.g. 'He said: "I like football."'). */
+  direct: string;
+  /** Reported-speech frame with gaps ("She said she ___ happy.") or the lead-in ("He said …"). */
+  frame: string;
+  /** Lead-in of a transform ("He said") — the learner may type only what follows. */
+  lead: string;
+  options?: string[];
+  correctIndex: number;
+  /** Extra accepted full answers (optional "that", "whether", only the part after the lead-in). */
+  accept: string[];
+}
+
+const PRONOUN = '(?:i|you|he|she|it|we|they|her|his|their|my|our|your|its)';
+const THAT_RE = new RegExp(`^(.*?\\b(?:said|told \\w+))\\s+(?!that\\b)(${PRONOUN}\\b.*)$`, 'i');
+
+function transformAccept(answer: string, lead: string): string[] {
+  const variants = answerVariants(answer);
+  const full = new Set<string>();
+  for (const v of variants) {
+    full.add(v);
+    const m = v.match(THAT_RE);
+    if (m) full.add(`${m[1]} that ${m[2]}`); // "He said (that) he liked football."
+  }
+  const whether = [...full].filter((f) => /\basked\b/i.test(f) && /\bif\b/i.test(f)).map((f) => f.replace(/\bif\b/i, 'whether'));
+  for (const f of whether) full.add(f);
+  const out = new Set(full);
+  if (lead) {
+    const l = lead.toLowerCase();
+    for (const f of full) if (f.toLowerCase().startsWith(`${l} `)) out.add(f.slice(lead.length).trim());
+  }
+  return [...out].filter((x) => !variants.includes(x));
+}
+
+function buildItem(ex: ReportedSpeechExercise): Item {
+  const arrow = ex.prompt.indexOf('→');
+  const direct = arrow >= 0 ? ex.prompt.slice(0, arrow).trim() : ex.directSpeech;
+  const frame = arrow >= 0 ? ex.prompt.slice(arrow + 1).trim() : ex.prompt;
+  const lead = ex.type === 'transform' ? frame.replace(/\s*(?:…|\.\.\.)\s*$/, '').trim() : '';
+  if (ex.type === 'mcq' && ex.options?.length) {
+    const unique = uniqueBy([ex.answer, ...ex.options.filter((o) => o !== ex.answer)], (o) => o.trim().toLowerCase());
+    const options = shuffleArray(unique);
+    return { ex, direct, frame, lead, options, correctIndex: options.indexOf(ex.answer), accept: [] };
+  }
+  return { ex, direct, frame, lead, correctIndex: -1, accept: ex.type === 'transform' ? transformAccept(ex.answer, lead) : [] };
+}
+
+function answerParts(answer: string, gaps: number): string[] {
+  const primary = primaryAnswer(answer);
+  const parts = primary.split(/\s*(?:\.\.\.|…)\s*/).filter(Boolean);
+  if (parts.length === gaps) return parts;
+  const words = primary.split(/\s+/);
+  if (parts.length === 1 && gaps > 1 && words.length === gaps) return words;
+  return [primary];
+}
+
+/** The complete reported sentence (model answer). */
+function modelSentence(item: Item): string {
+  if (item.ex.type === 'transform') return primaryAnswer(item.ex.answer);
+  const gaps = countGaps(item.frame);
+  const parts = answerParts(item.ex.answer, gaps);
+  let i = 0;
+  return item.frame
+    .replace(/_{3,}/g, () => parts[i++] ?? '')
+    .replace(/\s+([.,!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
-function fuzzyMatch(userInput: string, expected: string): boolean {
-  const u = normalize(userInput);
-  const e = normalize(expected);
-  if (u === e) return true;
-
-  const keyParts = e
-    .replace(/^(he|she|they|it|we|i)\s+(said|told|asked)\s+/i, '')
-    .split(/\s+/)
-    .filter((w) => w.length > 2);
-  const matchCount = keyParts.filter((part) => u.includes(part)).length;
-  return keyParts.length > 0 && matchCount >= keyParts.length * 0.85;
+function GapSentence({ text, fills }: { text: string; fills?: string[] }) {
+  const chunks = text.split(/_{3,}/);
+  return (
+    <>
+      {chunks.map((chunk, i) => (
+        <Fragment key={i}>
+          {chunk}
+          {i < chunks.length - 1 &&
+            (fills?.[i] ? (
+              <span className="rounded-md bg-success-soft px-1.5 text-success">{fills[i]}</span>
+            ) : (
+              <span className="mx-0.5 inline-block min-w-[3.5rem] border-b-2 border-accent align-baseline">
+                <span className="sr-only">mezera</span>&nbsp;
+              </span>
+            ))}
+        </Fragment>
+      ))}
+    </>
+  );
 }
 
 export default function ReportedSpeechDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [category, setCategory] = useState<string>('all');
+  const [level, setLevel] = useState<(typeof LEVELS)[number]>('all');
+  const [count, setCount] = useState(20);
+  const [items, setItems] = useState<Item[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<boolean | null>(null);
+  const [overridden, setOverridden] = useState(false);
+  const answered = useRef(false);
+  const session = useDrillSession('reported_speech', {
+    tags: [category === 'all' ? 'all' : `rs_${category}`, ...(level !== 'all' ? [level] : [])],
+  });
 
-  const [phase, setPhase] = useState<Phase>('select');
-  const [tab, setTab] = useState<Tab>('drill');
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [expandedRef, setExpandedRef] = useState<string | null>(null);
+  const pool = useMemo(
+    () => REPORTED_SPEECH_EXERCISES.filter((e) => (category === 'all' || e.category === category) && (level === 'all' || e.level === level)),
+    [category, level],
+  );
 
-  const [exercises, setExercises] = useState<ReportedSpeechExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [checked, setChecked] = useState(false);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [startTime, setStartTime] = useState(0);
+  const item = items[idx];
 
-  function filteredPool() {
-    let pool: ReportedSpeechExercise[] = REPORTED_SPEECH_EXERCISES;
-    if (selectedCategory !== 'all') {
-      pool = pool.filter((e) => e.category === selectedCategory);
-    }
-    if (selectedLevel !== 'all') {
-      pool = pool.filter((e) => e.level === selectedLevel);
-    }
-    return pool;
+  function resetItem() {
+    answered.current = false;
+    setSelected(null);
+    setText('');
+    setResult(null);
+    setOverridden(false);
   }
 
-  function startDrill() {
-    const pool = filteredPool();
-    const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setChecked(false);
-      setUserAnswer('');
-      setSelectedOption(null);
-      setIsCorrect(false);
-      setScore({ correct: 0, total: 0 });
-      setStartTime(Date.now());
-      setPhase('drill');
+  function start() {
+    setItems(shuffleArray(pool).slice(0, count).map(buildItem));
+    setIdx(0);
+    resetItem();
+    session.start();
+    setPhase('drill');
+  }
+
+  function submit(opt?: number) {
+    if (!item || result !== null || answered.current) return;
+    const { ex } = item;
+    let correct: boolean;
+    let user: string;
+    if (item.options) {
+      if (opt === undefined) return;
+      setSelected(opt);
+      user = item.options[opt];
+      correct = opt === item.correctIndex;
+    } else {
+      user = text.trim();
+      if (!user) return;
+      // Strict comparison: wrong backshift, pronouns or word order are mistakes.
+      correct = isAnswerCorrect(user, ex.answer, item.accept);
+    }
+    answered.current = true;
+    setResult(correct);
+    session.answer({
+      itemId: ex.id,
+      category: ex.category,
+      prompt: ex.prompt,
+      options: item.options,
+      kind: item.options ? 'mcq' : 'text',
+      answer: ex.answer,
+      accept: item.accept.length ? item.accept : undefined,
+      userAnswer: user,
+      explanation: ex.explanationCs,
+      correct,
     });
   }
 
-  function checkAnswer() {
-    const ex = exercises[currentIndex];
-    let correct = false;
-
-    if (ex.type === 'transform') {
-      correct = fuzzyMatch(userAnswer, ex.answer);
-    } else if (ex.type === 'fill') {
-      correct = normalize(userAnswer) === normalize(ex.answer);
+  async function next() {
+    if (idx + 1 >= items.length) {
+      await session.finish();
+      setPhase('result');
     } else {
-      correct = selectedOption === ex.answer;
-    }
-
-    if (correct) {
-      playCorrect();
-    } else {
-      trackError(
-        'grammar',
-        'reported_speech_' + ex.category,
-        ex.prompt,
-        ex.type === 'mcq' ? selectedOption ?? '(prázdné)' : userAnswer,
-        ex.answer,
-      );
-      playIncorrect();
-    }
-
-    setIsCorrect(correct);
-    setChecked(true);
-    setScore((prev) => ({
-      correct: prev.correct + (correct ? 1 : 0),
-      total: prev.total + 1,
-    }));
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      setCurrentIndex((i) => i + 1);
-      setChecked(false);
-      setUserAnswer('');
-      setSelectedOption(null);
-      setIsCorrect(false);
+      setIdx(idx + 1);
+      resetItem();
     }
   }
 
-  async function finishDrill() {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += score.total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
+  useKeyboard(result !== null ? { Enter: () => void next(), ' ': () => void next() } : {}, phase === 'drill');
 
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: score.total,
-      correctItems: score.correct,
-      tags: [
-        'reported_speech',
-        ...(selectedCategory !== 'all' ? ['rs_' + selectedCategory] : []),
-      ],
-    });
-
-    setPhase('result');
-    playComplete();
-  }
-
-  const ex = phase === 'drill' ? exercises[currentIndex] : null;
-
-  const keyMap = useMemo(() => {
-    if (!ex || phase !== 'drill') return {};
-
-    if (checked) return { Enter: nextExercise, ' ': nextExercise };
-
-    const map: Record<string, () => void> = {};
-
-    if (ex.type === 'mcq' && ex.options) {
-      ex.options.forEach((opt, i) => {
-        map[String(i + 1)] = () => setSelectedOption(opt);
-      });
-    }
-
-    map['Enter'] = () => {
-      if ((ex.type === 'transform' || ex.type === 'fill') && userAnswer.trim()) checkAnswer();
-      if (ex.type === 'mcq' && selectedOption) checkAnswer();
-    };
-
-    return map;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ex, phase, checked, userAnswer, selectedOption]);
-
-  useKeyboard(keyMap, phase === 'drill');
-
-  // ─── SELECT PHASE ───
-  if (phase === 'select') {
-    const poolSize = filteredPool().length;
-
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button
-          className="btn-ghost text-sm mb-4"
-          onClick={() => navigate('/')}
-        >
-          ← Zpět
-        </button>
-        <h1 className="page-title">Nepřímá řeč (Reported Speech)</h1>
-        <p className="page-subtitle">
-          Převádění přímé řeči na nepřímou — klíčové téma pro maturitu B1.
-        </p>
-
-        {/* Tab switch */}
-        <div className="flex gap-2 mb-6">
-          <button
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              tab === 'reference'
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-            onClick={() => setTab('reference')}
-          >
-            Přehled pravidel
-          </button>
-          <button
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              tab === 'drill'
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-            onClick={() => setTab('drill')}
-          >
-            Cvičení
-          </button>
-        </div>
-
-        {tab === 'reference' && (
-          <button
-            className="btn-primary btn-lg w-full"
-            onClick={() => setPhase('reference')}
-          >
-            Zobrazit přehled pravidel
-          </button>
-        )}
-
-        {tab === 'drill' && (
-          <>
-            {/* Level filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-                Úroveň
-              </h3>
-              <div className="flex gap-2">
-                {LEVELS.map((lvl) => (
-                  <button
-                    key={lvl}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      selectedLevel === lvl
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                    onClick={() => setSelectedLevel(lvl)}
-                  >
-                    {lvl === 'all' ? 'Vše' : lvl}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Category filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-                Kategorie
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {CAT_FILTERS.map((cat) => (
-                  <button
-                    key={cat}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                      selectedCategory === cat
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                    onClick={() => setSelectedCategory(cat)}
-                  >
-                    {CATEGORY_LABELS[cat]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              className="btn-primary btn-lg w-full"
-              onClick={startDrill}
-              disabled={poolSize === 0}
-            >
-              {poolSize > 0
-                ? `Začít (${Math.min(poolSize, DRILL_COUNT)} úloh)`
-                : 'Žádná cvičení pro tento filtr'}
-            </button>
-          </>
-        )}
-      </div>
+      <DrillSetup
+        title="Nepřímá řeč"
+        subtitle="Reported speech – převod přímé řeči na nepřímou: posun časů, zájmena, otázky i rozkazy."
+        icon="🗨️"
+        back="/practice"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+        footer={<ReportedRules />}
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label="Kategorie">
+          <Chip active={category === 'all'} onClick={() => setCategory('all')}>Vše</Chip>
+          {CATEGORIES.map((c) => (
+            <Chip key={c} active={category === c} onClick={() => setCategory(c)}>{RS_CATEGORIES[c]}</Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ─── REFERENCE PHASE ───
-  if (phase === 'reference') {
-    return (
-      <div className="page-container">
-        <button
-          className="btn-ghost text-sm mb-4"
-          onClick={() => setPhase('select')}
-        >
-          ← Zpět
-        </button>
-        <h1 className="page-title">Pravidla nepřímé řeči</h1>
-        <p className="page-subtitle mb-6">
-          Klikni na pravidlo pro zobrazení příkladu a vysvětlení.
-        </p>
-
-        <div className="space-y-3">
-          {REPORTED_SPEECH_RULES.map((rule) => {
-            const isOpen = expandedRef === rule.id;
-            return (
-              <div key={rule.id} className="card !p-0 overflow-hidden">
-                <button
-                  className="w-full px-5 py-4 flex items-center justify-between text-left"
-                  onClick={() => setExpandedRef(isOpen ? null : rule.id)}
-                >
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                      {rule.titleCs}
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {rule.title}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180' : ''
-                    }`}
-                  >
-                    ▼
-                  </span>
-                </button>
-
-                {isOpen && (
-                  <div className="px-5 pb-5 border-t border-slate-100 dark:border-slate-700 pt-4 space-y-4">
-                    {/* Direct → Reported example */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-2">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                          Přímá řeč
-                        </p>
-                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                          {rule.directExample}
-                        </p>
-                      </div>
-                      <div className="text-center text-slate-400 dark:text-slate-500">↓</div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                          Nepřímá řeč
-                        </p>
-                        <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                          {rule.reportedExample}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Czech explanation */}
-                    <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl px-4 py-3">
-                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">
-                        Vysvětlení
-                      </p>
-                      <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
-                        {rule.explanationCs}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── RESULT PHASE ───
   if (phase === 'result') {
-    const pct =
-      score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">
-          {pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}
+      <ResultScreen correct={session.correct} total={session.total} mistakes={session.mistakes} onRestart={start} restartLabel="Nové kolo">
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr nebo zopakovat pravidla</button>
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Nepřímá řeč hotová!
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-1">
-          {score.correct} / {score.total} správně ({pct} %)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80
-            ? 'Výborně! Nepřímou řeč zvládáš skvěle!'
-            : pct >= 50
-              ? 'Dobrý základ, projdi si přehled pravidel.'
-              : 'Projdi si pravidla a zkus znovu – reported speech chce praxi!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>
-            Domů
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setPhase('select');
-              setSelectedCategory('all');
-              setSelectedLevel('all');
-            }}
-          >
-            Znovu
-          </button>
-        </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  // ─── DRILL PHASE ───
-  if (!ex) return null;
-
-  const canCheck =
-    ((ex.type === 'transform' || ex.type === 'fill') && userAnswer.trim().length > 0) ||
-    (ex.type === 'mcq' && selectedOption !== null);
-
-  const categoryLabel = RS_CATEGORIES[ex.category] ?? ex.category;
-
-  const typeLabel =
-    ex.type === 'transform'
-      ? 'Přepiš'
-      : ex.type === 'fill'
-        ? 'Doplň'
-        : 'Výběr';
+  if (!item) return null;
+  const { ex } = item;
+  const revealed = result !== null;
+  const last = idx + 1 >= items.length;
+  const isTransform = ex.type === 'transform';
+  const nGaps = countGaps(item.frame);
+  const status = result === null ? null : result || overridden ? 'correct' : 'wrong';
+  const model = modelSentence(item);
 
   return (
     <div className="page-container">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          className="btn-ghost text-sm"
-          onClick={() => setPhase('select')}
-        >
-          ← Zpět
-        </button>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-green-600 dark:text-green-400">
-            {score.correct}✓
-          </span>
-          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {currentIndex + 1} / {exercises.length}
-          </span>
-        </div>
-      </div>
+      <DrillTopBar
+        current={idx}
+        total={items.length}
+        correct={session.correct}
+        onExit={() => void session.finish().then(() => setPhase('result'))}
+        title="Nepřímá řeč"
+      />
 
-      {/* Progress bar */}
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${(currentIndex / exercises.length) * 100}%`,
-          }}
-        />
-      </div>
-
-      {/* Exercise card */}
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            {categoryLabel}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">
-            {ex.level}
-          </span>
-          <span className="badge bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
-            {typeLabel}
-          </span>
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{RS_CATEGORIES[ex.category] ?? ex.category}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
+          <span className="badge">{KIND_LABEL[ex.type]}</span>
         </div>
 
-        {/* Direct speech (shown for transform) */}
-        {ex.type === 'transform' && (
-          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 mb-4">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-              Přímá řeč
-            </p>
-            <p className="text-base font-medium text-slate-800 dark:text-slate-200">
-              {ex.directSpeech}
-            </p>
-          </div>
-        )}
-
-        {/* Prompt */}
-        <p className="text-lg leading-relaxed text-slate-900 dark:text-slate-100 mb-5">
-          {ex.prompt}
+        <p className="mb-2 text-sm font-bold text-muted">
+          {isTransform
+            ? 'Převeď větu do nepřímé řeči:'
+            : ex.type === 'mcq'
+              ? 'Vyber správný tvar v nepřímé řeči:'
+              : 'Doplň chybějící slovo v nepřímé řeči:'}
         </p>
 
-        {/* TRANSFORM input */}
-        {ex.type === 'transform' && (
-          <div>
-            <input
-              className="input w-full"
-              type="text"
-              placeholder="Napiš celou větu v nepřímé řeči…"
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !checked && userAnswer.trim())
-                  checkAnswer();
-              }}
-              disabled={checked}
-              autoFocus
-            />
-            {checked && !isCorrect && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                Správná odpověď:{' '}
-                <span className="font-semibold text-green-600 dark:text-green-400">
-                  {ex.answer}
-                </span>
-              </p>
-            )}
+        <div className="flex items-start gap-3 rounded-xl bg-surface-2 px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="eyebrow mb-1">Přímá řeč</p>
+            <p className="text-lg leading-relaxed font-bold break-words text-fg" lang="en">{item.direct}</p>
           </div>
-        )}
+          <SpeakButton size="sm" label="Přehrát přímou řeč" onClick={() => void speak(item.direct, settings.ttsRate)} />
+        </div>
 
-        {/* FILL input */}
-        {ex.type === 'fill' && (
-          <div>
-            <input
-              className="input w-full"
-              type="text"
-              placeholder="Doplň chybějící slovo…"
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !checked && userAnswer.trim())
-                  checkAnswer();
-              }}
-              disabled={checked}
-              autoFocus
-            />
-            {checked && !isCorrect && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                Správná odpověď:{' '}
-                <span className="font-semibold text-green-600 dark:text-green-400">
-                  {ex.answer}
-                </span>
-              </p>
-            )}
-          </div>
-        )}
+        <div className="my-2 text-center text-muted" aria-hidden="true">↓</div>
 
-        {/* MCQ options */}
-        {ex.type === 'mcq' && ex.options && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {ex.options.map((opt, i) => {
-              let cls =
-                'w-full px-4 py-3 rounded-xl text-sm font-medium text-left transition-all border-2 ';
-
-              if (checked) {
-                if (opt === ex.answer) {
-                  cls +=
-                    'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300';
-                } else if (opt === selectedOption && !isCorrect) {
-                  cls +=
-                    'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300';
-                } else {
-                  cls +=
-                    'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500';
-                }
-              } else if (selectedOption === opt) {
-                cls += 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300';
-              } else {
-                cls +=
-                  'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-primary-400 dark:hover:border-primary-500';
-              }
-
-              return (
-                <button
-                  key={opt}
-                  className={cls}
-                  onClick={() => !checked && setSelectedOption(opt)}
-                  disabled={checked}
-                >
-                  <span className="text-xs text-slate-400 dark:text-slate-500 mr-2">
-                    {i + 1}
-                  </span>
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Keyboard hints */}
-        {!checked && ex.type === 'mcq' && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">
-            Klávesy: 1–4 pro výběr, Enter pro potvrzení
+        <div className="mb-4">
+          <p className="eyebrow mb-1">Nepřímá řeč</p>
+          <p className="text-xl leading-relaxed font-bold break-words text-fg" lang="en">
+            {isTransform ? item.frame : <GapSentence text={item.frame} fills={revealed && nGaps ? answerParts(ex.answer, nGaps) : undefined} />}
           </p>
+        </div>
+
+        {item.options ? (
+          <>
+            <OptionList options={item.options} selected={selected} correctIndex={item.correctIndex} revealed={revealed} onSelect={(i) => submit(i)} columns={2} />
+            {!revealed && (
+              <p className="mt-3 hidden text-xs text-subtle sm:block">
+                Tip: odpověď vybereš i klávesou <Kbd>1</Kbd>–<Kbd>{item.options.length}</Kbd>.
+              </p>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="flex-1">
+              <TextAnswer
+                value={text}
+                onChange={setText}
+                onSubmit={() => submit()}
+                disabled={revealed}
+                status={status}
+                label={isTransform ? 'Věta v nepřímé řeči' : 'Chybějící slovo'}
+                placeholder={isTransform ? `${item.lead || 'He said'} …` : 'Napiš chybějící slovo…'}
+                multiline={isTransform}
+              />
+              {isTransform && !revealed && (
+                <p className="mt-1.5 text-xs text-muted">Napiš celou větu, nebo jen to, co následuje po „<span lang="en">{item.lead}</span>“.</p>
+              )}
+            </div>
+            {!revealed && (
+              <button type="button" className="btn-primary btn-lg" disabled={!text.trim()} onClick={() => submit()}>Ověřit</button>
+            )}
+          </div>
         )}
 
-        {/* Feedback */}
-        {checked && (
-          <>
-            <div
-              className={`mt-4 px-4 py-3 rounded-xl border-2 ${
-                isCorrect
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
-                  : 'border-red-500 bg-red-50 dark:bg-red-900/30'
-              }`}
-            >
-              <span className="font-medium dark:text-slate-100">
-                {isCorrect ? '✅ Správně!' : '❌ Špatně'}
+        {revealed && (
+          <Feedback
+            correct={!!result || overridden}
+            answer={isTransform ? undefined : ex.answer}
+            userAnswer={item.options || isTransform ? undefined : text.trim()}
+            title={overridden ? 'Uznáno' : undefined}
+          >
+            <div className="mt-1 flex items-center gap-2">
+              <SpeakButton size="sm" label="Přehrát celou větu" onClick={() => void speak(model, settings.ttsRate)} />
+              <span className="min-w-0 flex-1 text-sm text-fg">
+                {isTransform ? (result || overridden ? 'Vzorová odpověď' : 'Správně') : 'Celá věta'}:{' '}
+                <strong lang="en">{isTransform ? displayAnswer(ex.answer) : model}</strong>
               </span>
             </div>
-
-            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
-                💡 {ex.explanationCs}
-              </p>
-            </div>
-          </>
+            <div className="mt-1.5 text-sm leading-relaxed text-muted">{ex.explanationCs}</div>
+            {isTransform && !result && !overridden && (
+              <button
+                type="button"
+                className="btn-ghost btn-sm mt-2 !px-2"
+                onClick={() => {
+                  setOverridden(true);
+                  session.markLastCorrect();
+                }}
+              >
+                Moje odpověď je taky správně
+              </button>
+            )}
+          </Feedback>
         )}
+        {revealed && <NextButton onClick={() => void next()} last={last} />}
       </div>
-
-      {/* Action button */}
-      {!checked ? (
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={!canCheck}
-          onClick={checkAnswer}
-        >
-          Zkontrolovat
-        </button>
-      ) : (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length
-            ? 'Zobrazit výsledky'
-            : 'Další úloha →'}
-        </button>
-      )}
     </div>
+  );
+}
+
+/* ─── Rules reference ─────────────────────────────────────────────── */
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`shrink-0 text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function ReportedRules() {
+  const { settings } = useSettings();
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <section aria-labelledby="rs-rules-title">
+      <h2 id="rs-rules-title" className="section-title">Pravidla nepřímé řeči</h2>
+      <p className="-mt-2 mb-3 text-sm text-muted">Rozklikni pravidlo a uvidíš příklad a vysvětlení.</p>
+      <div className="space-y-2">
+        {REPORTED_SPEECH_RULES.map((rule) => {
+          const isOpen = open === rule.id;
+          return (
+            <div key={rule.id} className="card overflow-hidden !p-0">
+              <button
+                type="button"
+                className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2"
+                aria-expanded={isOpen}
+                aria-controls={`${rule.id}-panel`}
+                onClick={() => setOpen(isOpen ? null : rule.id)}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold break-words text-fg">{rule.titleCs}</span>
+                  <span className="block text-sm break-words text-muted" lang="en">{rule.title}</span>
+                </span>
+                <Chevron open={isOpen} />
+              </button>
+              {isOpen && (
+                <div id={`${rule.id}-panel`} className="space-y-3 border-t border-border px-4 pt-4 pb-5">
+                  <div className="space-y-2 rounded-xl bg-surface-2 p-3">
+                    <div className="flex items-start gap-3">
+                      <SpeakButton size="sm" label="Přehrát přímou řeč" onClick={() => void speak(rule.directExample, settings.ttsRate)} />
+                      <span className="min-w-0 flex-1">
+                        <span className="eyebrow block">Přímá řeč</span>
+                        <span className="block text-sm font-bold break-words text-fg" lang="en">{rule.directExample}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <SpeakButton size="sm" label="Přehrát nepřímou řeč" onClick={() => void speak(rule.reportedExample, settings.ttsRate)} />
+                      <span className="min-w-0 flex-1">
+                        <span className="eyebrow block">Nepřímá řeč</span>
+                        <span className="block text-sm font-bold break-words text-accent-text" lang="en">{rule.reportedExample}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="feedback feedback--info">
+                    <p className="eyebrow mb-1">Vysvětlení</p>
+                    <p className="text-sm leading-relaxed text-fg">{rule.explanationCs}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

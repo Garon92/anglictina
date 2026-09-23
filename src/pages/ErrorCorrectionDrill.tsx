@@ -1,571 +1,399 @@
-import { useState, useRef, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
-import {
-  ERROR_CORRECTIONS,
-  EC_CATEGORIES,
-} from '../data/errorCorrection';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { ERROR_CORRECTIONS, EC_CATEGORIES } from '../data/errorCorrection';
 import type { ErrorCorrectionExercise } from '../data/errorCorrection';
 import { shuffleArray } from '../utils';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { trackError } from '../errorTracker';
+import { isAnswerCorrect, displayAnswer } from '../lib/answer';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { playIncorrect } from '../sounds';
+import { useSettings } from '../App';
+import { speak } from '../tts';
+import { SpeakButton } from '../components/ui';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, TextAnswer, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
-type Phase = 'select' | 'drill' | 'result';
-type StepPhase = 'pick' | 'type' | 'feedback';
+type Phase = 'setup' | 'drill' | 'result';
+type Step = 'pick' | 'type' | 'done';
 
-const DRILL_COUNT = 15;
 const LEVELS = ['all', 'A2', 'B1'] as const;
-const CATEGORIES = Object.keys(EC_CATEGORIES);
-const MAX_WRONG_PICKS = 2;
+type Level = (typeof LEVELS)[number];
+const CATEGORY_KEYS = Object.keys(EC_CATEGORIES);
+/** Wrong taps allowed before the error is revealed. */
+const MAX_WRONG_TAPS = 2;
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/['']/g, "'").trim();
+/* ─── Tokens and locating the error ───────────────────────────────── */
+
+interface Token {
+  text: string;
+  start: number;
+  end: number;
+  /** A word (clickable) — punctuation is not. */
+  word: boolean;
+  spaceBefore: boolean;
 }
 
-function fuzzyMatch(user: string, expected: string): boolean {
-  return normalize(user) === normalize(expected);
-}
+const TOKEN_RE = /[\p{L}\p{N}_'’]+(?:-[\p{L}\p{N}_'’]+)*|[^\s\p{L}\p{N}_]/gu;
 
-function splitSentenceIntoWords(sentence: string): string[] {
-  return sentence.match(/[\w'']+|[^\s\w]/g) ?? [];
-}
-
-export default function ErrorCorrectionDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const [phase, setPhase] = useState<Phase>('select');
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [selectedCats, setSelectedCats] = useState<string[]>([]);
-
-  const [exercises, setExercises] = useState<ErrorCorrectionExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [stepPhase, setStepPhase] = useState<StepPhase>('pick');
-  const [selectedWordIdx, setSelectedWordIdx] = useState<number | null>(null);
-  const [wrongPicks, setWrongPicks] = useState(0);
-  const [correctionInput, setCorrectionInput] = useState('');
-  const [wasCorrectPick, setWasCorrectPick] = useState(false);
-  const [wasCorrectType, setWasCorrectType] = useState(false);
-  const [revealed, setRevealed] = useState(false);
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [startTime, setStartTime] = useState(0);
-
-  function toggleCat(cat: string) {
-    setSelectedCats((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-    );
-  }
-
-  function filteredPool() {
-    let pool: ErrorCorrectionExercise[] = ERROR_CORRECTIONS;
-    if (selectedCats.length > 0) {
-      pool = pool.filter((e) => selectedCats.includes(e.category));
-    }
-    if (selectedLevel !== 'all') {
-      pool = pool.filter((e) => e.level === selectedLevel);
-    }
-    return pool;
-  }
-
-  function startDrill() {
-    const pool = filteredPool();
-    const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    resetStep();
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setScore({ correct: 0, total: 0 });
-      setStartTime(Date.now());
-      setPhase('drill');
+function tokenize(s: string): Token[] {
+  const out: Token[] = [];
+  for (const m of s.matchAll(TOKEN_RE)) {
+    const start = m.index ?? 0;
+    out.push({
+      text: m[0],
+      start,
+      end: start + m[0].length,
+      word: /[\p{L}\p{N}]/u.test(m[0]),
+      spaceBefore: start > 0 && /\s/.test(s[start - 1]),
     });
   }
-
-  function resetStep() {
-    setStepPhase('pick');
-    setSelectedWordIdx(null);
-    setWrongPicks(0);
-    setCorrectionInput('');
-    setWasCorrectPick(false);
-    setWasCorrectType(false);
-    setRevealed(false);
-  }
-
-  function handleWordClick(wordIdx: number, word: string) {
-    if (stepPhase !== 'pick') return;
-
-    const ex = exercises[currentIndex];
-    const errorTokens = splitSentenceIntoWords(ex.errorWord);
-    const sentenceTokens = splitSentenceIntoWords(ex.sentence);
-
-    const errorStartIdx = findErrorStartIndex(sentenceTokens, errorTokens);
-    const isInError =
-      errorStartIdx !== -1 &&
-      wordIdx >= errorStartIdx &&
-      wordIdx < errorStartIdx + errorTokens.length;
-
-    if (isInError) {
-      setSelectedWordIdx(wordIdx);
-      setWasCorrectPick(true);
-      setStepPhase('type');
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      const newWrongPicks = wrongPicks + 1;
-      setWrongPicks(newWrongPicks);
-      setSelectedWordIdx(wordIdx);
-      playIncorrect();
-
-      if (newWrongPicks >= MAX_WRONG_PICKS) {
-        setWasCorrectPick(false);
-        setRevealed(true);
-        setStepPhase('feedback');
-        trackError(
-          'grammar',
-          'error_correction_' + ex.category,
-          ex.sentence,
-          word,
-          ex.errorWord,
-        );
-        setScore((prev) => ({ correct: prev.correct, total: prev.total + 1 }));
-      } else {
-        setTimeout(() => setSelectedWordIdx(null), 600);
-      }
-    }
-  }
-
-  function handleSubmitCorrection() {
-    const ex = exercises[currentIndex];
-    if (fuzzyMatch(correctionInput, ex.correctedWord)) {
-      setWasCorrectType(true);
-      setStepPhase('feedback');
-      playCorrect();
-      setScore((prev) => ({
-        correct: prev.correct + 1,
-        total: prev.total + 1,
-      }));
-    } else {
-      setWasCorrectType(false);
-      setRevealed(true);
-      setStepPhase('feedback');
-      playIncorrect();
-      trackError(
-        'grammar',
-        'error_correction_' + ex.category,
-        ex.sentence,
-        correctionInput,
-        ex.correctedWord,
-      );
-      setScore((prev) => ({ correct: prev.correct, total: prev.total + 1 }));
-    }
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      setCurrentIndex((prev) => prev + 1);
-      resetStep();
-    }
-  }
-
-  async function finishDrill() {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += score.total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: score.total,
-      correctItems: score.correct,
-      tags: [
-        'error_correction',
-        ...(selectedCats.length > 0 ? selectedCats : ['all']),
-      ],
-    });
-
-    setPhase('result');
-    playComplete();
-  }
-
-  // ── SELECT PHASE ──
-  if (phase === 'select') {
-    const poolSize = filteredPool().length;
-
-    return (
-      <div className="page-container">
-        <button
-          className="btn-ghost text-sm mb-4"
-          onClick={() => navigate('/')}
-        >
-          ← Zpět
-        </button>
-        <h1 className="page-title">Najdi a oprav chybu</h1>
-        <p className="page-subtitle">
-          Vyber chybné slovo ve větě a napiš správný tvar
-        </p>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-            Úroveň
-          </h3>
-          <div className="flex gap-2">
-            {LEVELS.map((lvl) => (
-              <button
-                key={lvl}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectedLevel === lvl
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => setSelectedLevel(lvl)}
-              >
-                {lvl === 'all' ? 'Vše' : lvl}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-            Kategorie{' '}
-            {selectedCats.length > 0 && `(${selectedCats.length})`}
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  selectedCats.includes(cat)
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => toggleCat(cat)}
-              >
-                {EC_CATEGORIES[cat]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={poolSize === 0}
-          onClick={startDrill}
-        >
-          {poolSize > 0
-            ? `Začít (${Math.min(DRILL_COUNT, poolSize)} vět)`
-            : 'Žádná cvičení pro tento filtr'}
-        </button>
-        {poolSize === 0 && (
-          <p className="text-sm text-red-500 mt-2 text-center">
-            Pro vybraný filtr nejsou žádná cvičení.
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  // ── RESULT PHASE ──
-  if (phase === 'result') {
-    const pct =
-      score.total > 0
-        ? Math.round((score.correct / score.total) * 100)
-        : 0;
-
-    return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">
-          {pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}
-        </div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-          Hledání chyb hotové!
-        </h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-1">
-          {score.correct} / {score.total} správně ({pct} %)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80
-            ? 'Výborně! Chyby ti neuniknou!'
-            : pct >= 50
-              ? 'Dobrá práce, příště to bude ještě lepší.'
-              : 'Nevadí, procvičuj dál a bude to lepší!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>
-            Domů
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setPhase('select');
-              setSelectedCats([]);
-              setSelectedLevel('all');
-            }}
-          >
-            Další cvičení
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── DRILL PHASE ──
-  const ex = exercises[currentIndex];
-  if (!ex) return null;
-
-  const sentenceWords = splitSentenceIntoWords(ex.sentence);
-  const errorTokens = splitSentenceIntoWords(ex.errorWord);
-  const errorStartIdx = findErrorStartIndex(sentenceWords, errorTokens);
-  const progressPct = (currentIndex / exercises.length) * 100;
-
-  return (
-    <div className="page-container">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          className="btn-ghost text-sm"
-          onClick={() => setPhase('select')}
-        >
-          ← Zpět
-        </button>
-        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          {currentIndex + 1} / {exercises.length}
-        </span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-2">
-        <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
-
-      {/* Score summary */}
-      <div className="flex items-center justify-between mb-5">
-        <span className="text-xs text-slate-400 dark:text-slate-500">
-          Skóre: {score.correct} / {score.total}
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs">
-            {EC_CATEGORIES[ex.category] ?? ex.category}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 text-xs">
-            {ex.level}
-          </span>
-        </div>
-      </div>
-
-      {/* Exercise card */}
-      <div className="card !p-5 sm:!p-6 mb-5">
-        {/* Instruction */}
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wide">
-          {stepPhase === 'pick'
-            ? 'Klikni na chybné slovo'
-            : stepPhase === 'type'
-              ? 'Napiš správný tvar'
-              : 'Výsledek'}
-        </p>
-
-        {/* Sentence as word pills */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {sentenceWords.map((word, idx) => {
-            const isPunctuation = /^[^\w]$/.test(word);
-            if (isPunctuation) {
-              return (
-                <span
-                  key={idx}
-                  className="text-lg text-slate-700 dark:text-slate-200 -ml-1 mr-0.5 self-center"
-                >
-                  {word}
-                </span>
-              );
-            }
-
-            const isInError =
-              errorStartIdx !== -1 &&
-              idx >= errorStartIdx &&
-              idx < errorStartIdx + errorTokens.length;
-
-            let pillClasses =
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ';
-
-            if (stepPhase === 'feedback' || revealed) {
-              if (isInError) {
-                pillClasses +=
-                  'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-2 border-red-400 dark:border-red-600 line-through';
-              } else {
-                pillClasses +=
-                  'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-default';
-              }
-            } else if (
-              selectedWordIdx === idx &&
-              !wasCorrectPick &&
-              stepPhase === 'pick'
-            ) {
-              pillClasses +=
-                'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-2 border-amber-400 dark:border-amber-500 animate-pulse';
-            } else if (isInError && stepPhase === 'type') {
-              pillClasses +=
-                'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 border-2 border-primary-400 dark:border-primary-500';
-            } else if (stepPhase === 'pick') {
-              pillClasses +=
-                'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 hover:shadow-md active:scale-95 cursor-pointer shadow-sm';
-            } else {
-              pillClasses +=
-                'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-default';
-            }
-
-            return (
-              <button
-                key={idx}
-                className={pillClasses}
-                onClick={() => handleWordClick(idx, word)}
-                disabled={stepPhase !== 'pick'}
-              >
-                {word}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Wrong pick hint */}
-        {stepPhase === 'pick' && wrongPicks > 0 && wrongPicks < MAX_WRONG_PICKS && (
-          <p className="text-sm text-amber-600 dark:text-amber-400 mb-3">
-            ❌ Špatné slovo — zkus znovu ({MAX_WRONG_PICKS - wrongPicks}{' '}
-            {MAX_WRONG_PICKS - wrongPicks === 1 ? 'pokus' : 'pokusy'} zbývá)
-          </p>
-        )}
-
-        {/* Correction input */}
-        {stepPhase === 'type' && (
-          <div className="mt-2">
-            <label className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2 block">
-              Správný tvar místo „
-              <span className="text-red-500 dark:text-red-400 font-semibold">
-                {ex.errorWord}
-              </span>
-              ":
-            </label>
-            <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                className="input flex-1"
-                value={correctionInput}
-                onChange={(e) => setCorrectionInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && correctionInput.trim()) {
-                    handleSubmitCorrection();
-                  }
-                }}
-                placeholder="Napiš opravu…"
-                autoComplete="off"
-                autoCapitalize="off"
-                spellCheck={false}
-              />
-              <button
-                className="btn-primary"
-                disabled={!correctionInput.trim()}
-                onClick={handleSubmitCorrection}
-              >
-                Ověřit
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Feedback */}
-        {stepPhase === 'feedback' && (
-          <div className="mt-4 space-y-3">
-            {/* Correct / Incorrect banner */}
-            {wasCorrectPick && wasCorrectType ? (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/30">
-                <span className="text-lg">✅</span>
-                <span className="font-medium text-green-700 dark:text-green-300">
-                  Správně!
-                </span>
-              </div>
-            ) : (
-              <div className="px-4 py-3 rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-900/30">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">❌</span>
-                  <span className="font-medium text-red-700 dark:text-red-300">
-                    {!wasCorrectPick
-                      ? 'Chybné slovo nebylo nalezeno'
-                      : 'Špatná oprava'}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Chyba: „
-                  <span className="font-semibold text-red-600 dark:text-red-400 line-through">
-                    {ex.errorWord}
-                  </span>
-                  " → Správně: „
-                  <span className="font-semibold text-green-600 dark:text-green-400">
-                    {ex.correctedWord}
-                  </span>
-                  "
-                </p>
-              </div>
-            )}
-
-            {/* Corrected sentence */}
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">
-                Správná věta
-              </p>
-              <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
-                {ex.correctedSentence}
-              </p>
-            </div>
-
-            {/* Czech explanation */}
-            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30">
-              <p className="text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
-                💡 {ex.explanationCs}
-              </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 opacity-75">
-                Kategorie: {EC_CATEGORIES[ex.category] ?? ex.category}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Action button */}
-      {stepPhase === 'feedback' && (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length
-            ? 'Zobrazit výsledky'
-            : 'Další →'}
-        </button>
-      )}
-    </div>
-  );
+  return out;
 }
 
-function findErrorStartIndex(
-  sentenceTokens: string[],
-  errorTokens: string[],
-): number {
-  if (errorTokens.length === 0) return -1;
-  for (let i = 0; i <= sentenceTokens.length - errorTokens.length; i++) {
-    let match = true;
-    for (let j = 0; j < errorTokens.length; j++) {
-      if (
-        sentenceTokens[i + j].toLowerCase() !== errorTokens[j].toLowerCase()
-      ) {
-        match = false;
+const same = (a: string, b: string) => a.toLowerCase().replace(/’/g, "'") === b.toLowerCase().replace(/’/g, "'");
+const seqEqual = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => same(x, b[i]));
+const texts = (s: string) => tokenize(s).map((t) => t.text);
+
+interface Analysis {
+  tokens: Token[];
+  /** Token indices that belong to the error (a tap on any of them counts). */
+  span: Set<number>;
+  /** The erroneous part as written in the sentence. */
+  spanText: string;
+}
+
+/**
+ * Find the error span by comparing the sentence with the corrected sentence token by token:
+ * the occurrence of `errorWord` whose replacement by `correctedWord` gives `correctedSentence`
+ * (so an earlier "a", "the", "in"… with the same spelling is not mistaken for the error).
+ * Fallbacks: the differing tokens, then the first occurrence of `errorWord`.
+ */
+function analyse(ex: ErrorCorrectionExercise): Analysis {
+  const tokens = tokenize(ex.sentence);
+  const s = tokens.map((t) => t.text);
+  const c = texts(ex.correctedSentence);
+  const e = texts(ex.errorWord);
+  const alternatives = ex.correctedWord.split('|').map((a) => texts(a.trim()));
+
+  let from = -1;
+  let to = -1;
+  let first = -1;
+  if (e.length) {
+    for (let i = 0; i + e.length <= s.length; i++) {
+      if (!e.every((t, j) => same(t, s[i + j]))) continue;
+      if (first < 0) first = i;
+      const before = s.slice(0, i);
+      const after = s.slice(i + e.length);
+      if (alternatives.some((alt) => seqEqual([...before, ...alt, ...after], c))) {
+        from = i;
+        to = i + e.length;
         break;
       }
     }
-    if (match) return i;
   }
-  return -1;
+  if (from < 0) {
+    let p = 0;
+    while (p < s.length && p < c.length && same(s[p], c[p])) p++;
+    let q = 0;
+    while (q < s.length - p && q < c.length - p && same(s[s.length - 1 - q], c[c.length - 1 - q])) q++;
+    if (p < s.length - q) {
+      from = p;
+      to = s.length - q;
+    } else if (first >= 0) {
+      from = first;
+      to = first + e.length;
+    }
+  }
+  const span = new Set<number>();
+  for (let i = Math.max(0, from); i < to; i++) span.add(i);
+  const spanText = from >= 0 && to > from ? ex.sentence.slice(tokens[from].start, tokens[to - 1].end) : ex.errorWord;
+  return { tokens, span, spanText };
+}
+
+/** Group tokens into visual chunks (a word with the punctuation glued to it). */
+function chunk(tokens: Token[]): number[][] {
+  const out: number[][] = [];
+  tokens.forEach((t, i) => {
+    if (i === 0 || t.spaceBefore || !out.length) out.push([i]);
+    else out[out.length - 1].push(i);
+  });
+  return out;
+}
+
+/* ─── Page ────────────────────────────────────────────────────────── */
+
+export default function ErrorCorrectionDrill() {
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [level, setLevel] = useState<Level>('all');
+  const [cats, setCats] = useState<string[]>([]);
+  const [count, setCount] = useState(15);
+  const [items, setItems] = useState<ErrorCorrectionExercise[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [step, setStep] = useState<Step>('pick');
+  const [wrongTaps, setWrongTaps] = useState<number[]>([]);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<boolean | null>(null);
+  const [missed, setMissed] = useState(false);
+  const leaving = useRef(false);
+  const session = useDrillSession('error_correction', { tags: cats.length ? cats : ['all'] });
+
+  const pool = useMemo(
+    () => ERROR_CORRECTIONS.filter((e) => (!cats.length || cats.includes(e.category)) && (level === 'all' || e.level === level)),
+    [cats, level],
+  );
+
+  const ex = items[idx];
+  const info = useMemo(() => (ex ? analyse(ex) : null), [ex]);
+
+  /** Without a clickable error word (should not happen with the audited data) go straight to typing. */
+  function firstStep(item: ErrorCorrectionExercise | undefined): Step {
+    if (!item) return 'pick';
+    const a = analyse(item);
+    return [...a.span].some((i) => a.tokens[i]?.word) ? 'pick' : 'type';
+  }
+
+  function resetItem(item: ErrorCorrectionExercise | undefined) {
+    setStep(firstStep(item));
+    setWrongTaps([]);
+    setText('');
+    setResult(null);
+    setMissed(false);
+  }
+
+  function start() {
+    if (!pool.length) return;
+    const picked = shuffleArray(pool).slice(0, count);
+    setItems(picked);
+    setIdx(0);
+    resetItem(picked[0]);
+    leaving.current = false;
+    session.start();
+    setPhase('drill');
+  }
+
+  function record(correct: boolean, userAnswer: string) {
+    if (!ex || !info) return;
+    session.answer({
+      itemId: ex.id,
+      category: ex.category,
+      prompt: `${ex.sentence} (${info.spanText} → ?)`,
+      context: `Oprav chybu: čím nahradit „${info.spanText}“?`,
+      kind: 'text',
+      answer: ex.correctedWord,
+      accept: [ex.correctedSentence],
+      userAnswer,
+      explanation: ex.explanationCs,
+      correct,
+    });
+  }
+
+  function tap(i: number) {
+    if (!info || result !== null || step !== 'pick') return;
+    if (info.span.has(i)) {
+      setStep('type');
+      return;
+    }
+    if (wrongTaps.includes(i)) return;
+    const taps = [...wrongTaps, i];
+    setWrongTaps(taps);
+    if (taps.length >= MAX_WRONG_TAPS) {
+      setMissed(true);
+      setResult(false);
+      setStep('done');
+      record(false, `(označeno: ${taps.map((k) => info.tokens[k].text).join(', ')})`);
+    } else {
+      playIncorrect();
+    }
+  }
+
+  function submit() {
+    if (!ex || result !== null || step !== 'type') return;
+    const user = text.trim();
+    if (!user) return;
+    const correct = isAnswerCorrect(user, ex.correctedWord, [ex.correctedSentence]);
+    setResult(correct);
+    setStep('done');
+    record(correct, user);
+  }
+
+  async function showResult() {
+    if (leaving.current) return;
+    leaving.current = true;
+    await session.finish();
+    setPhase('result');
+  }
+
+  function next() {
+    if (result === null || leaving.current) return;
+    if (idx + 1 >= items.length) {
+      void showResult();
+    } else {
+      setIdx(idx + 1);
+      resetItem(items[idx + 1]);
+    }
+  }
+
+  useKeyboard(result !== null ? { Enter: next, ' ': next } : {}, phase === 'drill');
+
+  if (phase === 'setup') {
+    return (
+      <DrillSetup
+        title="Oprav chybu"
+        subtitle="V každé větě je jedna chyba. Klepni na chybné slovo a napiš, jak má být správně."
+        icon="🩹"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label={`Kategorie${cats.length ? ` (${cats.length})` : ' (vše)'}`}>
+          {CATEGORY_KEYS.map((c) => (
+            <Chip key={c} active={cats.includes(c)} onClick={() => setCats((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}>
+              {EC_CATEGORIES[c]}
+            </Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
+    );
+  }
+
+  if (phase === 'result') {
+    return (
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nové kolo"
+      >
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr</button>
+        </div>
+      </ResultScreen>
+    );
+  }
+
+  if (!ex || !info) return null;
+  const last = idx + 1 >= items.length;
+  const left = MAX_WRONG_TAPS - wrongTaps.length;
+  const typed = text.trim();
+
+  /** ← / → move between the word buttons. */
+  function onWordsKey(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+    const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (at < 0) return;
+    e.preventDefault();
+    buttons[Math.max(0, Math.min(buttons.length - 1, at + (e.key === 'ArrowRight' ? 1 : -1)))]?.focus();
+  }
+
+  return (
+    <div className="page-container">
+      <DrillTopBar current={idx} total={items.length} correct={session.correct} onExit={() => void showResult()} title="Oprav chybu" />
+
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{EC_CATEGORIES[ex.category] ?? ex.category}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
+        </div>
+        <p className="mb-3 text-sm font-bold text-muted" aria-live="polite">
+          {step === 'pick' ? 'Klepni na chybné slovo:' : step === 'type' ? 'Napiš správný tvar:' : 'Chyba ve větě:'}
+        </p>
+
+        <div className="mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-2" lang="en" role="group" aria-label="Slova ve větě" onKeyDown={onWordsKey}>
+          {chunk(info.tokens).map((group) => (
+            <span key={group[0]} className="inline-flex min-w-0 items-center">
+              {group.map((i) => {
+                const t = info.tokens[i];
+                if (!t.word) {
+                  return <span key={i} className="px-0.5 text-lg font-bold text-fg">{t.text}</span>;
+                }
+                const inSpan = info.span.has(i);
+                const tried = wrongTaps.includes(i);
+                let tone = 'border-border bg-surface-2 text-fg';
+                if (step === 'pick') {
+                  tone = tried ? 'border-danger bg-danger-soft text-danger line-through' : 'border-border-strong bg-surface text-fg hover:border-accent hover:bg-accent-soft';
+                } else if (step === 'type') {
+                  tone = inSpan ? 'border-accent bg-accent-soft text-accent-text' : 'border-transparent bg-transparent text-muted';
+                } else if (inSpan) {
+                  tone = 'border-danger bg-danger-soft text-danger line-through decoration-2';
+                } else {
+                  tone = tried ? 'border-transparent bg-transparent text-danger' : 'border-transparent bg-transparent text-fg';
+                }
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`min-h-[44px] rounded-lg border-[1.5px] px-2.5 text-lg font-bold break-all transition-colors ${tone}`}
+                    disabled={step !== 'pick' || tried}
+                    onClick={() => tap(i)}
+                  >
+                    {t.text}
+                  </button>
+                );
+              })}
+            </span>
+          ))}
+        </div>
+
+        {step === 'pick' && wrongTaps.length > 0 && (
+          <p className="mb-2 text-sm font-bold text-warning" role="status">
+            To není ono — zkus to ještě jednou ({left === 1 ? 'zbývá 1 pokus' : `zbývají ${left} pokusy`}).
+          </p>
+        )}
+        {step === 'pick' && wrongTaps.length === 0 && (
+          <p className="hidden text-xs text-muted sm:block">Slova můžeš procházet i klávesnicí (Tab nebo šipky) a vybrat Enterem.</p>
+        )}
+
+        {step === 'type' && (
+          <div>
+            <p className="mb-2 text-sm text-fg">
+              Čím nahradit <strong className="text-accent-text" lang="en">„{info.spanText}“</strong>?
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex-1">
+                <TextAnswer
+                  value={text}
+                  onChange={setText}
+                  onSubmit={submit}
+                  disabled={result !== null}
+                  placeholder="Napiš opravu…"
+                  label={`Oprava místo „${info.spanText}“`}
+                />
+              </div>
+              <button type="button" className="btn-primary btn-lg" disabled={!typed} onClick={submit}>Ověřit</button>
+            </div>
+          </div>
+        )}
+
+        {step === 'done' && result !== null && (
+          <Feedback correct={result} title={missed ? 'Chybné slovo se nepodařilo najít' : undefined}>
+            <p className="mt-1 text-sm text-fg">
+              <span className="text-danger line-through decoration-2" lang="en">{info.spanText}</span>
+              {' → '}
+              <strong className="text-success" lang="en">{displayAnswer(ex.correctedWord)}</strong>
+              {!result && !missed && typed && (
+                <span className="text-muted"> (tvoje oprava: <span lang="en">{typed}</span>)</span>
+              )}
+            </p>
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-surface p-2.5">
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold text-muted">Správná věta</div>
+                <div className="font-bold break-words text-fg" lang="en">{ex.correctedSentence}</div>
+              </div>
+              <SpeakButton onClick={() => void speak(ex.correctedSentence, settings.ttsRate)} label={`Přehrát: ${ex.correctedSentence}`} />
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{ex.explanationCs}</p>
+          </Feedback>
+        )}
+        {result !== null && <NextButton onClick={next} last={last} />}
+      </div>
+    </div>
+  );
 }

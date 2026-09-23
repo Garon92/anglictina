@@ -1,370 +1,208 @@
-import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useMemo, useRef, useState } from 'react';
 import { PREPOSITION_EXERCISES, PREPOSITION_CATEGORIES } from '../data/prepositions';
 import type { PrepositionExercise } from '../data/prepositions';
-import { shuffleArray } from '../utils';
+import { shuffleArray, uniqueBy } from '../utils';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
-type Phase = 'select' | 'drill' | 'result';
+type Phase = 'setup' | 'drill' | 'result';
+const LEVELS = ['all', 'A1', 'A2', 'B1'] as const;
+type Level = (typeof LEVELS)[number];
+const CATEGORY_KEYS = Object.keys(PREPOSITION_CATEGORIES);
 
-interface AnswerRecord {
-  exercise: PrepositionExercise;
-  selected: string;
-  correct: boolean;
+/** One exercise with its answer options shuffled once when the round is built. */
+interface Round {
+  ex: PrepositionExercise;
+  options: string[];
+  correctIndex: number;
+}
+
+const norm = (s: string) => s.trim().toLowerCase();
+
+function buildRound(ex: PrepositionExercise): Round {
+  const unique = uniqueBy(ex.options, norm);
+  if (!unique.some((o) => norm(o) === norm(ex.answer))) unique.push(ex.answer);
+  const options = shuffleArray(unique);
+  return { ex, options, correctIndex: options.findIndex((o) => norm(o) === norm(ex.answer)) };
 }
 
 export default function PrepositionsDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [cats, setCats] = useState<string[]>([]);
+  const [level, setLevel] = useState<Level>('all');
+  const [count, setCount] = useState(20);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [result, setResult] = useState<boolean | null>(null);
+  const leaving = useRef(false);
+  const session = useDrillSession('prepositions', { tags: cats.length ? cats : ['all'] });
 
-  const [phase, setPhase] = useState<Phase>('select');
-  const [selectedCats, setSelectedCats] = useState<string[]>([]);
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
+  const pool = useMemo(
+    () => PREPOSITION_EXERCISES.filter((e) => (!cats.length || cats.includes(e.category)) && (level === 'all' || e.level === level)),
+    [cats, level],
+  );
 
-  const [exercises, setExercises] = useState<PrepositionExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [answered, setAnswered] = useState(false);
-  const [answers, setAnswers] = useState<AnswerRecord[]>([]);
-  const [startTime, setStartTime] = useState(0);
+  const round = rounds[idx];
 
-  function toggleCat(cat: string) {
-    setSelectedCats((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-    );
+  function resetItem() {
+    setSelected(null);
+    setResult(null);
   }
 
-  function getFilteredPool(): PrepositionExercise[] {
-    let pool: PrepositionExercise[] = PREPOSITION_EXERCISES;
-    if (selectedLevel !== 'all') {
-      pool = pool.filter((e) => e.level === selectedLevel);
-    }
-    if (selectedCats.length > 0) {
-      pool = pool.filter((e) => selectedCats.includes(e.category));
-    }
-    return pool;
+  function start() {
+    if (!pool.length) return;
+    setRounds(shuffleArray(pool).slice(0, count).map(buildRound));
+    setIdx(0);
+    resetItem();
+    leaving.current = false;
+    session.start();
+    setPhase('drill');
   }
 
-  function startDrill() {
-    const pool = getFilteredPool();
-    if (pool.length === 0) return;
-    const selected = shuffleArray(pool).slice(0, 20);
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setSelectedOption(null);
-      setAnswered(false);
-      setAnswers([]);
-      setStartTime(Date.now());
-      setPhase('drill');
+  function choose(i: number) {
+    if (!round || result !== null) return;
+    const { ex, options, correctIndex } = round;
+    const correct = i === correctIndex;
+    setSelected(i);
+    setResult(correct);
+    session.answer({
+      itemId: ex.id,
+      category: ex.category,
+      prompt: ex.sentence,
+      options,
+      kind: 'mcq',
+      answer: options[correctIndex],
+      userAnswer: options[i],
+      explanation: ex.explanationCs,
+      correct,
     });
   }
 
-  function handleOptionClick(option: string) {
-    if (answered) return;
-    setSelectedOption(option);
-
-    const ex = exercises[currentIndex];
-    const isCorrect = option.toLowerCase() === ex.answer.toLowerCase();
-    if (isCorrect) playCorrect();
-    else playIncorrect();
-
-    setAnswers((prev) => [...prev, { exercise: ex, selected: option, correct: isCorrect }]);
-    setAnswered(true);
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      setCurrentIndex((i) => i + 1);
-      setSelectedOption(null);
-      setAnswered(false);
-    }
-  }
-
-  async function finishDrill() {
-    const correctCount = answers.filter((a) => a.correct).length;
-    const total = exercises.length;
-
-    const userStats = await getStats();
-    userStats.totalExercisesDone += total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: total,
-      correctItems: correctCount,
-      tags: ['prepositions'],
-    });
-
-    playComplete();
+  async function showResult() {
+    if (leaving.current) return;
+    leaving.current = true;
+    await session.finish();
     setPhase('result');
   }
 
-  function renderSentence(sentence: string) {
-    const parts = sentence.split('___');
-    if (parts.length < 2) return <span>{sentence}</span>;
-
-    return (
-      <>
-        {parts[0]}
-        <span className="inline-block min-w-[4rem] border-b-2 border-primary-500 text-center font-bold mx-1 px-1">
-          {answered && selectedOption ? selectedOption : '\u2026'}
-        </span>
-        {parts[1]}
-      </>
-    );
+  function next() {
+    if (result === null || leaving.current) return;
+    if (idx + 1 >= rounds.length) {
+      void showResult();
+    } else {
+      setIdx(idx + 1);
+      resetItem();
+    }
   }
 
-  const ex = exercises[currentIndex] as PrepositionExercise | undefined;
+  useKeyboard(result !== null ? { Enter: next, ' ': next } : {}, phase === 'drill');
 
-  const keyMap = useMemo(() => {
-    if (!ex || phase !== 'drill') return {};
-    if (answered) return { Enter: nextExercise, ' ': nextExercise };
-    const map: Record<string, () => void> = {};
-    ex.options.forEach((opt, i) => {
-      map[String(i + 1)] = () => handleOptionClick(opt);
-    });
-    return map;
-  }, [ex, phase, answered, currentIndex]);
-  useKeyboard(keyMap, phase === 'drill');
-
-  // ──── SELECT PHASE ────
-
-  if (phase === 'select') {
-    const poolSize = getFilteredPool().length;
-
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>
-          ← Zpět
-        </button>
-        <h1 className="page-title">Předložky</h1>
-        <p className="page-subtitle">
-          in, on, at a další — největší past angličtiny
-        </p>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Úroveň</h3>
-          <div className="flex gap-2">
-            {['all', 'A1', 'A2', 'B1'].map((lvl) => (
-              <button
-                key={lvl}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectedLevel === lvl
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => setSelectedLevel(lvl)}
-              >
-                {lvl === 'all' ? 'Vše' : lvl}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-            Kategorie {selectedCats.length > 0 && `(${selectedCats.length})`}
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(PREPOSITION_CATEGORIES).map(([key, label]) => (
-              <button
-                key={key}
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  selectedCats.includes(key)
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => toggleCat(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={poolSize === 0}
-          onClick={startDrill}
-        >
-          {poolSize === 0
-            ? 'Žádné cvičení pro tento filtr'
-            : `Začít (${Math.min(poolSize, 20)} otázek)`}
-        </button>
-      </div>
+      <DrillSetup
+        title="Předložky"
+        subtitle="in, on, at a další — jedna z největších pastí angličtiny. Vyber si oblast, nebo nech mix ze všeho."
+        icon="📌"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label={`Kategorie${cats.length ? ` (${cats.length})` : ' (vše)'}`}>
+          {CATEGORY_KEYS.map((c) => (
+            <Chip key={c} active={cats.includes(c)} onClick={() => setCats((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}>
+              <span className="whitespace-normal text-left">{PREPOSITION_CATEGORIES[c]}</span>
+            </Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
-
-  // ──── RESULT PHASE ────
 
   if (phase === 'result') {
-    const correctCount = answers.filter((a) => a.correct).length;
-    const total = answers.length;
-    const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
-    const wrong = answers.filter((a) => !a.correct);
-
     return (
-      <div className="page-container">
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center mb-6">
-          <div className="text-6xl mb-4">
-            {pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            Předložky hotové!
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-1">
-            {correctCount} / {total} správně ({pct} %)
-          </p>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-            {pct >= 80
-              ? 'Výborně, předložky ti jdou!'
-              : pct >= 50
-                ? 'Dobrý základ, procvičuj dál.'
-                : 'Nevadí, opakování dělá mistra!'}
-          </p>
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nové kolo"
+      >
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr</button>
         </div>
-
-        {wrong.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">
-              Chyby k zopakování ({wrong.length})
-            </h3>
-            <div className="space-y-3">
-              {wrong.map((a, i) => (
-                <div
-                  key={i}
-                  className="card !p-4 border-l-4 border-l-red-400"
-                >
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">
-                    {a.exercise.sentence.replace('___', `[${a.exercise.answer}]`)}
-                  </p>
-                  <p className="text-xs text-red-500 mb-1">
-                    Tvoje odpověď: <strong>{a.selected}</strong>
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                    {a.exercise.explanationCs}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex gap-3">
-          <button className="btn-secondary flex-1" onClick={() => navigate('/')}>
-            Domů
-          </button>
-          <button
-            className="btn-primary flex-1"
-            onClick={() => {
-              setPhase('select');
-              setSelectedCats([]);
-            }}
-          >
-            Znovu
-          </button>
-        </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  // ──── DRILL PHASE ────
-
-  if (!ex) return null;
-
-  const progress = currentIndex / exercises.length;
-  const isCorrect = answered && selectedOption?.toLowerCase() === ex.answer.toLowerCase();
+  if (!round) return null;
+  const { ex, options, correctIndex } = round;
+  const last = idx + 1 >= rounds.length;
+  const parts = ex.sentence.split(/_{3,}/);
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-4">
-        <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>
-          ← Zpět
-        </button>
-        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          {currentIndex + 1} / {exercises.length}
-        </span>
-      </div>
+      <DrillTopBar current={idx} total={rounds.length} correct={session.correct} onExit={() => void showResult()} title="Předložky" />
 
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{ width: `${progress * 100}%` }}
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{PREPOSITION_CATEGORIES[ex.category] || ex.category}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
+        </div>
+        <p className="mb-1 text-sm font-bold text-muted">Doplň správnou předložku:</p>
+        <p className="mb-5 text-xl leading-relaxed font-bold break-words text-fg" lang="en">
+          {parts.map((part, i) => (
+            <span key={i}>
+              {part}
+              {i < parts.length - 1 && (
+                <Gap
+                  picked={selected !== null ? options[selected] : null}
+                  answer={options[correctIndex]}
+                  result={result}
+                />
+              )}
+            </span>
+          ))}
+        </p>
+
+        <OptionList
+          options={options}
+          selected={selected}
+          correctIndex={correctIndex}
+          revealed={result !== null}
+          onSelect={choose}
+          columns={2}
         />
+
+        {result !== null && <Feedback correct={result} explanation={ex.explanationCs} />}
+        {result !== null && <NextButton onClick={next} last={last} />}
       </div>
-
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            {PREPOSITION_CATEGORIES[ex.category] || ex.category}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">
-            {ex.level}
-          </span>
-        </div>
-
-        <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6 leading-relaxed">
-          {renderSentence(ex.sentence)}
-        </h3>
-
-        <div className="grid grid-cols-2 gap-3">
-          {ex.options.map((opt, i) => {
-            let btnClass =
-              'w-full py-3.5 px-4 rounded-full text-center font-medium text-base transition-all active:scale-95 border-2 ';
-
-            if (!answered) {
-              btnClass +=
-                'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30';
-            } else if (opt.toLowerCase() === ex.answer.toLowerCase()) {
-              btnClass +=
-                'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
-            } else if (opt === selectedOption) {
-              btnClass +=
-                'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300';
-            } else {
-              btnClass +=
-                'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500';
-            }
-
-            return (
-              <button
-                key={i}
-                className={btnClass}
-                onClick={() => handleOptionClick(opt)}
-                disabled={answered}
-              >
-                <span className="text-xs text-slate-400 dark:text-slate-500 mr-1">{i + 1}</span>{' '}
-                {opt}
-                {answered && opt.toLowerCase() === ex.answer.toLowerCase() && ' ✓'}
-              </button>
-            );
-          })}
-        </div>
-
-        {answered && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-            <p className="text-sm text-blue-800 dark:text-blue-300">
-              💡 {ex.explanationCs}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {answered && (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length ? 'Zobrazit výsledky' : 'Další →'}
-        </button>
-      )}
     </div>
+  );
+}
+
+/** The blank in the sentence: "…" before answering, then the right answer (and the wrong pick struck through). */
+function Gap({ picked, answer, result }: { picked: string | null; answer: string; result: boolean | null }) {
+  if (result === null) {
+    return (
+      <span className="mx-1 inline-block min-w-[3.5rem] border-b-2 border-accent px-1 text-center text-accent-text">
+        <span aria-hidden="true">…</span>
+        <span className="sr-only">(mezera)</span>
+      </span>
+    );
+  }
+  return (
+    <span className="mx-1 inline-flex flex-wrap items-baseline gap-1.5">
+      {!result && picked && <span className="text-danger line-through decoration-2">{picked}</span>}
+      <span className="rounded-md bg-success-soft px-1.5 text-success">{answer}</span>
+    </span>
   );
 }

@@ -1,523 +1,445 @@
-import { useState, useMemo, Fragment, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ARTICLE_EXERCISES, ARTICLE_RULES } from '../data/articles';
 import type { ArticleExercise } from '../data/articles';
 import { shuffleArray } from '../utils';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { trackError } from '../errorTracker';
+import { Kbd, PageHeader } from '../components/ui';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
-type Phase = 'select' | 'rules' | 'drill' | 'result';
-type Tab = 'rules' | 'drill';
-type ArticleOption = 'a' | 'an' | 'the' | '-';
+type Phase = 'setup' | 'rules' | 'drill' | 'result';
+type Art = 'a' | 'an' | 'the' | '-';
 
-const ARTICLE_OPTIONS: { value: ArticleOption; label: string }[] = [
-  { value: 'a', label: 'a' },
-  { value: 'an', label: 'an' },
-  { value: 'the', label: 'the' },
-  { value: '-', label: '—' },
-];
-
+const ARTS: Art[] = ['a', 'an', 'the', '-'];
 const LEVELS = ['all', 'A1', 'A2', 'B1'] as const;
+type Level = (typeof LEVELS)[number];
 const RULE_KEYS = Object.keys(ARTICLE_RULES);
-const DRILL_COUNT = 20;
+const ZERO_HINT = '„–“ = bez členu';
+
+/** Display form of an article ("-" = zero article). */
+const label = (a: Art) => (a === '-' ? '–' : a);
+const spoken = (a: Art) => (a === '-' ? 'bez členu' : a);
+const comboText = (c: Art[]) => c.map(label).join(' … ');
+const ruleTitle = (rule: string) => ARTICLE_RULES[rule]?.titleCs ?? rule;
+/** Sentence split at the gaps — the order of the "___" is what matters (gap.position is not used). */
+const splitGaps = (ex: ArticleExercise) => ex.sentence.split(/_{3,}/);
+const gapCount = (ex: ArticleExercise) => Math.min(ex.gaps.length, Math.max(1, splitGaps(ex).length - 1));
+
+/**
+ * Answer options for the mistakes queue (MCQ, so the item can be asked again as it was):
+ * one gap → a / an / the / –; several gaps → the right combination, the learner's wrong one
+ * and combinations that differ in one gap.
+ */
+function mistakeOptions(answer: Art[], user: Art[]): string[] {
+  if (answer.length === 1) return ARTS.map(label);
+  const correct = comboText(answer);
+  const out = [correct];
+  const mine = comboText(user);
+  if (mine !== correct) out.push(mine);
+  const variants = shuffleArray(
+    answer.flatMap((_, i) => ARTS.filter((a) => a !== answer[i]).map((a) => comboText(answer.map((x, j) => (j === i ? a : x))))),
+  );
+  for (const v of variants) {
+    if (out.length >= 4) break;
+    if (!out.includes(v)) out.push(v);
+  }
+  return shuffleArray(out);
+}
 
 export default function ArticlesDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [level, setLevel] = useState<Level>('all');
+  const [rules, setRules] = useState<string[]>([]);
+  const [count, setCount] = useState(20);
+  const [items, setItems] = useState<ArticleExercise[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [picks, setPicks] = useState<(Art | null)[]>([]);
+  const [active, setActive] = useState(0);
+  const [result, setResult] = useState<boolean | null>(null);
+  const leaving = useRef(false);
+  const checkRef = useRef<HTMLButtonElement>(null);
+  const session = useDrillSession('articles', { tags: rules.length ? rules : ['all'] });
 
-  const [phase, setPhase] = useState<Phase>('select');
-  const [tab, setTab] = useState<Tab>('drill');
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [selectedRules, setSelectedRules] = useState<string[]>([]);
+  const pool = useMemo(
+    () => ARTICLE_EXERCISES.filter((e) => (!rules.length || rules.includes(e.rule)) && (level === 'all' || e.level === level)),
+    [rules, level],
+  );
 
-  const [exercises, setExercises] = useState<ArticleExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [gapAnswers, setGapAnswers] = useState<(ArticleOption | null)[]>([]);
-  const [checked, setChecked] = useState(false);
-  const [stats, setStats] = useState({ correct: 0, total: 0 });
-  const [startTime, setStartTime] = useState(0);
+  const ex = items[idx];
+  const parts = ex ? splitGaps(ex) : [];
+  const nGaps = ex ? gapCount(ex) : 0;
+  const answers: Art[] = ex ? ex.gaps.slice(0, nGaps).map((g) => g.answer) : [];
+  const allFilled = nGaps > 0 && picks.length === nGaps && picks.every((p) => p !== null);
 
-  function toggleRule(rule: string) {
-    setSelectedRules((prev) =>
-      prev.includes(rule) ? prev.filter((r) => r !== rule) : [...prev, rule],
-    );
+  function resetItem(n: number) {
+    setPicks(Array.from({ length: n }, () => null));
+    setActive(0);
+    setResult(null);
   }
 
-  function filteredPool() {
-    let pool = ARTICLE_EXERCISES;
-    if (selectedRules.length > 0) {
-      pool = pool.filter((e) => selectedRules.includes(e.rule));
-    }
-    if (selectedLevel !== 'all') {
-      pool = pool.filter((e) => e.level === selectedLevel);
-    }
-    return pool;
+  function start() {
+    if (!pool.length) return;
+    const picked = shuffleArray(pool).slice(0, count);
+    setItems(picked);
+    setIdx(0);
+    resetItem(picked[0] ? gapCount(picked[0]) : 0);
+    leaving.current = false;
+    session.start();
+    setPhase('drill');
   }
 
-  function startDrill() {
-    const pool = filteredPool();
-    const selected = shuffleArray(pool).slice(0, DRILL_COUNT);
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setGapAnswers(new Array(selected[0]?.gaps.length ?? 0).fill(null));
-      setChecked(false);
-      setStats({ correct: 0, total: 0 });
-      setStartTime(Date.now());
-      setPhase('drill');
+  function submit(final: (Art | null)[]) {
+    if (!ex || result !== null) return;
+    if (final.length !== nGaps || final.some((p) => p === null)) return;
+    const user = final as Art[];
+    const correct = user.every((p, i) => p === answers[i]);
+    setPicks(user);
+    setResult(correct);
+    session.answer({
+      itemId: ex.id,
+      category: ex.rule,
+      prompt: ex.sentence,
+      context: `Doplň členy (${ZERO_HINT}).`,
+      options: mistakeOptions(answers, user),
+      kind: 'mcq',
+      answer: comboText(answers),
+      userAnswer: comboText(user),
+      explanation: ex.explanationCs,
+      correct,
     });
   }
 
-  function setGapAnswer(gapIndex: number, value: ArticleOption) {
-    setGapAnswers((prev) => {
-      const next = [...prev];
-      next[gapIndex] = value;
-      return next;
-    });
+  /** Fill gap `i` and move on to the next empty gap. */
+  function pick(i: number, a: Art) {
+    if (result !== null || i < 0 || i >= nGaps) return;
+    const nextPicks = picks.slice(0, nGaps);
+    nextPicks[i] = a;
+    setPicks(nextPicks);
+    const after = Array.from({ length: nGaps }, (_, k) => (i + 1 + k) % nGaps).find((k) => nextPicks[k] === null);
+    if (after !== undefined) setActive(after);
   }
 
-  function checkAnswer() {
-    const ex = exercises[currentIndex];
-    let correctCount = 0;
-    for (let i = 0; i < ex.gaps.length; i++) {
-      const isGapCorrect = gapAnswers[i] === ex.gaps[i].answer;
-      if (isGapCorrect) correctCount++;
-      if (!isGapCorrect) {
-        trackError(
-          'grammar',
-          'articles_' + ex.rule,
-          ex.sentence,
-          gapAnswers[i] ?? '(prázdné)',
-          ex.gaps[i].answer === '-' ? '— (nic)' : ex.gaps[i].answer,
-        );
-      }
-    }
+  // When every gap is filled, focus "Ověřit" so that Enter checks the answer.
+  useEffect(() => {
+    if (phase === 'drill' && nGaps > 1 && allFilled && result === null) checkRef.current?.focus({ preventScroll: true });
+  }, [phase, nGaps, allFilled, result]);
 
-    const allCorrect = correctCount === ex.gaps.length;
-    if (allCorrect) {
-      playCorrect();
-    } else {
-      playIncorrect();
-    }
-
-    setStats((prev) => ({
-      correct: prev.correct + (allCorrect ? 1 : 0),
-      total: prev.total + 1,
-    }));
-    setChecked(true);
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      const nextIdx = currentIndex + 1;
-      setCurrentIndex(nextIdx);
-      setGapAnswers(new Array(exercises[nextIdx].gaps.length).fill(null));
-      setChecked(false);
-    }
-  }
-
-  async function finishDrill() {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += stats.total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: stats.total,
-      correctItems: stats.correct,
-      tags: ['articles', ...(selectedRules.length > 0 ? selectedRules : [])],
-    });
-
+  async function showResult() {
+    if (leaving.current) return;
+    leaving.current = true;
+    await session.finish();
     setPhase('result');
-    playComplete();
   }
 
-  // Keyboard shortcuts for single-gap exercises
-  const ex = phase === 'drill' ? exercises[currentIndex] : null;
-
-  const keyMap = useMemo(() => {
-    if (!ex || phase !== 'drill') return {};
-    if (checked) return { Enter: nextExercise, ' ': nextExercise };
-
-    const map: Record<string, () => void> = {};
-
-    if (ex.gaps.length === 1) {
-      map['1'] = () => setGapAnswer(0, 'a');
-      map['2'] = () => setGapAnswer(0, 'an');
-      map['3'] = () => setGapAnswer(0, 'the');
-      map['4'] = () => setGapAnswer(0, '-');
+  function next() {
+    if (result === null || leaving.current) return;
+    if (idx + 1 >= items.length) {
+      void showResult();
+    } else {
+      setIdx(idx + 1);
+      resetItem(gapCount(items[idx + 1]));
     }
+  }
 
-    map['Enter'] = () => {
-      if (gapAnswers.every((a) => a !== null)) checkAnswer();
-    };
+  const drillKeys: Record<string, () => void> = {};
+  if (phase === 'drill' && ex) {
+    if (result !== null) {
+      drillKeys.Enter = next;
+      drillKeys[' '] = next;
+    } else if (nGaps > 1) {
+      ARTS.forEach((a, i) => (drillKeys[String(i + 1)] = () => pick(active, a)));
+      drillKeys.ArrowLeft = () => setActive((k) => Math.max(0, k - 1));
+      drillKeys.ArrowRight = () => setActive((k) => Math.min(nGaps - 1, k + 1));
+      drillKeys.Enter = () => submit(picks);
+    }
+  }
+  useKeyboard(drillKeys, phase === 'drill');
 
-    return map;
-  }, [ex, phase, checked, gapAnswers]);
-  useKeyboard(keyMap, phase === 'drill');
-
-  // ─── SELECT PHASE ───
-  if (phase === 'select') {
-    const poolSize = filteredPool().length;
-
+  /* ─── Setup ─── */
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>
-          ← Zpět
-        </button>
-        <h1 className="page-title">Členy (Articles)</h1>
-        <p className="page-subtitle">a, an, the nebo nic? Největší past pro Čechy.</p>
-
-        {/* Tab switch */}
-        <div className="flex gap-2 mb-6">
-          <button
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              tab === 'rules'
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-            onClick={() => setTab('rules')}
-          >
-            Pravidla
+      <DrillSetup
+        title="Členy"
+        subtitle="a, an, the, nebo nic? Čeština členy nemá, proto jsou pro nás největší pastí."
+        icon="📐"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+        footer={
+          <button type="button" className="card card-link flex w-full items-center gap-3 !p-3 text-left" onClick={() => setPhase('rules')}>
+            <span className="tile-icon" aria-hidden="true">📖</span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold text-fg">Přehled pravidel</span>
+              <span className="block text-sm text-muted">Kdy použít a / an, kdy the a kdy žádný člen</span>
+            </span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
           </button>
-          <button
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              tab === 'drill'
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-            onClick={() => setTab('drill')}
-          >
-            Cvičení
-          </button>
-        </div>
-
-        {tab === 'rules' && (
-          <button
-            className="btn-primary btn-lg w-full"
-            onClick={() => setPhase('rules')}
-          >
-            Zobrazit přehled pravidel
-          </button>
-        )}
-
-        {tab === 'drill' && (
-          <>
-            {/* Level filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Úroveň</h3>
-              <div className="flex gap-2">
-                {LEVELS.map((lvl) => (
-                  <button
-                    key={lvl}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      selectedLevel === lvl
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                    onClick={() => setSelectedLevel(lvl)}
-                  >
-                    {lvl === 'all' ? 'Vše' : lvl}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Rule filter chips */}
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-                Pravidla {selectedRules.length > 0 && `(${selectedRules.length})`}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {RULE_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                      selectedRules.includes(key)
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                    onClick={() => toggleRule(key)}
-                  >
-                    {ARTICLE_RULES[key].titleCs}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              className="btn-primary btn-lg w-full"
-              onClick={startDrill}
-              disabled={poolSize === 0}
-            >
-              {poolSize > 0
-                ? `Začít (${Math.min(poolSize, DRILL_COUNT)} úloh)`
-                : 'Žádná cvičení pro tento filtr'}
-            </button>
-          </>
-        )}
-      </div>
+        }
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label={`Pravidla${rules.length ? ` (${rules.length})` : ' (vše)'}`}>
+          {RULE_KEYS.map((k) => (
+            <Chip key={k} active={rules.includes(k)} onClick={() => setRules((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))}>
+              <span className="whitespace-normal text-left">{ruleTitle(k)}</span>
+            </Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ─── RULES PHASE ───
+  /* ─── Rules overview ─── */
   if (phase === 'rules') {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => setPhase('select')}>
-          ← Zpět
+      <div className="page-container page-container--wide">
+        <button
+          type="button"
+          className="-ml-2 mb-2 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 text-sm font-bold text-muted hover:bg-surface-2 hover:text-fg"
+          onClick={() => setPhase('setup')}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          Členy
         </button>
-        <h1 className="page-title">Přehled pravidel</h1>
-        <p className="page-subtitle mb-6">Kdy použít a, an, the a kdy nic.</p>
-
-        <div className="space-y-4">
+        <PageHeader title="Přehled pravidel" subtitle="Kdy použít a, an, the a kdy žádný člen." icon="📖" back={null} />
+        <div className="grid items-start gap-4 md:grid-cols-2">
           {RULE_KEYS.map((key) => {
             const rule = ARTICLE_RULES[key];
+            const n = ARTICLE_EXERCISES.filter((e) => e.rule === key).length;
             return (
-              <div key={key} className="card !p-5">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                  {rule.titleCs}
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
-                  {rule.explanationCs}
-                </p>
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 space-y-1.5">
-                  {rule.examples.map((ex, i) => (
-                    <p
-                      key={i}
-                      className="text-sm text-slate-700 dark:text-slate-300 font-mono leading-relaxed"
-                    >
-                      {ex}
-                    </p>
+              <section key={key} className="card !p-5">
+                <h2 className="section-title !mb-2">{rule.titleCs}</h2>
+                <p className="mb-3 text-sm leading-relaxed text-muted">{rule.explanationCs}</p>
+                <ul className="space-y-1.5 rounded-xl bg-surface-2 p-3">
+                  {rule.examples.map((example, i) => (
+                    <li key={i} className="text-sm leading-relaxed break-words text-fg" lang="en">{example}</li>
                   ))}
-                </div>
-              </div>
+                </ul>
+                {n > 0 && (
+                  <button
+                    type="button"
+                    className="btn-soft mt-3"
+                    onClick={() => {
+                      setRules([key]);
+                      setPhase('setup');
+                    }}
+                  >
+                    Procvičit toto pravidlo ({n})
+                  </button>
+                )}
+              </section>
             );
           })}
         </div>
-      </div>
-    );
-  }
-
-  // ─── RESULT PHASE ───
-  if (phase === 'result') {
-    const pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
-    return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Členy hotové!
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-1">
-          {stats.correct} / {stats.total} správně ({pct} %)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80
-            ? 'Skvělé, členy ti jdou!'
-            : pct >= 50
-              ? 'Dobrý základ, zkus si projít pravidla.'
-              : 'Projdi si přehled pravidel a zkus znovu.'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>
-            Domů
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setPhase('select');
-              setSelectedRules([]);
-            }}
-          >
-            Znovu
-          </button>
+        <div className="mt-6 text-center">
+          <button type="button" className="btn-primary btn-lg" onClick={() => setPhase('setup')}>Jít procvičovat</button>
         </div>
       </div>
     );
   }
 
-  // ─── DRILL PHASE ───
+  /* ─── Result ─── */
+  if (phase === 'result') {
+    return (
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nové kolo"
+      >
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr</button>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('rules')}>Přehled pravidel</button>
+        </div>
+      </ResultScreen>
+    );
+  }
+
+  /* ─── Drill ─── */
   if (!ex) return null;
-
-  const allFilled = gapAnswers.every((a) => a !== null);
-  const sentenceParts = ex.sentence.split('___');
-
-  const gapResults = checked
-    ? ex.gaps.map((gap, i) => ({
-        correct: gapAnswers[i] === gap.answer,
-        expected: gap.answer,
-        given: gapAnswers[i],
-      }))
-    : null;
-
-  const allCorrect = gapResults?.every((r) => r.correct) ?? false;
+  const last = idx + 1 >= items.length;
+  const revealed = result !== null;
+  const wrongGaps = revealed ? answers.map((a, i) => ({ i, a, mine: picks[i] })).filter((g) => g.mine !== g.a) : [];
 
   return (
     <div className="page-container">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>
-          ← Zpět
-        </button>
-        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          {currentIndex + 1} / {exercises.length}
-        </span>
-      </div>
+      <DrillTopBar current={idx} total={items.length} correct={session.correct} onExit={() => void showResult()} title="Členy" />
 
-      {/* Progress bar */}
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{ width: `${(currentIndex / exercises.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Exercise card */}
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            {ARTICLE_RULES[ex.rule]?.titleCs ?? ex.rule}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">
-            {ex.level}
-          </span>
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{ruleTitle(ex.rule)}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
         </div>
-
-        {/* Sentence with inline gap selectors */}
-        <div className="text-lg leading-loose text-slate-900 dark:text-slate-100 mb-4">
-          {sentenceParts.map((part, i) => (
-            <Fragment key={i}>
-              <span>{part}</span>
-              {i < ex.gaps.length && (
-                <GapSelector
-                  index={i}
-                  selected={gapAnswers[i]}
-                  result={gapResults?.[i] ?? null}
-                  checked={checked}
-                  onSelect={(val) => setGapAnswer(i, val)}
+        <p className="mb-1 text-sm font-bold text-muted">
+          {nGaps > 1 ? `Doplň členy do všech ${nGaps} mezer` : 'Doplň člen'} ({ZERO_HINT}):
+        </p>
+        <p className="mb-5 text-xl leading-loose font-bold break-words text-fg" lang="en">
+          {parts.map((part, i) => (
+            <span key={i}>
+              {part}
+              {i < nGaps && (
+                <GapSlot
+                  n={i + 1}
+                  numbered={nGaps > 1}
+                  pick={picks[i] ?? null}
+                  answer={answers[i]}
+                  revealed={revealed}
+                  active={!revealed && nGaps > 1 && active === i}
                 />
               )}
-            </Fragment>
+            </span>
           ))}
-        </div>
+        </p>
 
-        {/* Keyboard hint for single-gap */}
-        {!checked && ex.gaps.length === 1 && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-            Klávesy: 1 = a · 2 = an · 3 = the · 4 = —
-          </p>
-        )}
-
-        {/* Feedback */}
-        {checked && (
+        {nGaps === 1 ? (
+          <OptionList
+            options={ARTS.map(label)}
+            selected={picks[0] ? ARTS.indexOf(picks[0]) : null}
+            correctIndex={ARTS.indexOf(answers[0])}
+            revealed={revealed}
+            onSelect={(i) => submit([ARTS[i]])}
+            columns={2}
+          />
+        ) : (
           <>
-            <div
-              className={`px-4 py-3 rounded-xl border-2 mb-3 ${
-                allCorrect
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
-                  : 'border-red-500 bg-red-50 dark:bg-red-900/30'
-              }`}
-            >
-              <span className="font-medium dark:text-slate-100">
-                {allCorrect ? '✅ Správně!' : '❌ Některé mezery jsou špatně'}
-              </span>
-              {!allCorrect && gapResults && (
-                <div className="mt-2 space-y-1">
-                  {gapResults.map((r, i) =>
-                    r.correct ? null : (
-                      <p key={i} className="text-sm text-red-600 dark:text-red-400">
-                        Mezera {i + 1}: tvoje „{r.given === '-' ? '—' : r.given}" →
-                        správně „{r.expected === '-' ? '— (nic)' : r.expected}"
-                      </p>
-                    ),
-                  )}
-                </div>
-              )}
+            <div className="space-y-2">
+              {answers.map((answer, i) => (
+                <GapRow
+                  key={i}
+                  n={i + 1}
+                  pick={picks[i] ?? null}
+                  answer={answer}
+                  revealed={revealed}
+                  active={!revealed && active === i}
+                  onPick={(a) => pick(i, a)}
+                  onFocus={() => setActive(i)}
+                />
+              ))}
             </div>
-
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
-                💡 {ex.explanationCs}
-              </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 opacity-75">
-                Pravidlo: {ARTICLE_RULES[ex.rule]?.titleCs ?? ex.rule}
-              </p>
-            </div>
+            {!revealed && (
+              <>
+                <button ref={checkRef} type="button" className="btn-primary btn-lg mt-4 w-full sm:w-auto" disabled={!allFilled} onClick={() => submit(picks)}>
+                  Ověřit
+                </button>
+                <p className="mt-3 hidden text-xs text-muted sm:block">
+                  Klávesy: <Kbd>1</Kbd>–<Kbd>4</Kbd> vyplní označenou mezeru (a / an / the / –), <Kbd>←</Kbd> <Kbd>→</Kbd> přepínají mezery,{' '}
+                  <Kbd>Enter</Kbd> ověří.
+                </p>
+              </>
+            )}
           </>
         )}
-      </div>
 
-      {/* Action button */}
-      {!checked ? (
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={!allFilled}
-          onClick={checkAnswer}
-        >
-          Zkontrolovat
-        </button>
-      ) : (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length ? 'Zobrazit výsledky' : 'Další úloha →'}
-        </button>
-      )}
+        {revealed && (
+          <Feedback correct={result} title={result ? undefined : nGaps > 1 ? 'Některé mezery nejsou správně' : undefined}>
+            {wrongGaps.length > 0 && (
+              <ul className="mt-1 space-y-0.5 text-sm text-fg">
+                {wrongGaps.map((g) => (
+                  <li key={g.i}>
+                    {nGaps > 1 && <>Mezera {g.i + 1}: </>}
+                    správně <strong lang="en">{label(g.a)}</strong>
+                    {g.a === '-' && <span className="text-muted"> (bez členu)</span>}
+                    {g.mine && (
+                      <span className="text-muted">
+                        {' '}(tvoje odpověď: <span lang="en">{label(g.mine)}</span>)
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-1.5 text-sm leading-relaxed text-muted">{ex.explanationCs}</div>
+            <div className="mt-1 text-xs text-muted">Pravidlo: {ruleTitle(ex.rule)}</div>
+          </Feedback>
+        )}
+        {revealed && <NextButton onClick={next} last={last} />}
+      </div>
     </div>
   );
 }
 
-// ─── Gap Selector (inline pill buttons) ───
+/* ─── Gap in the sentence (display only; the choices are the rows below / the option list) ─── */
 
-interface GapSelectorProps {
-  index: number;
-  selected: ArticleOption | null;
-  result: { correct: boolean; expected: string; given: string | null } | null;
-  checked: boolean;
-  onSelect: (value: ArticleOption) => void;
+function GapSlot({ n, numbered, pick, answer, revealed, active }: {
+  n: number;
+  numbered: boolean;
+  pick: Art | null;
+  answer: Art;
+  revealed: boolean;
+  active: boolean;
+}) {
+  if (revealed) {
+    const ok = pick === answer;
+    return (
+      <span className="mx-1 inline-flex flex-wrap items-baseline gap-1">
+        {!ok && pick && <span className="text-danger line-through decoration-2">{label(pick)}</span>}
+        <span className="rounded-md bg-success-soft px-1.5 text-success">{label(answer)}</span>
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`mx-1 inline-flex min-w-[3.25rem] items-baseline justify-center gap-1 rounded-md border-b-2 px-1.5 ${
+        active ? 'border-accent bg-accent-soft text-accent-text' : 'border-border-strong text-accent-text'
+      }`}
+    >
+      {numbered && <sup className="text-xs font-black text-muted">{n}</sup>}
+      {pick ? label(pick) : <span aria-hidden="true">…</span>}
+      {!pick && <span className="sr-only">(mezera {n})</span>}
+    </span>
+  );
 }
 
-function GapSelector({ index, selected, result, checked, onSelect }: GapSelectorProps) {
+/* ─── Chips for one gap (a / an / the / –) ─── */
+
+function GapRow({ n, pick, answer, revealed, active, onPick, onFocus }: {
+  n: number;
+  pick: Art | null;
+  answer: Art;
+  revealed: boolean;
+  active: boolean;
+  onPick: (a: Art) => void;
+  onFocus: () => void;
+}) {
   return (
-    <span className="inline-flex items-center gap-1 mx-1 align-baseline">
-      {ARTICLE_OPTIONS.map((opt) => {
-        let classes =
-          'px-2.5 py-0.5 rounded-full text-sm font-medium cursor-pointer transition-all border ';
-
-        if (checked && result) {
-          if (opt.value === result.expected) {
-            classes += 'bg-green-100 dark:bg-green-900/40 border-green-500 text-green-800 dark:text-green-300';
-          } else if (opt.value === selected && !result.correct) {
-            classes += 'bg-red-100 dark:bg-red-900/40 border-red-500 text-red-800 dark:text-red-300';
-          } else {
-            classes += 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500';
-          }
-        } else if (selected === opt.value) {
-          classes += 'bg-primary-500 border-primary-500 text-white';
-        } else {
-          classes +=
-            'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20';
+    <div
+      className={`grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-1.5 rounded-xl border p-1.5 sm:gap-2 sm:p-2 ${active ? 'border-accent bg-accent-softer' : 'border-transparent'}`}
+      role="group"
+      aria-label={`Mezera ${n}`}
+      onFocus={onFocus}
+    >
+      <span className={`exam-task-no ${revealed ? (pick === answer ? 'is-ok' : 'is-bad') : ''}`} aria-hidden="true">{n}</span>
+      {ARTS.map((a) => {
+        let tone = '';
+        if (revealed) {
+          if (a === answer) tone = '!border-success !bg-success-soft !text-success font-bold';
+          else if (a === pick) tone = '!border-danger !bg-danger-soft !text-danger line-through';
+          else tone = 'opacity-50';
         }
-
         return (
           <button
-            key={`${index}-${opt.value}`}
-            className={classes}
-            onClick={() => !checked && onSelect(opt.value)}
-            disabled={checked}
-            aria-label={`Gap ${index + 1}: ${opt.label}`}
+            key={a}
+            type="button"
+            className={`g92-chip w-full justify-center !px-2 !text-base ${tone}`}
+            aria-pressed={pick === a}
+            aria-label={`Mezera ${n}: ${spoken(a)}`}
+            disabled={revealed}
+            onClick={() => onPick(a)}
           >
-            {opt.label}
+            {label(a)}
           </button>
         );
       })}
-    </span>
+    </div>
   );
 }

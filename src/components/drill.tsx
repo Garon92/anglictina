@@ -140,7 +140,9 @@ export function DrillSetup({
   subtitle,
   icon,
   back = '/practice',
+  backLabel,
   poolSize,
+  poolLabel,
   onStart,
   startLabel = 'Začít',
   children,
@@ -153,8 +155,11 @@ export function DrillSetup({
   subtitle?: ReactNode;
   icon?: string;
   back?: string;
+  backLabel?: string;
   /** Number of available items after filters (0 disables the start button). */
   poolSize?: number;
+  /** Custom text next to the start button (instead of "K dispozici N úloh"). */
+  poolLabel?: ReactNode;
   onStart: () => void;
   startLabel?: string;
   children?: ReactNode;
@@ -166,7 +171,7 @@ export function DrillSetup({
   const empty = poolSize !== undefined && poolSize === 0;
   return (
     <div className="page-container">
-      <PageHeader title={title} subtitle={subtitle} icon={icon} back={back} />
+      <PageHeader title={title} subtitle={subtitle} icon={icon} back={back} backLabel={backLabel} />
       <div className="card space-y-5 !p-5">
         {children}
         {onCountChange && count !== undefined && (
@@ -182,11 +187,13 @@ export function DrillSetup({
           <button type="button" className="btn-primary btn-lg min-w-[10rem]" onClick={onStart} disabled={empty}>
             {startLabel}
           </button>
-          {poolSize !== undefined && (
+          {poolLabel !== undefined && !empty ? (
+            <span className="text-sm text-muted">{poolLabel}</span>
+          ) : poolSize !== undefined ? (
             <span className="text-sm text-muted">
               {empty ? 'Pro tento výběr nejsou žádné úlohy — uprav filtry.' : `K dispozici ${poolSize} ${poolSize === 1 ? 'úloha' : poolSize < 5 ? 'úlohy' : 'úloh'}`}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
       {footer && <div className="mt-5">{footer}</div>}
@@ -221,11 +228,14 @@ export function DrillTopBar({
   onExit,
   title,
   extra,
+  counter,
 }: {
   /** 0-based index of the current item */
   current: number;
   total: number;
   correct?: number;
+  /** Custom counter text (default "N / total"), e.g. "2 / 6 párů". */
+  counter?: ReactNode;
   /** Called after the user confirms leaving (only asked when something was answered). */
   onExit: () => void;
   title?: string;
@@ -259,7 +269,7 @@ export function DrillTopBar({
           </span>
         )}
         <span className="text-sm font-bold tabular-nums text-muted" aria-live="polite">
-          {Math.min(current + 1, total)} / {total}
+          {counter ?? `${Math.min(current + 1, total)} / ${total}`}
         </span>
       </div>
       <ProgressBar value={current} max={total} label="Průběh cvičení" />
@@ -502,13 +512,24 @@ function pickPraise() {
 
 export function NextButton({ onClick, last = false, label }: { onClick: () => void; last?: boolean; label?: string }) {
   const ref = useRef<HTMLButtonElement>(null);
+  const shownAt = useRef(0);
   useEffect(() => {
+    shownAt.current = performance.now();
     // Focus so that Enter/Space continue, without scrolling the page.
     const t = window.setTimeout(() => ref.current?.focus({ preventScroll: true }), 30);
     return () => window.clearTimeout(t);
   }, []);
   return (
-    <button ref={ref} type="button" className="btn-primary btn-lg mt-4 w-full sm:w-auto" onClick={onClick}>
+    <button
+      ref={ref}
+      type="button"
+      className="btn-primary btn-lg mt-4 w-full sm:w-auto"
+      onClick={() => {
+        // A quick double Enter/tap would skip the feedback — ignore presses in the first 350 ms.
+        if (performance.now() - shownAt.current < 350) return;
+        onClick();
+      }}
+    >
       {label ?? (last ? 'Zobrazit výsledek' : 'Další')}
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="m9 6 6 6-6 6" />

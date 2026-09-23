@@ -399,7 +399,7 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
   },
   {
     id: 'wrt_11',
-    type: 'essay',
+    type: 'article',
     titleCs: 'Článek o zajímavém místě (Article)',
     level: 'B1',
     structureCs:

@@ -35,7 +35,7 @@ export const GROUPS: { id: ModuleGroup; title: string; desc: string; icon: strin
 export const MODULES: ModuleDef[] = [
   // Slovní zásoba
   { id: 'vocab', path: '/vocab', title: 'Slovíčka', desc: '2 800+ nejčastějších slov s chytrým opakováním', icon: '🗂️', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'srs karticky ngsl slovicka opakovani' },
-  { id: 'vocab_topics', path: '/vocab-topics', title: 'Slovíčka podle témat', desc: 'Maturitní témata s příklady', icon: '🧭', group: 'vocab', keywords: 'temata rodina cestovani' },
+  { id: 'vocab_topics', path: '/vocab-topics', title: 'Slovíčka podle témat', desc: 'Maturitní témata s příklady', icon: '🧭', group: 'vocab', tracked: true, keywords: 'temata rodina cestovani' },
   { id: 'phrasal_verbs', path: '/phrasal-verbs', title: 'Frázová slovesa', desc: 'get up, look after, give up…', icon: '🧩', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'phrasal verbs' },
   { id: 'idioms', path: '/idioms', title: 'Idiomy a kolokace', desc: 'Ustálená spojení', icon: '💎', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'idioms collocations make do' },
   { id: 'irregular_verbs', path: '/irregular-verbs', title: 'Nepravidelná slovesa', desc: 'go – went – gone', icon: '🔁', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'irregular verbs past participle' },

@@ -88,7 +88,7 @@ export interface PhrasalVerbEntry {
 
 export interface WritingTemplate {
   id: string;
-  type: 'email' | 'letter' | 'essay' | 'description';
+  type: 'email' | 'letter' | 'essay' | 'description' | 'article' | 'story';
   titleCs: string;
   level: 'A2' | 'B1';
   structureCs: string;

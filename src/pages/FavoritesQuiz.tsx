@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
-import { getFavorites, type FavoriteItem } from '../favorites';
-import { shuffleArray } from '../utils';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { speak } from '../tts';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router';
+import { useFavorites, type FavoriteItem } from '../favorites';
+import { VOCABULARY } from '../data/vocabulary';
+import { shuffleArray, uniqueBy } from '../utils';
+import { speak, stopSpeaking } from '../tts';
+import { useSettings } from '../App';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { EmptyState, PageHeader, SpeakButton } from '../components/ui';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
+type Phase = 'setup' | 'drill' | 'result';
 type Mode = 'en_to_cs' | 'cs_to_en' | 'listen';
 
 interface QuizItem {
@@ -14,215 +20,254 @@ interface QuizItem {
   correctIndex: number;
 }
 
-function buildQuiz(favs: FavoriteItem[], mode: Mode): QuizItem[] {
-  const items = shuffleArray([...favs]);
-  return items.map((fav) => {
-    const isReverse = mode === 'cs_to_en';
-    const correct = isReverse ? fav.text : fav.translation;
-    const pool = shuffleArray(favs.filter((f) => f.id !== fav.id));
-    const wrongs = pool.slice(0, 3).map((f) => isReverse ? f.text : f.translation);
-    while (wrongs.length < 3) wrongs.push(`---`);
-    const opts = shuffleArray([correct, ...wrongs]);
-    return { fav, options: opts, correctIndex: opts.indexOf(correct) };
-  });
+const MODES: { id: Mode; label: string; desc: string }[] = [
+  { id: 'en_to_cs', label: '🇬🇧 → 🇨🇿 Angličtina → čeština', desc: 'Vyber český překlad anglického slova.' },
+  { id: 'cs_to_en', label: '🇨🇿 → 🇬🇧 Čeština → angličtina', desc: 'Vyber anglický výraz k českému slovu.' },
+  { id: 'listen', label: '🎧 Poslech → čeština', desc: 'Poslechni si slovo a vyber jeho překlad.' },
+];
+
+const MIN_FAVS = 4;
+const norm = (s: string) => s.trim().toLowerCase();
+
+/** What is shown / asked in a mode. */
+const promptOf = (f: { text: string; translation: string }, mode: Mode) => (mode === 'cs_to_en' ? f.translation : f.text);
+const answerOf = (f: { text: string; translation: string }, mode: Mode) => (mode === 'cs_to_en' ? f.text : f.translation);
+
+/**
+ * Build the quiz once per round: one question per distinct prompt, 4 options unique by text.
+ * Distractors come from other favourites first; when there aren't enough, from the vocabulary.
+ */
+function buildQuiz(favs: FavoriteItem[], mode: Mode, count: number): QuizItem[] {
+  const usable = uniqueBy(
+    favs.filter((f) => f.text.trim() && f.translation.trim()),
+    (f) => norm(promptOf(f, mode)),
+  );
+  const vocabPool = VOCABULARY.map((w) => ({ text: w.en, translation: w.cs }));
+  return shuffleArray(usable)
+    .slice(0, count)
+    .map((fav) => {
+      const correct = answerOf(fav, mode);
+      const prompt = norm(promptOf(fav, mode));
+      const taken = new Set([norm(correct)]);
+      const distractors: string[] = [];
+      // A candidate is only a fair distractor if it answers a *different* prompt.
+      const add = (cands: { text: string; translation: string }[]) => {
+        for (const c of cands) {
+          if (distractors.length >= 3) return;
+          const a = answerOf(c, mode);
+          if (!a.trim() || taken.has(norm(a)) || norm(promptOf(c, mode)) === prompt) continue;
+          taken.add(norm(a));
+          distractors.push(a);
+        }
+      };
+      add(shuffleArray(favs));
+      if (distractors.length < 3) add(shuffleArray(vocabPool).slice(0, 200));
+      const options = shuffleArray([correct, ...distractors]);
+      return { fav, options, correctIndex: options.indexOf(correct) };
+    });
 }
 
 export default function FavoritesQuiz() {
-  const navigate = useNavigate();
-  const [favs, setFavs] = useState<FavoriteItem[]>([]);
+  const favs = useFavorites();
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
   const [mode, setMode] = useState<Mode>('en_to_cs');
+  const [count, setCount] = useState(20);
   const [quiz, setQuiz] = useState<QuizItem[]>([]);
-  const [started, setStarted] = useState(false);
-  const [current, setCurrent] = useState(0);
+  const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [done, setDone] = useState(false);
-  const [startTime, setStartTime] = useState(0);
+  const [result, setResult] = useState<boolean | null>(null);
+  const session = useDrillSession('favorites_quiz', { tags: [mode] });
 
+  const rate = settings.ttsRate || 0.9;
+  const item = quiz[idx];
+
+  const distinct = useMemo(() => uniqueBy(favs, (f) => norm(promptOf(f, mode))).length, [favs, mode]);
+  const countOptions = useMemo(() => {
+    const opts = [10, 20].filter((n) => n < distinct);
+    return [...opts, distinct];
+  }, [distinct]);
+  const effectiveCount = Math.min(count, distinct);
+
+  // Listening mode: read each new word aloud.
   useEffect(() => {
-    setFavs(getFavorites());
-  }, []);
+    if (phase === 'drill' && mode === 'listen' && item) void speak(item.fav.text, rate);
+  }, [phase, mode, item, rate]);
+
+  useEffect(() => () => stopSpeaking(), []);
 
   function start() {
-    const q = buildQuiz(favs, mode);
-    setQuiz(q);
-    setStarted(true);
-    setCurrent(0);
+    setQuiz(buildQuiz(favs, mode, effectiveCount));
+    setIdx(0);
     setSelected(null);
-    setScore(0);
-    setDone(false);
-    setStartTime(Date.now());
-    if (mode === 'listen' && q.length > 0) {
-      speak(q[0].fav.text, 0.9);
-    }
+    setResult(null);
+    session.start();
+    setPhase('drill');
   }
 
-  async function finish(finalScore: number) {
-    setDone(true);
-    playComplete();
-    const stats = await getStats();
-    stats.totalExercisesDone += quiz.length;
-    stats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(stats);
-    await updateStreak();
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'vocab',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: quiz.length,
-      correctItems: finalScore,
-      tags: ['favorites_quiz'],
+  function submit(opt: number) {
+    if (!item || result !== null) return;
+    const correct = opt === item.correctIndex;
+    setSelected(opt);
+    setResult(correct);
+    session.answer({
+      itemId: `${item.fav.id}:${mode}`,
+      category: item.fav.type,
+      prompt: mode === 'cs_to_en' ? item.fav.translation : item.fav.text,
+      options: item.options,
+      kind: 'mcq',
+      answer: item.options[item.correctIndex],
+      userAnswer: item.options[opt],
+      context: mode === 'listen' ? 'Poslech z oblíbených' : undefined,
+      correct,
     });
   }
 
-  function handleSelect(idx: number) {
-    if (selected !== null) return;
-    setSelected(idx);
-    const correct = idx === quiz[current].correctIndex;
-    if (correct) { setScore((s) => s + 1); playCorrect(); }
-    else playIncorrect();
-
-    setTimeout(() => {
-      const next = current + 1;
-      if (next >= quiz.length) {
-        finish(score + (correct ? 1 : 0));
-      } else {
-        setCurrent(next);
-        setSelected(null);
-        if (mode === 'listen') speak(quiz[next].fav.text, 0.9);
-      }
-    }, 1200);
+  async function finish() {
+    stopSpeaking();
+    await session.finish();
+    setPhase('result');
   }
 
-  if (favs.length < 4) {
+  async function next() {
+    if (idx + 1 >= quiz.length) await finish();
+    else {
+      setIdx(idx + 1);
+      setSelected(null);
+      setResult(null);
+    }
+  }
+
+  useKeyboard(result !== null ? { Enter: () => void next() } : {}, phase === 'drill');
+
+  if (phase === 'setup' && favs.length < MIN_FAVS) {
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">⭐</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Málo oblíbených</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-6">
-          Pro kvíz potřebuješ alespoň 4 uložené položky. Přidej si slova z vyhledávání nebo ze slovníku.
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/favorites')}>Oblíbené</button>
-          <button className="btn-primary" onClick={() => navigate('/search')}>Hledat slova</button>
-        </div>
+      <div className="page-container">
+        <PageHeader title="Kvíz z oblíbených" icon="💛" subtitle="Procvič si slova, která sis uložil/a." />
+        <EmptyState
+          icon="⭐"
+          title="Zatím málo oblíbených"
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link to="/vocab" className="btn-primary no-underline">Jít na slovíčka</Link>
+              <Link to="/favorites" className="btn-secondary no-underline">Moje oblíbené</Link>
+            </div>
+          }
+        >
+          Pro kvíz potřebuješ alespoň {MIN_FAVS} uložené položky (teď máš {favs.length}). Slova si přidáš hvězdičkou ⭐ u slovíček, idiomů nebo ve{' '}
+          <Link to="/search">vyhledávání</Link>.
+        </EmptyState>
       </div>
     );
   }
 
-  if (!started) {
+  if (phase === 'setup') {
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">⭐</div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Kvíz z oblíbených</h1>
-        <p className="text-slate-500 dark:text-slate-400 mb-4">
-          {favs.length} položek k procvičení
-        </p>
-
-        <div className="space-y-2 mb-6 w-full max-w-xs">
-          {([
-            { id: 'en_to_cs', label: '🇬🇧 → 🇨🇿  Angličtina → Čeština', desc: 'Přeložte anglické slovo' },
-            { id: 'cs_to_en', label: '🇨🇿 → 🇬🇧  Čeština → Angličtina', desc: 'Přeložte české slovo' },
-            { id: 'listen', label: '🎧 Poslech → Čeština', desc: 'Přeložte vyslovené slovo' },
-          ] as { id: Mode; label: string; desc: string }[]).map((m) => (
-            <button
-              key={m.id}
-              className={`card w-full text-left !p-3 transition-all ${mode === m.id ? 'ring-2 ring-primary-500' : ''}`}
-              onClick={() => setMode(m.id)}
-            >
-              <div className="font-medium text-slate-800 dark:text-slate-200 text-sm">{m.label}</div>
-              <div className="text-xs text-slate-400">{m.desc}</div>
-            </button>
+      <DrillSetup
+        title="Kvíz z oblíbených"
+        subtitle={`${favs.length} ${favs.length < 5 ? 'uložené položky' : 'uložených položek'} k procvičení.`}
+        icon="💛"
+        onStart={start}
+        poolSize={distinct}
+        count={effectiveCount}
+        onCountChange={setCount}
+        countOptions={countOptions}
+        footer={
+          <p className="text-center text-sm text-muted">
+            Seznam si upravíš v <Link to="/favorites">Oblíbených</Link>.
+          </p>
+        }
+      >
+        <FilterGroup label="Směr" hint={MODES.find((m) => m.id === mode)?.desc}>
+          {MODES.map((m) => (
+            <Chip key={m.id} active={mode === m.id} onClick={() => setMode(m.id)}>
+              {m.label}
+            </Chip>
           ))}
-        </div>
-
-        <button className="btn-primary btn-lg" onClick={start}>Začít kvíz</button>
-        <button className="btn-ghost text-sm mt-4" onClick={() => navigate('/favorites')}>← Zpět na oblíbené</button>
-      </div>
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  if (done) {
-    const pct = quiz.length > 0 ? Math.round((score / quiz.length) * 100) : 0;
+  if (phase === 'result') {
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Hotovo!</h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-1">{score} / {quiz.length} ({pct}%)</p>
-        <p className="text-sm text-slate-400 mb-6">
-          {pct >= 80 ? 'Výborně, tvoje oblíbené slova umíš!' : pct >= 50 ? 'Dobrá práce, pokračuj!' : 'Opakování dělá mistra!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/favorites')}>Oblíbené</button>
-          <button className="btn-primary" onClick={start}>Znovu</button>
+      <ResultScreen correct={session.correct} total={session.total} mistakes={session.mistakes} onRestart={start} restartLabel="Nové kolo">
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <button type="button" className="btn-ghost" onClick={() => setPhase('setup')}>
+            Změnit směr
+          </button>
+          <Link to="/favorites" className="btn-ghost no-underline">
+            Moje oblíbené
+          </Link>
         </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  const item = quiz[current];
+  if (!item) return null;
+  const last = idx + 1 >= quiz.length;
   const isListen = mode === 'listen';
   const isCsToEn = mode === 'cs_to_en';
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{current + 1}/{quiz.length}</span>
-        <span className="text-sm text-slate-400">Skóre: {score}</span>
-      </div>
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div className="bg-yellow-500 h-full rounded-full transition-all duration-300" style={{ width: `${((current + 1) / quiz.length) * 100}%` }} />
-      </div>
+      <DrillTopBar
+        current={idx}
+        total={quiz.length}
+        correct={session.correct}
+        onExit={() => void finish()}
+        title="Kvíz z oblíbených"
+        extra={<span className="badge !bg-warning-soft !text-warning">{isListen ? 'Poslech' : isCsToEn ? 'CZ → EN' : 'EN → CZ'}</span>}
+      />
 
-      <div className="card !p-6 mb-4 text-center">
-        <span className="badge bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs mb-3 inline-block">
-          {isListen ? 'Poslech' : isCsToEn ? 'CZ → EN' : 'EN → CZ'}
-        </span>
-
+      <div className="card !p-5">
         {isListen ? (
-          <div className="mb-4">
-            <button
-              className="text-primary-500 hover:text-primary-700 p-3 rounded-full bg-primary-50 dark:bg-primary-900/20"
-              onClick={() => speak(item.fav.text, 0.9)}
-            >
-              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07zM14.657 5.929a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-2.343-5.657 1 1 0 010-1.414z" />
-              </svg>
-            </button>
-            <p className="text-xs text-slate-400 mt-2">Klikni pro přehrání</p>
+          <div className="mb-5 flex flex-col items-center gap-2 text-center">
+            <SpeakButton onClick={() => void speak(item.fav.text, rate)} size="lg" label="Přehrát slovo znovu" />
+            <p className="text-sm text-muted">Co znamená slovo, které slyšíš?</p>
+            {result !== null && (
+              <p className="text-xl font-black break-words text-fg" lang="en">
+                {item.fav.text}
+              </p>
+            )}
           </div>
         ) : (
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-            {isCsToEn ? item.fav.translation : item.fav.text}
-          </h3>
+          <>
+            <p className="mb-1 text-sm font-bold text-muted">{isCsToEn ? 'Jak se to řekne anglicky?' : 'Co to znamená?'}</p>
+            <div className="mb-4 flex items-center gap-3">
+              <p className="min-w-0 flex-1 text-2xl font-black break-words text-fg" lang={isCsToEn ? 'cs' : 'en'}>
+                {isCsToEn ? item.fav.translation : item.fav.text}
+              </p>
+              {!isCsToEn && <SpeakButton onClick={() => void speak(item.fav.text, rate)} label={`Přehrát „${item.fav.text}“`} />}
+            </div>
+          </>
         )}
 
-        <div className="space-y-2">
-          {item.options.map((opt, idx) => {
-            let cls = 'w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm ';
-            if (selected === null) {
-              cls += 'border-slate-200 dark:border-slate-600 hover:border-yellow-400 text-slate-700 dark:text-slate-200';
-            } else if (idx === item.correctIndex) {
-              cls += 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 font-medium';
-            } else if (idx === selected) {
-              cls += 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200';
-            } else {
-              cls += 'border-slate-200 dark:border-slate-600 text-slate-400 opacity-60';
+        <OptionList
+          key={`${idx}-${item.fav.id}`}
+          options={item.options}
+          selected={selected}
+          correctIndex={item.correctIndex}
+          revealed={result !== null}
+          onSelect={submit}
+          lang={isCsToEn ? 'en' : 'cs'}
+        />
+
+        {result !== null && (
+          <Feedback
+            correct={result}
+            answer={item.options[item.correctIndex]}
+            explanation={
+              <span>
+                <span lang="en" className="font-bold text-fg">
+                  {item.fav.text}
+                </span>{' '}
+                — {item.fav.translation}
+              </span>
             }
-            return (
-              <button key={idx} className={cls} onClick={() => handleSelect(idx)} disabled={selected !== null}>
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-
-        {selected !== null && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-            {item.fav.text} — {item.fav.translation}
-          </p>
+          />
         )}
+        {result !== null && <NextButton onClick={() => void next()} last={last} />}
       </div>
     </div>
   );

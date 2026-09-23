@@ -1,298 +1,376 @@
-import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { READING_TEXTS } from '../data/reading';
-import type { ReadingText, ReadingQuestion } from '../types';
+import { MATURITA_TOPICS, type ReadingText } from '../types';
+import { kvGet, kvSet } from '../db';
+import { shuffleArray } from '../utils';
+import { useKeyboard } from '../hooks/useKeyboard';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
-type Phase = 'select' | 'reading' | 'questions' | 'result';
+type Phase = 'setup' | 'drill' | 'result';
+type Level = 'all' | ReadingText['level'];
+type BestMap = Record<string, { correct: number; total: number }>;
+
+const LEVELS: Level[] = ['all', 'A1', 'A2', 'B1'];
+const BEST_KEY = 'reading:best';
+
+const TOPIC_LABELS: Record<string, string> = Object.fromEntries(MATURITA_TOPICS.map((t) => [t.id, t.cs]));
+const topicLabel = (id: string) => TOPIC_LABELS[id] ?? id;
+
+/** Topics that have at least one text, in the order of the maturita topic list. */
+const TOPICS = MATURITA_TOPICS.map((t) => t.id as string).filter((id) => READING_TEXTS.some((t) => t.topic === id));
+for (const t of READING_TEXTS) if (!TOPICS.includes(t.topic)) TOPICS.push(t.topic);
+
+const LEVEL_BADGE: Record<string, string> = {
+  A1: '!bg-success-soft !text-success',
+  A2: '!bg-info-soft !text-info',
+  B1: '!bg-accent-soft !text-accent-text',
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  truefalse: 'True / False',
+  tfns: 'True / False / Not stated',
+};
+
+function LevelBadge({ level }: { level: string }) {
+  return <span className={`badge ${LEVEL_BADGE[level] ?? ''}`}>{level}</span>;
+}
+
+function plural(n: number, one: string, few: string, many: string) {
+  return n === 1 ? one : n >= 2 && n <= 4 ? few : many;
+}
+
+function wordCount(text: string) {
+  return text.trim().split(/\s+/).length;
+}
 
 export default function ReadingPractice() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
-  const [phase, setPhase] = useState<Phase>('select');
-  const [selectedText, setSelectedText] = useState<ReadingText | null>(null);
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>([]);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [startTime, setStartTime] = useState(0);
-  const [filterLevel, setFilterLevel] = useState<string>('all');
-  const [filterTopic, setFilterTopic] = useState<string>('all');
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [level, setLevel] = useState<Level>('all');
+  const [topic, setTopic] = useState<string>('all');
+  const [text, setText] = useState<ReadingText | null>(null);
+  const [idx, setIdx] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [result, setResult] = useState<boolean | null>(null);
+  const [best, setBest] = useState<BestMap>({});
+  /** Best result before the current attempt (for the "new record" message). */
+  const [prevBest, setPrevBest] = useState<{ correct: number; total: number } | null>(null);
+  const [completed, setCompleted] = useState(false);
+  const correctRef = useRef(0);
+  const textRef = useRef<HTMLElement>(null);
+  const questionsRef = useRef<HTMLElement>(null);
+  const session = useDrillSession('reading', { tags: text ? [text.topic, text.id] : [] });
 
-  const filteredTexts = READING_TEXTS.filter((t) => {
-    if (filterLevel !== 'all' && t.level !== filterLevel) return false;
-    if (filterTopic !== 'all' && t.topic !== filterTopic) return false;
-    return true;
-  });
+  useEffect(() => {
+    let alive = true;
+    kvGet<BestMap>(BEST_KEY)
+      .then((b) => {
+        if (alive && b && typeof b === 'object') setBest(b);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  const topics = [...new Set(READING_TEXTS.map((t) => t.topic))];
+  const pool = useMemo(
+    () => READING_TEXTS.filter((t) => (level === 'all' || t.level === level) && (topic === 'all' || t.topic === topic)),
+    [level, topic],
+  );
 
-  function selectText(text: ReadingText) {
-    startTransition(() => {
-      setSelectedText(text);
-      setAnswers(new Array(text.questions.length).fill(null));
-      setCurrentQ(0);
-      setStartTime(Date.now());
-      setPhase('reading');
+  const q = text?.questions[idx];
+  const paragraphs = useMemo(() => (text ? text.text.split(/\n+/).map((p) => p.trim()).filter(Boolean) : []), [text]);
+
+  function resetItem() {
+    setSelected(null);
+    setResult(null);
+  }
+
+  function startText(t: ReadingText) {
+    setText(t);
+    setIdx(0);
+    resetItem();
+    setCompleted(false);
+    setPrevBest(best[t.id] ?? null);
+    correctRef.current = 0;
+    session.start();
+    setPhase('drill');
+    window.scrollTo({ top: 0 });
+  }
+
+  function startRandom() {
+    if (!pool.length) return;
+    // Prefer texts that haven't been read yet.
+    const fresh = pool.filter((t) => !best[t.id]);
+    const pick = shuffleArray(fresh.length ? fresh : pool)[0];
+    startText(pick);
+  }
+
+  function submit(opt: number) {
+    if (!text || !q || result !== null) return;
+    const correct = opt === q.answerIndex;
+    setSelected(opt);
+    setResult(correct);
+    if (correct) correctRef.current += 1;
+    session.answer({
+      itemId: q.id,
+      category: text.topic,
+      prompt: q.question,
+      options: q.options,
+      kind: 'mcq',
+      answer: q.options[q.answerIndex],
+      userAnswer: q.options[opt],
+      context: `Otázka k textu „${text.title}“ (${text.level})`,
+      correct,
     });
   }
 
-  function startQuestions() {
-    startTransition(() => setPhase('questions'));
-  }
-
-  function selectAnswer(qIndex: number, optIndex: number) {
-    const newAnswers = [...answers];
-    newAnswers[qIndex] = optIndex;
-    setAnswers(newAnswers);
-  }
-
-  function checkAnswer() {
-    setShowAnswer(true);
-  }
-
-  function nextQuestion() {
-    if (currentQ + 1 >= (selectedText?.questions.length ?? 0)) {
-      finishReading();
-    } else {
-      setCurrentQ((i) => i + 1);
-      setShowAnswer(false);
+  async function saveBest(t: ReadingText) {
+    const total = t.questions.length;
+    const correct = correctRef.current;
+    const prev = best[t.id];
+    if (prev && prev.correct / prev.total >= correct / total) return;
+    const next = { ...best, [t.id]: { correct, total } };
+    setBest(next);
+    try {
+      await kvSet(BEST_KEY, next);
+    } catch {
+      /* best-effort */
     }
   }
 
-  async function finishReading() {
-    if (!selectedText) return;
-
-    const correct = selectedText.questions.filter(
-      (q, i) => answers[i] === q.answerIndex
-    ).length;
-
-    const stats = await getStats();
-    stats.totalExercisesDone += selectedText.questions.length;
-    stats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(stats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'reading',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: selectedText.questions.length,
-      correctItems: correct,
-      tags: ['reading', selectedText.topic],
-    });
-
-    startTransition(() => setPhase('result'));
+  async function finish(full: boolean) {
+    await session.finish();
+    if (full && text) {
+      setCompleted(true);
+      await saveBest(text);
+    }
+    setPhase('result');
+    window.scrollTo({ top: 0 });
   }
 
-  if (phase === 'select') {
+  async function next() {
+    if (!text) return;
+    if (idx + 1 >= text.questions.length) {
+      await finish(true);
+    } else {
+      setIdx(idx + 1);
+      resetItem();
+    }
+  }
+
+  function scrollTo(el: HTMLElement | null) {
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  useKeyboard(result !== null ? { Enter: () => void next() } : {}, phase === 'drill');
+
+  /* ─── Setup: pick a text ─────────────────────────────────────────── */
+  if (phase === 'setup' || !text) {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
-        <h1 className="page-title">Čtení s porozuměním</h1>
-        <p className="page-subtitle">{READING_TEXTS.length} textů — vyber si podle úrovně nebo tématu.</p>
-
-        <div className="mb-4 flex gap-2 flex-wrap">
-          {['all', 'A1', 'A2', 'B1'].map((lvl) => (
-            <button
-              key={lvl}
-              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
-                filterLevel === lvl ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-              onClick={() => setFilterLevel(lvl)}
-            >
-              {lvl === 'all' ? 'Vše' : lvl}
-            </button>
+      <DrillSetup
+        title="Čtení s porozuměním"
+        subtitle={`${READING_TEXTS.length} textů s otázkami. Vyber si text ze seznamu, nebo začni náhodným.`}
+        icon="📖"
+        poolSize={pool.length}
+        poolNoun={["text", "texty", "textů"]}
+        onStart={startRandom}
+        startLabel="Náhodný text"
+        footer={
+          <section aria-labelledby="reading-list-title">
+            <h2 id="reading-list-title" className="section-title">
+              Texty <span className="text-muted">({pool.length})</span>
+            </h2>
+            {pool.length === 0 ? (
+              <p className="card text-sm text-muted">Pro tuto kombinaci úrovně a tématu tu zatím žádný text není.</p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {pool.map((t) => {
+                  const b = best[t.id];
+                  return (
+                    <li key={t.id} className="min-w-0">
+                      <button type="button" className="card card-link flex h-full w-full items-center gap-3 !p-3 text-left" onClick={() => startText(t)}>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold leading-snug break-words text-fg" lang="en">{t.title}</span>
+                          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                            <LevelBadge level={t.level} />
+                            <span>{topicLabel(t.topic)}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>
+                              {t.questions.length} {plural(t.questions.length, 'otázka', 'otázky', 'otázek')}
+                            </span>
+                          </span>
+                        </span>
+                        {b ? (
+                          <span
+                            className={`badge shrink-0 ${b.correct === b.total ? '!bg-success-soft !text-success' : ''}`}
+                            title="Tvůj nejlepší výsledek"
+                          >
+                            {b.correct === b.total ? '✓ ' : ''}
+                            {b.correct}/{b.total}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-muted" aria-hidden="true">›</span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        }
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>
+              {l === 'all' ? 'Vše' : l}
+            </Chip>
           ))}
-        </div>
-
-        <div className="mb-4 flex gap-2 flex-wrap">
-          <button
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              filterTopic === 'all' ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-            }`}
-            onClick={() => setFilterTopic('all')}
-          >
-            Všechna témata
-          </button>
-          {topics.map((topic) => (
-            <button
-              key={topic}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                filterTopic === topic ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-              onClick={() => setFilterTopic(topic)}
-            >
-              {topic}
-            </button>
+        </FilterGroup>
+        <FilterGroup label="Téma">
+          <Chip active={topic === 'all'} onClick={() => setTopic('all')}>Všechna témata</Chip>
+          {TOPICS.map((t) => (
+            <Chip key={t} active={topic === t} onClick={() => setTopic(t)}>
+              {topicLabel(t)}
+            </Chip>
           ))}
-        </div>
-
-        <p className="text-xs text-slate-400 mb-3">{filteredTexts.length} textů</p>
-        <div className="space-y-3">
-          {filteredTexts.map((text) => (
-            <button
-              key={text.id}
-              className="card-hover w-full text-left"
-              onClick={() => selectText(text)}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{text.title}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`badge ${
-                      text.level === 'A1' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' :
-                      text.level === 'A2' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' :
-                      'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
-                    }`}>{text.level}</span>
-                    <span className="text-xs text-slate-400 dark:text-slate-500">{text.questions.length} otázek</span>
-                  </div>
-                </div>
-                <span className="text-slate-300 dark:text-slate-500 text-xl">→</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  if (phase === 'reading' && selectedText) {
+  /* ─── Result ─────────────────────────────────────────────────────── */
+  if (phase === 'result') {
+    const total = text.questions.length;
+    const correct = session.correct;
+    const newRecord = completed && (!prevBest || correct / total > prevBest.correct / prevBest.total);
+    const bestNow = best[text.id];
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => startTransition(() => setPhase('select'))}>← Zpět</button>
-
-        <div className="flex items-center gap-2 mb-4">
-          <span className={`badge ${
-            selectedText.level === 'A1' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' :
-            selectedText.level === 'A2' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' :
-            'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
-          }`}>{selectedText.level}</span>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedText.title}</h2>
-        </div>
-
-        <div className="card !p-5 mb-6">
-          <p className="text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">{selectedText.text}</p>
-        </div>
-
-        <button className="btn-primary btn-lg w-full" onClick={startQuestions}>
-          Přejít k otázkám ({selectedText.questions.length})
-        </button>
-      </div>
-    );
-  }
-
-  if (phase === 'questions' && selectedText) {
-    const q = selectedText.questions[currentQ];
-    const isCorrect = answers[currentQ] === q.answerIndex;
-
-    return (
-      <div className="page-container">
-        <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => startTransition(() => setPhase('reading'))}>← Text</button>
-          <span className="text-sm text-slate-500 font-medium">
-            {currentQ + 1} / {selectedText.questions.length}
-          </span>
-        </div>
-
-        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-          <div
-            className="bg-primary-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${(currentQ / selectedText.questions.length) * 100}%` }}
-          />
-        </div>
-
-        <div className="card !p-6 mb-4">
-          {q.type === 'tfns' && (
-            <span className="inline-block mb-2 text-xs font-medium px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
-              True / False / Not stated
-            </span>
-          )}
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">{q.question}</h3>
-
-          {!showAnswer ? (
-            <div className="space-y-2">
-              {q.options.map((opt, i) => (
-                <button
-                  key={i}
-                  className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
-                    answers[currentQ] === i
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
-                      : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 text-slate-800 dark:text-slate-200'
-                  }`}
-                  onClick={() => selectAnswer(currentQ, i)}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={() => {
+          resetItem();
+          setPhase('setup');
+        }}
+        restartLabel="Vybrat další text"
+      >
+        <div className="card mt-5 !p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <LevelBadge level={text.level} />
+            <span className="text-xs text-muted">{topicLabel(text.topic)}</span>
+          </div>
+          <h2 className="mt-1 font-black text-fg" lang="en">{text.title}</h2>
+          {completed ? (
+            <p className="mt-1 text-sm text-muted">
+              {newRecord && prevBest
+                ? `Nový osobní rekord! Předtím ${prevBest.correct}/${prevBest.total}.`
+                : newRecord
+                  ? 'Tvůj první výsledek u tohoto textu je uložený.'
+                  : bestNow
+                    ? `Tvůj nejlepší výsledek u tohoto textu: ${bestNow.correct}/${bestNow.total}.`
+                    : null}
+            </p>
           ) : (
-            <div className="space-y-2">
-              {q.options.map((opt, i) => (
-              <div
-                key={i}
-                className={`px-4 py-3 rounded-xl border-2 ${
-                  i === q.answerIndex
-                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                    : answers[currentQ] === i
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'
-                    : 'border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                {opt} {i === q.answerIndex && ' ✓'}
-              </div>
-            ))}
-              <div className={`mt-3 p-3 rounded-xl ${isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
-                <p className={`text-sm font-medium ${isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                  {isCorrect ? '✅ Správně!' : '❌ Špatně.'}
-                </p>
-              </div>
-            </div>
+            <p className="mt-1 text-sm text-muted">Text jsi nedočetl/a do konce, takže se nejlepší výsledek neměnil.</p>
           )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn-secondary" onClick={() => startText(text)}>
+              Zkusit tento text znovu
+            </button>
+            {pool.length > 1 && (
+              <button type="button" className="btn-ghost" onClick={startRandom}>
+                Náhodný další text
+              </button>
+            )}
+          </div>
         </div>
-
-        {!showAnswer ? (
-          <button
-            className="btn-primary btn-lg w-full"
-            disabled={answers[currentQ] === null}
-            onClick={checkAnswer}
-          >
-            Zkontrolovat
-          </button>
-        ) : (
-          <button className="btn-primary btn-lg w-full" onClick={nextQuestion}>
-            {currentQ + 1 >= selectedText.questions.length ? 'Zobrazit výsledky' : 'Další otázka →'}
-          </button>
-        )}
-      </div>
+      </ResultScreen>
     );
   }
 
-  if (phase === 'result' && selectedText) {
-    const correct = selectedText.questions.filter(
-      (q, i) => answers[i] === q.answerIndex
-    ).length;
-    const pct = Math.round((correct / selectedText.questions.length) * 100);
+  /* ─── Drill: text + questions ────────────────────────────────────── */
+  if (!q) return null;
+  const last = idx + 1 >= text.questions.length;
 
-    return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{selectedText.title}</h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-1">
-          {correct} / {selectedText.questions.length} správně ({pct}%)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80 ? 'Výborné porozumění!' : pct >= 50 ? 'Dobrý výsledek.' : 'Zkus text přečíst znovu.'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
-          <button className="btn-primary" onClick={() => startTransition(() => { setPhase('select'); setSelectedText(null); })}>
-            Další text
+  return (
+    <div className="page-container page-container--wide">
+      <DrillTopBar
+        current={idx}
+        total={text.questions.length}
+        correct={session.correct}
+        onExit={() => void finish(false)}
+        title="Čtení s porozuměním"
+      />
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+        <article
+          ref={textRef}
+          className="card scroll-mt-[calc(var(--g92-appbar-total,4rem)+1rem)] !p-5 sm:!p-6 lg:sticky lg:top-[calc(var(--g92-appbar-total,4rem)+1rem)] lg:max-h-[calc(100dvh-var(--g92-appbar-total,4rem)-2rem)] lg:overflow-y-auto"
+          aria-labelledby="reading-title"
+        >
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <LevelBadge level={text.level} />
+            <span className="badge">{topicLabel(text.topic)}</span>
+            <span className="text-xs text-muted">{wordCount(text.text)} slov</span>
+          </div>
+          <h1 id="reading-title" className="text-xl font-black leading-tight text-fg sm:text-2xl" lang="en">
+            {text.title}
+          </h1>
+          <div className="reading-text mt-3 break-words" lang="en">
+            {paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+          <button type="button" className="btn-soft mt-4 lg:hidden" onClick={() => scrollTo(questionsRef.current)}>
+            Přejít k otázkám ({text.questions.length})
+            <span aria-hidden="true">↓</span>
           </button>
-        </div>
-      </div>
-    );
-  }
+        </article>
 
-  return null;
+        <section ref={questionsRef} className="card scroll-mt-[calc(var(--g92-appbar-total,4rem)+1rem)] !p-5" aria-labelledby="reading-question">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="eyebrow">
+              Otázka {idx + 1} z {text.questions.length}
+            </span>
+            {TYPE_LABEL[q.type] && <span className="badge !bg-warning-soft !text-warning">{TYPE_LABEL[q.type]}</span>}
+          </div>
+          <p id="reading-question" className="mb-4 text-lg leading-snug font-bold break-words text-fg" lang="en">
+            {q.question}
+          </p>
+
+          <OptionList
+            key={q.id}
+            options={q.options}
+            selected={selected}
+            correctIndex={q.answerIndex}
+            revealed={result !== null}
+            onSelect={submit}
+          />
+
+          {result !== null && (
+            <Feedback
+              correct={result}
+              answer={q.options[q.answerIndex]}
+              explanation={
+                q.type === 'tfns' && !result
+                  ? '„Not stated“ vybírej jen tehdy, když text o dané věci vůbec nemluví. Když ji text popírá, je to „False“.'
+                  : undefined
+              }
+            />
+          )}
+          {result !== null && <NextButton onClick={() => void next()} last={last} />}
+
+          <div className="mt-4 lg:hidden">
+            <button type="button" className="btn-ghost !px-2" onClick={() => scrollTo(textRef.current)}>
+              <span aria-hidden="true">↑</span> Zpět k textu
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }

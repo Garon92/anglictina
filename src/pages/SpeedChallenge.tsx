@@ -1,229 +1,315 @@
-import { useState, useEffect, useRef, useCallback, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { VOCABULARY } from '../data/vocabulary';
 import { GRAMMAR_EXERCISES } from '../data/grammar';
-import { shuffleArray } from '../utils';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
+import { buildOptions, shuffleArray, uniqueBy } from '../utils';
+import { createStore } from '../kit';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { StatTile } from '../components/ui';
+import {
+  useDrillSession, DrillSetup, DrillTopBar, OptionList, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
+
+type Phase = 'setup' | 'game' | 'result';
 
 interface SpeedQuestion {
+  id: string;
+  type: 'vocab' | 'grammar';
+  instruction?: string;
+  prompt: string;
   question: string;
   options: string[];
   correctIndex: number;
-  type: 'vocab' | 'grammar';
+  explanation?: string;
+}
+
+interface Answered {
+  correct: boolean;
+  seconds: number;
+  points: number;
+}
+
+const QUESTION_COUNT = 20;
+const LIMIT_MS = 10_000;
+const TICK_MS = 100;
+
+const store = createStore('anglictina-speed', { version: 1, defaults: { best: 0 } });
+
+const norm = (s: string) => s.trim().toLowerCase();
+
+/** Points for a correct answer: 10 + one bonus point for every whole second left. */
+function pointsFor(msLeft: number) {
+  return 10 + Math.max(0, Math.floor(msLeft / 1000));
 }
 
 function generateQuestions(): SpeedQuestion[] {
-  const questions: SpeedQuestion[] = [];
-
-  const richVocab = VOCABULARY.filter((w) => w.example !== '' && w.cs);
-  const vocabPool = shuffleArray(richVocab).slice(0, 100);
-  for (let i = 0; i < 10; i++) {
-    const word = vocabPool[i];
-    const wrongs = shuffleArray(vocabPool.filter((w) => w.id !== word.id)).slice(0, 3).map((w) => w.cs);
-    const opts = shuffleArray([word.cs, ...wrongs]);
-    questions.push({
-      question: `"${word.en}" znamená:`,
-      options: opts,
-      correctIndex: opts.indexOf(word.cs),
+  const out: SpeedQuestion[] = [];
+  const allCs = VOCABULARY.map((w) => w.cs);
+  const words = uniqueBy(shuffleArray(VOCABULARY.filter((w) => w.example && w.cs && w.en)), (w) => norm(w.en)).slice(0, QUESTION_COUNT / 2);
+  for (const w of words) {
+    const same = new Set(VOCABULARY.filter((v) => norm(v.en) === norm(w.en)).map((v) => norm(v.cs)));
+    const { options, correctIndex } = buildOptions(w.cs, allCs.filter((c) => !same.has(norm(c))));
+    out.push({
+      id: `vocab:${w.id}`,
       type: 'vocab',
+      instruction: 'Co znamená:',
+      prompt: w.en,
+      question: `Co znamená „${w.en}“?`,
+      options,
+      correctIndex,
     });
   }
-
-  const mcqPool = shuffleArray(GRAMMAR_EXERCISES.filter((e) => e.type === 'mcq' && e.options)).slice(0, 10);
-  for (const ex of mcqPool) {
-    questions.push({
-      question: ex.prompt,
-      options: ex.options!,
-      correctIndex: ex.options!.indexOf(ex.answer),
-      type: 'grammar',
-    });
+  for (const e of shuffleArray(GRAMMAR_EXERCISES.filter((x) => x.type === 'mcq' && x.options))) {
+    if (out.length >= QUESTION_COUNT) break;
+    const options = uniqueBy(e.options!, norm);
+    const correctIndex = options.indexOf(e.answer);
+    if (options.length < 3 || correctIndex < 0) continue;
+    out.push({ id: `grammar:${e.id}`, type: 'grammar', prompt: e.prompt, question: e.prompt, options, correctIndex, explanation: e.explanationCs });
   }
+  return shuffleArray(out);
+}
 
-  return shuffleArray(questions);
+function Countdown({ msLeft }: { msLeft: number }) {
+  const pct = Math.max(0, Math.min(100, (msLeft / LIMIT_MS) * 100));
+  const secs = Math.ceil(msLeft / 1000);
+  const color = msLeft > 5000 ? 'var(--g92-success)' : msLeft > 2500 ? 'var(--g92-warning)' : 'var(--g92-danger)';
+  return (
+    <div className="mb-4 flex items-center gap-3">
+      <div
+        className="bar flex-1 !h-3"
+        role="progressbar"
+        aria-label="Zbývající čas"
+        aria-valuemin={0}
+        aria-valuemax={LIMIT_MS / 1000}
+        aria-valuenow={secs}
+      >
+        <span style={{ width: `${pct}%`, background: color, transition: `width ${TICK_MS}ms linear, background-color 300ms` }} />
+      </div>
+      <span
+        className={`w-12 text-right text-lg font-black tabular-nums ${msLeft <= 3000 ? 'text-danger' : 'text-fg'}`}
+        aria-hidden="true"
+      >
+        {secs} s
+      </span>
+    </div>
+  );
 }
 
 export default function SpeedChallenge() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
-  const [phase, setPhase] = useState<'intro' | 'game' | 'result'>('intro');
-  const [questions] = useState(generateQuestions);
-  const [current, setCurrent] = useState(0);
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [questions, setQuestions] = useState<SpeedQuestion[]>([]);
+  const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(10);
-  const [totalTime, setTotalTime] = useState(0);
-  const [times, setTimes] = useState<number[]>([]);
-  const [startTime, setStartTime] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const questionStart = useRef(Date.now());
+  const [result, setResult] = useState<boolean | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const [msLeft, setMsLeft] = useState(LIMIT_MS);
+  const [answered, setAnswered] = useState<Answered[]>([]);
+  const [best, setBest] = useState(() => store.get('best'));
+  const [newBest, setNewBest] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const deadline = useRef(0);
+  const answeredRef = useRef<Answered[]>([]);
+  const session = useDrillSession('speed');
 
-  const nextQuestion = useCallback(() => {
-    const elapsed = (Date.now() - questionStart.current) / 1000;
-    setTimes((t) => [...t, elapsed]);
+  const q = questions[idx];
 
-    if (current + 1 >= questions.length) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setPhase('result');
-      playComplete();
-      (async () => {
-        const stats = await getStats();
-        stats.totalExercisesDone += questions.length;
-        stats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-        await saveStats(stats);
-        await updateStreak();
-        await addDrillSession({
-          date: new Date().toISOString().slice(0, 10),
-          type: 'mixed',
-          startedAt: startTime,
-          endedAt: Date.now(),
-          totalItems: questions.length,
-          correctItems: score,
-          tags: ['speed_challenge'],
-        });
-      })();
-      return;
-    }
-
-    setCurrent((c) => c + 1);
+  function beginQuestion() {
+    deadline.current = Date.now() + LIMIT_MS;
+    setMsLeft(LIMIT_MS);
     setSelected(null);
-    setTimeLeft(10);
-    questionStart.current = Date.now();
-  }, [current, questions.length, score, startTime]);
-
-  useEffect(() => {
-    if (phase !== 'game') return;
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 0.1) {
-          playIncorrect();
-          nextQuestion();
-          return 10;
-        }
-        return t - 0.1;
-      });
-      setTotalTime((t) => t + 0.1);
-    }, 100);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [phase, nextQuestion]);
-
-  function handleSelect(idx: number) {
-    if (selected !== null) return;
-    setSelected(idx);
-    const correct = idx === questions[current].correctIndex;
-    if (correct) { setScore((s) => s + 1); playCorrect(); }
-    else playIncorrect();
-    setTimeout(nextQuestion, 600);
+    setResult(null);
+    setTimedOut(false);
   }
 
-  function startGame() {
-    startTransition(() => {
-      setPhase('game');
-      setStartTime(Date.now());
-      questionStart.current = Date.now();
-      setTimeLeft(10);
+  function start() {
+    setQuestions(generateQuestions());
+    setIdx(0);
+    answeredRef.current = [];
+    setAnswered([]);
+    setNewBest(false);
+    setComplete(false);
+    session.start();
+    beginQuestion();
+    setPhase('game');
+  }
+
+  /** Register an answer (`opt === null` = time ran out). Pauses the timer until "Další". */
+  function answer(opt: number | null) {
+    if (!q || result !== null || phase !== 'game') return;
+    const left = Math.max(0, deadline.current - Date.now());
+    const correct = opt !== null && opt === q.correctIndex;
+    const rec: Answered = { correct, seconds: (LIMIT_MS - left) / 1000, points: correct ? pointsFor(left) : 0 };
+    answeredRef.current = [...answeredRef.current, rec];
+    setAnswered(answeredRef.current);
+    setMsLeft(left);
+    setSelected(opt);
+    setTimedOut(opt === null);
+    setResult(correct);
+    session.answer({
+      itemId: q.id,
+      category: q.type,
+      prompt: q.question,
+      options: q.options,
+      kind: 'mcq',
+      answer: q.options[q.correctIndex],
+      userAnswer: opt === null ? '(čas vypršel)' : q.options[opt],
+      explanation: q.explanation,
+      correct,
     });
   }
+  const onTimeout = useEffectEvent(() => answer(null));
 
-  if (phase === 'intro') {
+  // Deadline-based countdown; runs only while a question is open (paused during feedback).
+  useEffect(() => {
+    if (phase !== 'game' || result !== null) return;
+    const id = window.setInterval(() => {
+      const left = deadline.current - Date.now();
+      if (left <= 0) {
+        window.clearInterval(id);
+        onTimeout();
+      } else {
+        setMsLeft(left);
+      }
+    }, TICK_MS);
+    return () => window.clearInterval(id);
+  }, [phase, idx, result]);
+
+  async function finish(full: boolean) {
+    await session.finish();
+    if (full) {
+      const score = answeredRef.current.reduce((s, a) => s + a.points, 0);
+      const r = store.submitBest('best', score);
+      setBest(r.best);
+      setNewBest(r.isNewBest && score > 0);
+    }
+    setComplete(full);
+    setPhase('result');
+  }
+
+  async function next() {
+    if (idx + 1 >= questions.length) await finish(true);
+    else {
+      setIdx(idx + 1);
+      beginQuestion();
+    }
+  }
+
+  useKeyboard(result !== null ? { Enter: () => void next() } : {}, phase === 'game');
+
+  if (phase === 'setup') {
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">⚡</div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Rychlostní výzva</h1>
-        <p className="text-slate-500 dark:text-slate-400 mb-2">
-          20 otázek. 10 sekund na každou. Jak rychle zvládneš?
-        </p>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mb-8">
-          Mix slovíček a gramatiky. Bez přemýšlení!
-        </p>
-        <button className="btn-primary btn-lg" onClick={startGame}>Start!</button>
-        <button className="btn-ghost text-sm mt-4" onClick={() => navigate('/')}>← Zpět</button>
-      </div>
+      <DrillSetup
+        title="Rychlovka"
+        subtitle={`${QUESTION_COUNT} otázek, na každou 10 sekund. Mix slovíček a gramatiky — bez dlouhého přemýšlení!`}
+        icon="⏱️"
+        onStart={start}
+        startLabel="Start!"
+      >
+        <ul className="space-y-2 text-sm text-fg">
+          <li className="flex gap-2">
+            <span aria-hidden="true">⏱️</span>
+            <span>Čas běží jen při otázce — po odpovědi se zastaví, takže si v klidu přečteš vysvětlení.</span>
+          </li>
+          <li className="flex gap-2">
+            <span aria-hidden="true">⭐</span>
+            <span>Za správnou odpověď 10 bodů + 1 bod za každou ušetřenou sekundu.</span>
+          </li>
+          <li className="flex gap-2">
+            <span aria-hidden="true">⌨️</span>
+            <span>Na počítači můžeš odpovídat klávesami 1–4 a pokračovat Enterem.</span>
+          </li>
+        </ul>
+        {best > 0 && (
+          <p className="rounded-xl bg-surface-2 px-3 py-2 text-sm text-muted">
+            Tvůj rekord: <strong className="text-fg tabular-nums">{best} bodů</strong>
+          </p>
+        )}
+      </DrillSetup>
     );
   }
 
   if (phase === 'result') {
-    const pct = Math.round((score / questions.length) * 100);
-    const avgTime = times.length > 0 ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : '0';
-    const fastestTime = times.length > 0 ? Math.min(...times).toFixed(1) : '0';
-
+    const score = answered.reduce((s, a) => s + a.points, 0);
+    const totalTime = answered.reduce((s, a) => s + a.seconds, 0);
+    const avg = answered.length ? totalTime / answered.length : 0;
+    const correctTimes = answered.filter((a) => a.correct).map((a) => a.seconds);
+    const fastest = correctTimes.length ? Math.min(...correctTimes) : null;
+    const timeouts = answered.filter((a) => a.seconds >= LIMIT_MS / 1000 && !a.correct).length;
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '⚡' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Hotovo!</h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-4">
-          {score} / {questions.length} správně ({pct}%)
-        </p>
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="card text-center !p-3">
-            <div className="text-xl font-bold text-primary-600 dark:text-primary-400">{Math.round(totalTime)}s</div>
-            <div className="text-xs text-slate-400">celkový čas</div>
-          </div>
-          <div className="card text-center !p-3">
-            <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{avgTime}s</div>
-            <div className="text-xs text-slate-400">průměr/otázka</div>
-          </div>
-          <div className="card text-center !p-3">
-            <div className="text-xl font-bold text-green-600 dark:text-green-400">{fastestTime}s</div>
-            <div className="text-xs text-slate-400">nejrychlejší</div>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
-          <button className="btn-primary" onClick={() => { setCurrent(0); setSelected(null); setScore(0); setTotalTime(0); setTimes([]); startGame(); }}>
-            Znovu
-          </button>
-        </div>
-      </div>
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Hrát znovu"
+        title={newBest ? 'Nový rekord!' : undefined}
+      >
+        {answered.length > 0 && (
+          <section className="mt-5" aria-label="Statistiky">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatTile value={score} label="bodů" icon="⭐" tone="accent" />
+              <StatTile value={`${totalTime.toFixed(1)} s`} label="celkový čas" icon="⏱️" />
+              <StatTile value={`${avg.toFixed(1)} s`} label="průměr na otázku" icon="📊" />
+              <StatTile value={fastest !== null ? `${fastest.toFixed(1)} s` : '–'} label="nejrychlejší správně" icon="⚡" tone="success" />
+            </div>
+            <p className="mt-3 text-center text-sm text-muted">
+              {complete
+                ? newBest
+                  ? 'Překonal/a jsi svůj rekord — skvělé!'
+                  : `Tvůj rekord: ${best} bodů.`
+                : 'Kolo nebylo dokončené, takže se do rekordu nepočítá.'}
+              {timeouts > 0 && ` Čas vypršel u ${timeouts} ${timeouts === 1 ? 'otázky' : 'otázek'}.`}
+            </p>
+          </section>
+        )}
+      </ResultScreen>
     );
   }
 
-  const q = questions[current];
   if (!q) return null;
-
-  const timerPct = (timeLeft / 10) * 100;
-  const timerColor = timeLeft > 5 ? 'bg-green-500' : timeLeft > 2 ? 'bg-amber-500' : 'bg-red-500';
+  const last = idx + 1 >= questions.length;
+  const score = answered.reduce((s, a) => s + a.points, 0);
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{current + 1}/{questions.length}</span>
-        <span className={`text-lg font-bold ${timeLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-slate-700 dark:text-slate-200'}`}>
-          {Math.ceil(timeLeft)}s
-        </span>
-      </div>
+      <DrillTopBar
+        current={idx}
+        total={questions.length}
+        correct={session.correct}
+        onExit={() => void finish(false)}
+        title="Rychlovka"
+        extra={<span className="badge !bg-accent-soft !text-accent-text tabular-nums">⭐ {score}</span>}
+      />
+      <Countdown msLeft={msLeft} />
 
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mb-6">
-        <div className={`${timerColor} h-full rounded-full transition-all duration-100`} style={{ width: `${timerPct}%` }} />
-      </div>
-
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className={`badge text-xs ${q.type === 'vocab' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'}`}>
+      <div className="card !p-5">
+        <div className="mb-3">
+          <span className={`badge ${q.type === 'vocab' ? '!bg-info-soft !text-info' : '!bg-accent-soft !text-accent-text'}`}>
             {q.type === 'vocab' ? 'Slovíčko' : 'Gramatika'}
           </span>
-          <span className="text-xs text-slate-400">Skóre: {score}</span>
         </div>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 leading-relaxed">{q.question}</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {q.options.map((opt, idx) => {
-            let cls = 'px-3 py-3 rounded-xl border-2 text-center text-sm font-medium transition-all ';
-            if (selected === null) {
-              cls += 'border-slate-200 dark:border-slate-600 hover:border-primary-400 text-slate-700 dark:text-slate-200 active:scale-95';
-            } else if (idx === q.correctIndex) {
-              cls += 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200';
-            } else if (idx === selected) {
-              cls += 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200';
-            } else {
-              cls += 'border-slate-200 dark:border-slate-600 text-slate-400 opacity-50';
-            }
-            return (
-              <button key={idx} className={cls} onClick={() => handleSelect(idx)} disabled={selected !== null}>
-                {opt}
-              </button>
-            );
-          })}
-        </div>
+        {q.instruction && <p className="mb-1 text-sm font-bold text-muted">{q.instruction}</p>}
+        <p className="mb-4 text-xl leading-relaxed font-bold break-words text-fg" lang="en">
+          {q.prompt}
+        </p>
+        <OptionList
+          key={q.id}
+          options={q.options}
+          selected={selected}
+          correctIndex={q.correctIndex}
+          revealed={result !== null}
+          onSelect={(i) => answer(i)}
+          columns={2}
+          lang={q.type === 'vocab' ? 'cs' : 'en'}
+        />
+        {result !== null && (
+          <Feedback
+            correct={result}
+            answer={q.options[q.correctIndex]}
+            title={timedOut ? 'Čas vypršel' : result ? `Správně! +${answered[answered.length - 1]?.points ?? 0} bodů` : undefined}
+            explanation={q.explanation}
+          />
+        )}
+        {result !== null && <NextButton onClick={() => void next()} last={last} />}
       </div>
     </div>
   );

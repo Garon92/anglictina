@@ -1,12 +1,25 @@
-import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { LISTENING_EXERCISES } from '../data/listening';
-import { speak } from '../tts';
-import type { ListeningExercise, ListeningQuestion } from '../types';
+import { MATURITA_TOPICS, type ListeningExercise, type ListeningQuestion } from '../types';
+import { kvGet, kvSet } from '../db';
+import { speak, speakScript, stopSpeaking, parseScript, scriptToText, ttsSupported } from '../tts';
 import { shuffleArray } from '../utils';
+import { isAnswerCorrect } from '../lib/answer';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { useSettings } from '../App';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, TextAnswer, Feedback, NextButton, ResultScreen,
+} from '../components/drill';
 
-type Phase = 'select' | 'exercise' | 'result';
+type Phase = 'setup' | 'drill' | 'result';
+type Level = 'all' | ListeningExercise['level'];
+type ExType = 'all' | ListeningExercise['type'];
+type BestMap = Record<string, { correct: number; total: number }>;
+
+const LEVELS: Level[] = ['all', 'A1', 'A2', 'B1'];
+const TYPES: ExType[] = ['all', 'dictation', 'comprehension', 'gapfill'];
+const BEST_KEY = 'listening:best';
 
 const TYPE_LABELS: Record<ListeningExercise['type'], string> = {
   dictation: 'Diktát',
@@ -20,450 +33,479 @@ const TYPE_ICONS: Record<ListeningExercise['type'], string> = {
   gapfill: '📝',
 };
 
-const LEVEL_COLORS: Record<string, string> = {
-  A1: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
-  A2: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
-  B1: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+const TYPE_HINTS: Record<ListeningExercise['type'], string> = {
+  dictation: 'Poslechni si větu a vyber, co přesně zaznělo.',
+  comprehension: 'Poslechni si nahrávku a odpověz na otázky.',
+  gapfill: 'Poslechni si větu a doplň chybějící slovo.',
 };
 
-function PlayButton({ onClick, label }: { onClick: () => void; label: string }) {
+const TOPIC_LABELS: Record<string, string> = Object.fromEntries(MATURITA_TOPICS.map((t) => [t.id, t.cs]));
+const topicLabel = (id: string) => TOPIC_LABELS[id] ?? id;
+
+const LEVEL_BADGE: Record<string, string> = {
+  A1: '!bg-success-soft !text-success',
+  A2: '!bg-info-soft !text-info',
+  B1: '!bg-accent-soft !text-accent-text',
+};
+
+function LevelBadge({ level }: { level: string }) {
+  return <span className={`badge ${LEVEL_BADGE[level] ?? ''}`}>{level}</span>;
+}
+
+function plural(n: number, one: string, few: string, many: string) {
+  return n === 1 ? one : n >= 2 && n <= 4 ? few : many;
+}
+
+/** Scripts with "M:" / "W:" speaker lines are read with two voices. */
+const hasSpeakers = (script: string) => /^\s*[MW]:/m.test(script);
+
+function exerciseTitle(ex: ListeningExercise) {
+  return `${TYPE_LABELS[ex.type]} — ${topicLabel(ex.topic)}`;
+}
+
+function correctAnswerOf(q: ListeningQuestion): string {
+  if (q.type === 'fill') return q.answer ?? '';
+  return q.options?.[q.answerIndex ?? -1] ?? '';
+}
+
+function Transcript({ script }: { script: string }) {
+  const lines = parseScript(script);
+  const dialogue = hasSpeakers(script);
   return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-3 mx-auto px-8 py-4 rounded-2xl bg-primary-500 hover:bg-primary-600 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all active:scale-95"
-    >
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
-      </svg>
-      {label}
-    </button>
+    <details className="group mt-4 rounded-xl border border-border bg-surface-2 px-4">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-1.5 text-sm font-bold text-accent-text [&::-webkit-details-marker]:hidden">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-open:rotate-90" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+        Přepis nahrávky
+      </summary>
+      <div className="reading-text pb-4 break-words" lang="en">
+        {dialogue ? (
+          lines.map((l, i) => (
+            <p key={i}>
+              {l.speaker !== 'N' && (
+                <span className="mr-1.5 font-bold text-muted" lang="cs">
+                  {l.speaker === 'M' ? 'Muž:' : 'Žena:'}
+                </span>
+              )}
+              {l.text}
+            </p>
+          ))
+        ) : (
+          <p>{scriptToText(script)}</p>
+        )}
+      </div>
+    </details>
   );
 }
 
-function SlowPlayButton({ onClick }: { onClick: () => void }) {
+function PlayIcon() {
   return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2 mx-auto px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-medium text-sm transition-all active:scale-95"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
-      </svg>
-      🐢 Pomalu
-    </button>
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+      <path d="M7 4.5v15a1 1 0 0 0 1.52.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+    </svg>
   );
 }
 
 export default function ListeningPractice() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
-
-  const [phase, setPhase] = useState<Phase>('select');
-  const [filterLevel, setFilterLevel] = useState<string>('all');
-  const [filterType, setFilterType] = useState<string>('all');
-
+  const { settings } = useSettings();
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [level, setLevel] = useState<Level>('all');
+  const [type, setType] = useState<ExType>('all');
   const [exercise, setExercise] = useState<ListeningExercise | null>(null);
   const [questions, setQuestions] = useState<ListeningQuestion[]>([]);
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<(number | string | null)[]>([]);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [hasPlayed, setHasPlayed] = useState(false);
-  const [fillInput, setFillInput] = useState('');
-  const [startTime, setStartTime] = useState(0);
+  const [idx, setIdx] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<boolean | null>(null);
+  const [played, setPlayed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [slow, setSlow] = useState(false);
+  const [best, setBest] = useState<BestMap>({});
+  const [completed, setCompleted] = useState(false);
+  const playId = useRef(0);
+  const correctRef = useRef(0);
+  const session = useDrillSession('listening', { tags: exercise ? [exercise.type, exercise.topic] : [] });
+  const canSpeak = useMemo(() => ttsSupported(), []);
 
-  const filteredExercises = LISTENING_EXERCISES.filter((ex) => {
-    if (filterLevel !== 'all' && ex.level !== filterLevel) return false;
-    if (filterType !== 'all' && ex.type !== filterType) return false;
-    return true;
-  });
+  const normalRate = settings.ttsRate || 0.9;
+  const slowRate = Math.max(0.5, Math.round(normalRate * 0.7 * 100) / 100);
+
+  // Stop any speech when leaving the page.
+  useEffect(() => () => stopSpeaking(), []);
+
+  useEffect(() => {
+    let alive = true;
+    kvGet<BestMap>(BEST_KEY)
+      .then((b) => {
+        if (alive && b && typeof b === 'object') setBest(b);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const pool = useMemo(
+    () => LISTENING_EXERCISES.filter((ex) => (level === 'all' || ex.level === level) && (type === 'all' || ex.type === type)),
+    [level, type],
+  );
+
+  const q = questions[idx];
+
+  function stopAudio() {
+    playId.current += 1;
+    stopSpeaking();
+    setPlaying(false);
+  }
+
+  function play() {
+    if (!exercise) return;
+    if (playing) {
+      stopAudio();
+      return;
+    }
+    const id = ++playId.current;
+    const rate = slow ? slowRate : normalRate;
+    setPlayed(true);
+    setPlaying(true);
+    const done = hasSpeakers(exercise.script) ? speakScript(exercise.script, { rate }).done : speak(exercise.script, rate);
+    void done.then(() => {
+      if (playId.current === id) setPlaying(false);
+    });
+  }
+
+  function resetItem() {
+    setSelected(null);
+    setText('');
+    setResult(null);
+  }
 
   function startExercise(ex: ListeningExercise) {
-    const shuffled = shuffleArray(ex.questions);
-    startTransition(() => {
-      setExercise(ex);
-      setQuestions(shuffled);
-      setCurrentQ(0);
-      setAnswers(new Array(shuffled.length).fill(null));
-      setShowAnswer(false);
-      setHasPlayed(false);
-      setFillInput('');
-      setStartTime(Date.now());
-      setPhase('exercise');
-    });
+    stopAudio();
+    setExercise(ex);
+    setQuestions(shuffleArray(ex.questions));
+    setIdx(0);
+    resetItem();
+    setPlayed(!canSpeak);
+    setCompleted(false);
+    correctRef.current = 0;
+    session.start();
+    setPhase('drill');
+    window.scrollTo({ top: 0 });
   }
 
-  function handlePlay() {
-    if (!exercise) return;
-    speak(exercise.script);
-    setHasPlayed(true);
+  function startRandom() {
+    if (!pool.length) return;
+    const fresh = pool.filter((ex) => !best[ex.id]);
+    startExercise(shuffleArray(fresh.length ? fresh : pool)[0]);
   }
 
-  function handleSlowPlay() {
-    if (!exercise) return;
-    speak(exercise.script, 0.7);
-    setHasPlayed(true);
-  }
-
-  function selectOption(qIdx: number, optIdx: number) {
-    if (showAnswer) return;
-    const next = [...answers];
-    next[qIdx] = optIdx;
-    setAnswers(next);
-  }
-
-  function submitFill() {
-    if (showAnswer) return;
-    const next = [...answers];
-    next[currentQ] = fillInput.trim();
-    setAnswers(next);
-    setShowAnswer(true);
-  }
-
-  function checkAnswer() {
-    setShowAnswer(true);
-  }
-
-  function isCurrentCorrect(): boolean {
-    const q = questions[currentQ];
-    if (!q) return false;
+  function submit(opt?: number) {
+    if (!exercise || !q || result !== null) return;
+    let correct: boolean;
+    let user: string;
     if (q.type === 'fill') {
-      return (
-        typeof answers[currentQ] === 'string' &&
-        (answers[currentQ] as string).toLowerCase() === (q.answer ?? '').toLowerCase()
-      );
-    }
-    return answers[currentQ] === q.answerIndex;
-  }
-
-  function nextQuestion() {
-    if (currentQ + 1 >= questions.length) {
-      finishExercise();
+      user = text.trim();
+      if (!user) return;
+      correct = isAnswerCorrect(user, q.answer ?? '');
     } else {
-      setCurrentQ((i) => i + 1);
-      setShowAnswer(false);
-      setFillInput('');
+      if (opt === undefined || !q.options) return;
+      setSelected(opt);
+      user = q.options[opt];
+      correct = opt === q.answerIndex;
+    }
+    setResult(correct);
+    if (correct) correctRef.current += 1;
+    session.answer({
+      itemId: q.id,
+      category: exercise.topic,
+      prompt: q.question,
+      options: q.type === 'fill' ? undefined : q.options,
+      kind: q.type === 'fill' ? 'text' : 'mcq',
+      answer: correctAnswerOf(q),
+      userAnswer: user,
+      // Comprehension questions can be re-asked later with the transcript as context; dictation
+      // ("Which sentence did you hear?") makes no sense without the audio, so it isn't queued.
+      context: exercise.type === 'comprehension' ? `Nahrávka: „${scriptToText(exercise.script)}“` : undefined,
+      noTrack: exercise.type === 'dictation',
+      correct,
+    });
+  }
+
+  async function saveBest(ex: ListeningExercise) {
+    const total = questions.length;
+    const correct = correctRef.current;
+    const prev = best[ex.id];
+    if (prev && prev.correct / prev.total >= correct / total) return;
+    const next = { ...best, [ex.id]: { correct, total } };
+    setBest(next);
+    try {
+      await kvSet(BEST_KEY, next);
+    } catch {
+      /* best-effort */
     }
   }
 
-  function computeScore(): { correct: number; total: number; pct: number } {
-    let correct = 0;
-    questions.forEach((q, i) => {
-      if (q.type === 'fill') {
-        if (
-          typeof answers[i] === 'string' &&
-          (answers[i] as string).toLowerCase() === (q.answer ?? '').toLowerCase()
-        )
-          correct++;
-      } else {
-        if (answers[i] === q.answerIndex) correct++;
-      }
-    });
-    const total = questions.length;
-    return { correct, total, pct: total > 0 ? Math.round((correct / total) * 100) : 0 };
+  async function finish(full: boolean) {
+    stopAudio();
+    await session.finish();
+    if (full && exercise) {
+      setCompleted(true);
+      await saveBest(exercise);
+    }
+    setPhase('result');
+    window.scrollTo({ top: 0 });
   }
 
-  async function finishExercise() {
-    if (!exercise) return;
-    const { correct } = computeScore();
-
-    const stats = await getStats();
-    stats.totalExercisesDone += questions.length;
-    stats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(stats);
-    await updateStreak();
-
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'listening',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: questions.length,
-      correctItems: correct,
-      tags: ['listening', exercise.type, exercise.topic],
-    });
-
-    startTransition(() => setPhase('result'));
+  async function next() {
+    if (idx + 1 >= questions.length) {
+      await finish(true);
+    } else {
+      setIdx(idx + 1);
+      resetItem();
+    }
   }
 
-  // ─── SELECT PHASE ──────────────────────────────────────────────────
-  if (phase === 'select') {
+  useKeyboard(result !== null ? { Enter: () => void next() } : {}, phase === 'drill');
+
+  /* ─── Setup ──────────────────────────────────────────────────────── */
+  if (phase === 'setup' || !exercise) {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
-        <h1 className="page-title">Poslech</h1>
-        <p className="page-subtitle">
-          {LISTENING_EXERCISES.length} cvičení — poslouchej a odpovídej.
-        </p>
-
-        <div className="mb-4 flex gap-2 flex-wrap">
-          {['all', 'A1', 'A2', 'B1'].map((lvl) => (
-            <button
-              key={lvl}
-              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
-                filterLevel === lvl ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-              onClick={() => setFilterLevel(lvl)}
-            >
-              {lvl === 'all' ? 'Vše' : lvl}
-            </button>
+      <DrillSetup
+        title="Poslech"
+        subtitle={`${LISTENING_EXERCISES.length} cvičení — poslouchej a odpovídej. Nahrávku si můžeš pustit, kolikrát chceš.`}
+        icon="🎧"
+        poolSize={pool.length}
+        poolNoun={["cvičení", "cvičení", "cvičení"]}
+        onStart={startRandom}
+        startLabel="Náhodné cvičení"
+        footer={
+          <section aria-labelledby="listening-list-title">
+            <h2 id="listening-list-title" className="section-title">
+              Cvičení <span className="text-muted">({pool.length})</span>
+            </h2>
+            {pool.length === 0 ? (
+              <p className="card text-sm text-muted">Pro tento výběr tu zatím žádné cvičení není.</p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {pool.map((ex) => {
+                  const b = best[ex.id];
+                  return (
+                    <li key={ex.id} className="min-w-0">
+                      <button type="button" className="card card-link flex h-full w-full items-center gap-3 !p-3 text-left" onClick={() => startExercise(ex)}>
+                        <span className="tile-icon" aria-hidden="true">{TYPE_ICONS[ex.type]}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold leading-snug break-words text-fg">{exerciseTitle(ex)}</span>
+                          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                            <LevelBadge level={ex.level} />
+                            <span>
+                              {ex.questions.length} {plural(ex.questions.length, 'otázka', 'otázky', 'otázek')}
+                            </span>
+                          </span>
+                        </span>
+                        {b ? (
+                          <span className={`badge shrink-0 ${b.correct === b.total ? '!bg-success-soft !text-success' : ''}`} title="Tvůj nejlepší výsledek">
+                            {b.correct === b.total ? '✓ ' : ''}
+                            {b.correct}/{b.total}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-muted" aria-hidden="true">›</span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <p className="mt-4 text-center text-sm text-muted">
+              Rychlost předčítání si nastavíš v <Link to="/settings">Nastavení</Link>.
+            </p>
+          </section>
+        }
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>
+              {l === 'all' ? 'Vše' : l}
+            </Chip>
           ))}
-        </div>
-
-        <div className="mb-4 flex gap-2 flex-wrap">
-          {(['all', 'dictation', 'comprehension', 'gapfill'] as const).map((t) => (
-            <button
-              key={t}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                filterType === t ? 'bg-primary-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-              onClick={() => setFilterType(t)}
-            >
-              {t === 'all' ? 'Vše' : TYPE_LABELS[t]}
-            </button>
+        </FilterGroup>
+        <FilterGroup label="Typ cvičení">
+          {TYPES.map((t) => (
+            <Chip key={t} active={type === t} onClick={() => setType(t)}>
+              {t === 'all' ? 'Vše' : `${TYPE_ICONS[t]} ${TYPE_LABELS[t]}`}
+            </Chip>
           ))}
-        </div>
-
-        <p className="text-xs text-slate-400 mb-3">{filteredExercises.length} cvičení</p>
-
-        <div className="space-y-3">
-          {filteredExercises.map((ex) => (
-            <button
-              key={ex.id}
-              className="card-hover w-full text-left"
-              onClick={() => startExercise(ex)}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{TYPE_ICONS[ex.type]}</span>
-                    <h3 className="font-semibold text-slate-800 dark:text-slate-100">
-                      {TYPE_LABELS[ex.type]} — {ex.topic}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`badge ${LEVEL_COLORS[ex.level]}`}>{ex.level}</span>
-                    <span className="text-xs text-slate-400">
-                      {ex.questions.length} {ex.questions.length === 1 ? 'otázka' : ex.questions.length < 5 ? 'otázky' : 'otázek'}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-slate-300 dark:text-slate-500 text-xl">→</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
-  // ─── EXERCISE PHASE ────────────────────────────────────────────────
-  if (phase === 'exercise' && exercise) {
-    const q = questions[currentQ];
-
+  /* ─── Result ─────────────────────────────────────────────────────── */
+  if (phase === 'result') {
     return (
-      <div className="page-container">
-        <div className="flex items-center justify-between mb-4">
-          <button className="btn-ghost text-sm" onClick={() => startTransition(() => setPhase('select'))}>← Zpět</button>
-          <span className="text-sm text-slate-500 font-medium">
-            {currentQ + 1} / {questions.length}
-          </span>
-        </div>
-
-        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-          <div
-            className="bg-primary-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${(currentQ / questions.length) * 100}%` }}
-          />
-        </div>
-
-        <div className="flex items-center gap-2 mb-4">
-          <span className={`badge ${LEVEL_COLORS[exercise.level]}`}>{exercise.level}</span>
-          <span className="text-xs text-slate-400">{TYPE_LABELS[exercise.type]}</span>
-        </div>
-
-        {/* Play controls */}
-        <div className="flex flex-col items-center gap-3 mb-6">
-          <PlayButton onClick={handlePlay} label={hasPlayed ? 'Přehrát znovu' : 'Přehrát'} />
-          {exercise.type === 'comprehension' && (
-            <SlowPlayButton onClick={handleSlowPlay} />
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={() => {
+          resetItem();
+          setPhase('setup');
+        }}
+        restartLabel="Vybrat další cvičení"
+      >
+        <div className="card mt-5 !p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <LevelBadge level={exercise.level} />
+            <span className="font-bold text-fg">{exerciseTitle(exercise)}</span>
+          </div>
+          {completed && best[exercise.id] && (
+            <p className="mt-1 text-sm text-muted">
+              Tvůj nejlepší výsledek u tohoto cvičení: {best[exercise.id].correct}/{best[exercise.id].total}.
+            </p>
           )}
-          {!hasPlayed && (
-            <p className="text-xs text-slate-400 text-center">Klikni pro přehrání nahrávky</p>
-          )}
-        </div>
-
-        {/* Question area — only show after first play */}
-        {hasPlayed && q && (
-          <div className="card !p-6 mb-4">
-            {q.type === 'truefalse' && (
-              <span className="inline-block mb-2 text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-700">
-                True / False
-              </span>
-            )}
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">{q.question}</h3>
-
-            {/* MCQ / TrueFalse options */}
-            {(q.type === 'mcq' || q.type === 'truefalse') && q.options && (
-              <>
-                {!showAnswer ? (
-                  <div className="space-y-2">
-                    {q.options.map((opt, i) => (
-                      <button
-                        key={i}
-                        className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
-                          answers[currentQ] === i
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-slate-100 hover:border-slate-200'
-                        }`}
-                        onClick={() => selectOption(currentQ, i)}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {q.options.map((opt, i) => (
-                      <div
-                        key={i}
-                        className={`px-4 py-3 rounded-xl border-2 ${
-                          i === q.answerIndex
-                            ? 'border-green-500 bg-green-50'
-                            : answers[currentQ] === i
-                            ? 'border-red-500 bg-red-50'
-                            : 'border-slate-100'
-                        }`}
-                      >
-                        {opt} {i === q.answerIndex && ' ✓'}
-                      </div>
-                    ))}
-                    <div className={`mt-3 p-3 rounded-xl ${isCurrentCorrect() ? 'bg-green-50' : 'bg-red-50'}`}>
-                      <p className={`text-sm font-medium ${isCurrentCorrect() ? 'text-green-700' : 'text-red-700'}`}>
-                        {isCurrentCorrect() ? '✅ Správně!' : '❌ Špatně.'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Fill-in input */}
-            {q.type === 'fill' && (
-              <>
-                {!showAnswer ? (
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      className="input w-full"
-                      placeholder="Napiš odpověď…"
-                      value={fillInput}
-                      onChange={(e) => setFillInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && fillInput.trim()) submitFill();
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className={`px-4 py-3 rounded-xl border-2 ${
-                      isCurrentCorrect()
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-red-500 bg-red-50'
-                    }`}>
-                      <p className="text-sm">
-                        Tvá odpověď: <strong>{answers[currentQ] as string}</strong>
-                      </p>
-                      {!isCurrentCorrect() && (
-                        <p className="text-sm mt-1">
-                          Správně: <strong className="text-green-700">{q.answer}</strong>
-                        </p>
-                      )}
-                    </div>
-                    <div className={`mt-3 p-3 rounded-xl ${isCurrentCorrect() ? 'bg-green-50' : 'bg-red-50'}`}>
-                      <p className={`text-sm font-medium ${isCurrentCorrect() ? 'text-green-700' : 'text-red-700'}`}>
-                        {isCurrentCorrect() ? '✅ Správně!' : '❌ Špatně.'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </>
+          <Transcript script={exercise.script} />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn-secondary" onClick={() => startExercise(exercise)}>
+              Zkusit znovu
+            </button>
+            {pool.length > 1 && (
+              <button type="button" className="btn-ghost" onClick={startRandom}>
+                Náhodné další cvičení
+              </button>
             )}
           </div>
-        )}
-
-        {/* Action buttons */}
-        {hasPlayed && q && (
-          <>
-            {q.type === 'fill' ? (
-              !showAnswer ? (
-                <button
-                  className="btn-primary btn-lg w-full"
-                  disabled={!fillInput.trim()}
-                  onClick={submitFill}
-                >
-                  Zkontrolovat
-                </button>
-              ) : (
-                <button className="btn-primary btn-lg w-full" onClick={nextQuestion}>
-                  {currentQ + 1 >= questions.length ? 'Zobrazit výsledky' : 'Další otázka →'}
-                </button>
-              )
-            ) : (
-              !showAnswer ? (
-                <button
-                  className="btn-primary btn-lg w-full"
-                  disabled={answers[currentQ] === null}
-                  onClick={checkAnswer}
-                >
-                  Zkontrolovat
-                </button>
-              ) : (
-                <button className="btn-primary btn-lg w-full" onClick={nextQuestion}>
-                  {currentQ + 1 >= questions.length ? 'Zobrazit výsledky' : 'Další otázka →'}
-                </button>
-              )
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // ─── RESULT PHASE ──────────────────────────────────────────────────
-  if (phase === 'result' && exercise) {
-    const { correct, total, pct } = computeScore();
-
-    return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">
-          {TYPE_LABELS[exercise.type]} — {exercise.topic}
-        </h2>
-        <p className="text-slate-600 mb-1">
-          {correct} / {total} správně ({pct}%)
-        </p>
-        <p className="text-sm text-slate-400 mb-6">
-          {pct >= 80
-            ? 'Výborný poslech!'
-            : pct >= 50
-            ? 'Dobrý výsledek, pokračuj dál.'
-            : 'Zkus si cvičení pustit znovu.'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
-          <button
-            className="btn-primary"
-            onClick={() => startTransition(() => {
-              setPhase('select');
-              setExercise(null);
-            })}
-          >
-            Další cvičení
-          </button>
         </div>
-      </div>
+      </ResultScreen>
     );
   }
 
-  return null;
+  /* ─── Drill ──────────────────────────────────────────────────────── */
+  if (!q) return null;
+  const last = idx + 1 >= questions.length;
+  const fillStatus = result === null ? null : result ? 'correct' : 'wrong';
+
+  return (
+    <div className="page-container">
+      <DrillTopBar
+        current={idx}
+        total={questions.length}
+        correct={session.correct}
+        onExit={() => void finish(false)}
+        title={exerciseTitle(exercise)}
+      />
+
+      {/* Player */}
+      <section className="card mb-4 !p-5" aria-label="Nahrávka">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <LevelBadge level={exercise.level} />
+          <span className="badge">
+            {TYPE_ICONS[exercise.type]} {TYPE_LABELS[exercise.type]}
+          </span>
+        </div>
+        <p className="mb-4 text-sm text-muted">{TYPE_HINTS[exercise.type]}</p>
+
+        {canSpeak ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className={`btn-lg min-w-[11rem] ${playing ? 'btn-secondary' : 'btn-primary'}`}
+              onClick={play}
+              aria-label={playing ? 'Zastavit nahrávku' : played ? 'Přehrát nahrávku znovu' : 'Přehrát nahrávku'}
+            >
+              {playing ? <StopIcon /> : <PlayIcon />}
+              {playing ? 'Zastavit' : played ? 'Přehrát znovu' : 'Přehrát'}
+              {playing && (
+                <span className="exam-wave ml-1" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              className="g92-chip"
+              aria-pressed={slow}
+              onClick={() => setSlow((s) => !s)}
+              title={`Pomalé přehrávání (${slowRate}×)`}
+            >
+              <span aria-hidden="true">🐢</span> Pomalu
+            </button>
+          </div>
+        ) : (
+          <div className="feedback feedback--info text-sm text-fg">
+            Tvůj prohlížeč neumí text přečíst nahlas. Otevři si přepis a procvič si aspoň porozumění textu.
+            <Transcript script={exercise.script} />
+          </div>
+        )}
+        {!played && <p className="mt-3 text-sm text-muted">Nejdřív si pusť nahrávku — otázka se ukáže hned potom.</p>}
+      </section>
+
+      {/* Question */}
+      {played && (
+        <section className="card !p-5" aria-labelledby="listening-question">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="eyebrow">
+              Otázka {idx + 1} z {questions.length}
+            </span>
+            {q.type === 'truefalse' && <span className="badge !bg-warning-soft !text-warning">True / False</span>}
+            {q.type === 'fill' && <span className="badge">Doplň slovo</span>}
+          </div>
+          <p id="listening-question" className="mb-4 text-lg leading-snug font-bold break-words text-fg" lang="en">
+            {q.question}
+          </p>
+
+          {q.type === 'fill' ? (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex-1">
+                <TextAnswer
+                  key={q.id}
+                  value={text}
+                  onChange={setText}
+                  onSubmit={() => submit()}
+                  disabled={result !== null}
+                  status={fillStatus}
+                  placeholder="Napiš chybějící slovo…"
+                  label="Chybějící slovo"
+                />
+              </div>
+              {result === null && (
+                <button type="button" className="btn-primary btn-lg" disabled={!text.trim()} onClick={() => submit()}>
+                  Ověřit
+                </button>
+              )}
+            </div>
+          ) : (
+            q.options && (
+              <OptionList
+                key={q.id}
+                options={q.options}
+                selected={selected}
+                correctIndex={q.answerIndex ?? -1}
+                revealed={result !== null}
+                onSelect={(i) => submit(i)}
+              />
+            )
+          )}
+
+          {result !== null && (
+            <Feedback correct={result} answer={correctAnswerOf(q)} userAnswer={q.type === 'fill' ? text.trim() : undefined} />
+          )}
+          {result !== null && canSpeak && <Transcript script={exercise.script} />}
+          {result !== null && <NextButton onClick={() => void next()} last={last} />}
+        </section>
+      )}
+    </div>
+  );
 }

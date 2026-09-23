@@ -1,5 +1,5 @@
 import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { GRAMMAR_EXERCISES, GRAMMAR_CATEGORIES, CATEGORY_NAMES } from '../data/grammar';
 import { shuffleArray } from '../utils';

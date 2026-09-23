@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { getStats, saveStats } from '../db';
 import { DIAGNOSTIC_QUESTIONS, DIAGNOSTIC_SCORING } from '../data/diagnostic';
 import type { DiagnosticQuestion } from '../data/diagnostic';

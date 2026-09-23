@@ -1,5 +1,5 @@
 import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { PREPOSITION_EXERCISES, PREPOSITION_CATEGORIES } from '../data/prepositions';
 import type { PrepositionExercise } from '../data/prepositions';

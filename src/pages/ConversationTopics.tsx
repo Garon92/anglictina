@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { CONVERSATION_TOPICS } from '../data/conversation';
 import type { ConversationTopic } from '../data/conversation';
 import { speak } from '../tts';

@@ -116,6 +116,8 @@ export interface SRSState {
   lastGrade: number;
   lastReviewAt: number;
   totalReviews: number;
+  /** When the card was first reviewed (added in v2; missing on older cards). */
+  firstReviewAt?: number;
 }
 
 export interface ReviewLog {
@@ -129,8 +131,12 @@ export interface ReviewLog {
 
 export interface DrillSession {
   id?: number;
+  /** Local day key YYYY-MM-DD (older records may carry the UTC day). */
   date: string;
-  type: 'vocab' | 'grammar' | 'reading' | 'listening' | 'mixed' | 'diagnostic' | 'exam' | 'phrasal_verbs' | 'word_order' | 'prepositions' | 'confusables' | 'articles' | 'translation' | 'idioms' | 'word_formation' | 'czech_errors' | 'conditionals' | 'reported_speech' | 'passive_voice' | 'error_correction' | 'sentence_transform' | 'favorites_quiz' | 'custom_words';
+  /** Broad activity type (legacy values kept for old records). */
+  type: string;
+  /** Module id from src/modules.ts (added in v2; inferred from tags for older records). */
+  module?: string;
   startedAt: number;
   endedAt?: number;
   totalItems: number;
@@ -143,14 +149,26 @@ export interface ExamSession {
   type: 'internal' | 'timer_only';
   startedAt: number;
   endedAt?: number;
+  /** Points (0–100) for full simulations; percentage for older/partial records. */
   scoreTotal: number;
   maxScore: number;
+  /** Percentages per subtest. */
   scoreBySkill: {
     listening: number;
     reading: number;
     language: number;
   };
   notes: string;
+  /** v2: which practice set / mode, and points per part (index 0 = part 1). */
+  setId?: string;
+  mode?: 'full' | 'listening' | 'reading' | 'part' | 'mini';
+  partPoints?: number[];
+  partMax?: number[];
+  passed?: boolean;
+  /** v2: stored answers + set id per part (index 0 = part 1) for the review screen. */
+  answers?: unknown;
+  sources?: string[];
+  parts?: number[];
 }
 
 export interface UserSettings {
@@ -228,3 +246,35 @@ export const MATURITA_TOPICS = [
 ] as const;
 
 export type TopicId = typeof MATURITA_TOPICS[number]['id'];
+
+/** A remembered mistake that is re-drilled until answered correctly twice (DB v2). */
+export interface MistakeItem {
+  /** `${module}:${itemId}` */
+  key: string;
+  module: string;
+  category: string;
+  /** Question shown to the learner (may contain "___" for the gap). */
+  prompt: string;
+  /** How to re-ask: pick an option, type the answer, or reveal & self-grade. */
+  kind: 'mcq' | 'text' | 'reveal';
+  options?: string[];
+  /** Correct answer for display; may contain "a|b" alternatives. */
+  answer: string;
+  accept?: string[];
+  explanation?: string;
+  /** Optional short context (e.g. Czech translation, hint). */
+  context?: string;
+  lastWrong: string;
+  wrongCount: number;
+  rightStreak: number;
+  createdAt: number;
+  updatedAt: number;
+  dueAt: number;
+  resolvedAt?: number;
+}
+
+/** Generic key-value record for small app state (DB v2). */
+export interface KVRecord {
+  key: string;
+  value: unknown;
+}

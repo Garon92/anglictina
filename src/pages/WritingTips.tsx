@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { WRITING_TEMPLATES } from '../data/writing';
 import { speak } from '../tts';
 import type { WritingTemplate } from '../types';

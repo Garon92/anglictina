@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { GRAMMAR_REFERENCE } from '../data/grammarReference';
 import { speak } from '../tts';
 import type { GrammarTopic } from '../types';

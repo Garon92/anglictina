@@ -1,76 +1,61 @@
-const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+/**
+ * App sound effects — thin wrapper over the g92 kit (sound on/off + volume live in the
+ * shared g92 settings, toggled from the app bar).
+ */
+import { sfx, getSettings, setSettings } from './kit';
+import { confetti } from './kit/confetti';
 
-let ctx: AudioContext | null = null;
-let pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
-let _soundEnabled = true;
-
-export function setSoundEnabled(enabled: boolean) {
-  _soundEnabled = enabled;
-}
-
-export function isSoundEnabled(): boolean {
-  return _soundEnabled;
-}
-
-function getCtx(): AudioContext {
-  if (!ctx) ctx = new AudioCtx();
-  return ctx;
-}
-
-function clearPendingSounds() {
-  for (const id of pendingTimeouts) clearTimeout(id);
-  pendingTimeouts = [];
-}
-
-function playTone(freq: number, duration: number, type: OscillatorType = 'sine', gain = 0.15) {
-  if (!_soundEnabled) return;
+function vibrate(pattern: number | number[]) {
+  if (!getSettings().sound) return;
   try {
-    const c = getCtx();
-    const osc = c.createOscillator();
-    const g = c.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    g.gain.value = gain;
-    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
-    osc.connect(g);
-    g.connect(c.destination);
-    osc.start(c.currentTime);
-    osc.stop(c.currentTime + duration);
+    navigator.vibrate?.(pattern);
   } catch {
-    // AudioContext not supported
+    /* unsupported */
   }
 }
 
-function vibrate(pattern: number | number[]) {
-  if (!_soundEnabled) return;
-  try { navigator?.vibrate?.(pattern); } catch { /* unsupported */ }
-}
-
 export function playCorrect() {
-  clearPendingSounds();
-  playTone(523.25, 0.1, 'sine', 0.12);
-  pendingTimeouts.push(setTimeout(() => playTone(659.25, 0.1, 'sine', 0.12), 100));
-  pendingTimeouts.push(setTimeout(() => playTone(783.99, 0.15, 'sine', 0.12), 200));
-  vibrate(30);
+  sfx.success();
+  vibrate(18);
 }
 
 export function playIncorrect() {
-  clearPendingSounds();
-  playTone(311.13, 0.15, 'square', 0.08);
-  pendingTimeouts.push(setTimeout(() => playTone(277.18, 0.25, 'square', 0.08), 150));
-  vibrate([30, 50, 30]);
+  sfx.error();
+  vibrate([25, 40, 25]);
 }
 
 export function playClick() {
-  clearPendingSounds();
-  playTone(880, 0.05, 'sine', 0.06);
+  sfx.tap();
 }
 
-export function playComplete() {
-  clearPendingSounds();
-  playTone(523.25, 0.1, 'sine', 0.1);
-  pendingTimeouts.push(setTimeout(() => playTone(659.25, 0.1, 'sine', 0.1), 120));
-  pendingTimeouts.push(setTimeout(() => playTone(783.99, 0.1, 'sine', 0.1), 240));
-  pendingTimeouts.push(setTimeout(() => playTone(1046.50, 0.2, 'sine', 0.1), 360));
-  import('./confetti').then((m) => m.launchConfetti()).catch(() => {});
+export function playFlip() {
+  sfx.flip();
+}
+
+/**
+ * End of a session. `ratio` (0–1) decides how much to celebrate:
+ * ≥ 0.8 fanfare + confetti, ≥ 0.5 fanfare, otherwise a soft sound.
+ */
+export function playComplete(ratio = 1) {
+  if (ratio >= 0.8) {
+    sfx.win();
+    confetti({ particleCount: 140 });
+  } else if (ratio >= 0.5) {
+    sfx.levelUp();
+  } else {
+    sfx.pop();
+  }
+}
+
+export function celebrate() {
+  confetti({ particleCount: 180, cannons: true });
+}
+
+/** @deprecated sound is a global g92 setting now */
+export function setSoundEnabled(enabled: boolean) {
+  if (getSettings().sound !== enabled) setSettings({ sound: enabled });
+}
+
+export function isSoundEnabled(): boolean {
+  return getSettings().sound;
 }

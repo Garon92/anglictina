@@ -1,5 +1,5 @@
 import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { IDIOMS, COLLOCATIONS, IDIOM_CATEGORIES } from '../data/idioms';
 import type { Idiom, Collocation } from '../data/idioms';

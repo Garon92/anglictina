@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { getStats, getDrillSessions } from '../db';
-import { getErrorAnalysis, getModuleLabel } from '../errorTracker';
-import type { UserStats, DrillSession } from '../types';
-import { DEFAULT_STATS } from '../types';
+import { Link } from 'react-router';
+import { useSettings } from '../App';
+import { getStats, getDrillSessions, getExamSessions } from '../db';
+import { getMistakeSummary } from '../progress';
+import { recommendModule, moduleStats } from '../recommend';
+import { MODULES, moduleTitle, moduleIcon } from '../modules';
+import { daysUntil, czechPlural, dayKey, addDays } from '../lib/dates';
+import type { DrillSession, ExamSession, UserStats } from '../types';
+import { PageHeader } from '../components/ui';
 
-interface Recommendation {
+interface Tip {
   icon: string;
   title: string;
   desc: string;
@@ -13,164 +17,149 @@ interface Recommendation {
   priority: 'high' | 'medium' | 'low';
 }
 
-const DAY_NAMES = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
-
-const WEEKLY_PLAN = [
-  { day: 'Pondělí', icon: '📝', activities: ['Slovíčka (SRS)', 'Gramatika (10 úloh)'] },
-  { day: 'Úterý', icon: '📖', activities: ['Čtení (1 text)', 'Předložky (10 úloh)'] },
-  { day: 'Středa', icon: '🔄', activities: ['Nepravidelná slovesa', 'Členy (10 úloh)'] },
-  { day: 'Čtvrtek', icon: '🎧', activities: ['Poslech (1 cvičení)', 'Kolokace kvíz'] },
-  { day: 'Pátek', icon: '✍️', activities: ['Překlad vět (15)', 'Skládání vět (10)'] },
-  { day: 'Sobota', icon: '💬', activities: ['Konverzační téma', 'Záměnná slova'] },
-  { day: 'Neděle', icon: '🎯', activities: ['Mini-test simulace', 'Opakování slovíček'] },
+const WEEKLY_PLAN: { day: string; icon: string; focus: string; items: { label: string; to: string }[] }[] = [
+  { day: 'Pondělí', icon: '✏️', focus: 'Gramatika', items: [{ label: 'Slovíčka', to: '/vocab' }, { label: 'Gramatika – mix', to: '/grammar' }, { label: 'Členy', to: '/articles' }] },
+  { day: 'Úterý', icon: '📖', focus: 'Čtení', items: [{ label: 'Slovíčka', to: '/vocab' }, { label: 'Čtení s porozuměním', to: '/reading' }, { label: 'Předložky', to: '/prepositions' }] },
+  { day: 'Středa', icon: '🎧', focus: 'Poslech', items: [{ label: 'Slovíčka', to: '/vocab' }, { label: 'Poslech', to: '/listening' }, { label: 'Nepravidelná slovesa', to: '/irregular-verbs' }] },
+  { day: 'Čtvrtek', icon: '🧩', focus: 'Slovní zásoba', items: [{ label: 'Slovíčka', to: '/vocab' }, { label: 'Frázová slovesa', to: '/phrasal-verbs' }, { label: 'Záměnná slova', to: '/confusables' }] },
+  { day: 'Pátek', icon: '🔁', focus: 'Opakování', items: [{ label: 'Oprava chyb', to: '/mistakes' }, { label: 'Tvoření slov', to: '/word-formation' }, { label: 'Slovosled', to: '/word-order' }] },
+  { day: 'Sobota', icon: '🎯', focus: 'Test', items: [{ label: 'Jedna část testu', to: '/exam' }, { label: 'Ústní zkouška – téma', to: '/conversation' }] },
+  { day: 'Neděle', icon: '🌿', focus: 'Lehký den', items: [{ label: 'Slovíčka', to: '/vocab' }, { label: 'Pexeso', to: '/matching' }] },
 ];
 
+const DAY_INDEX = [6, 0, 1, 2, 3, 4, 5]; // JS getDay() → index in WEEKLY_PLAN
+
 export default function StudyPlan() {
-  const navigate = useNavigate();
-  const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
-  const [sessions, setSessions] = useState<DrillSession[]>([]);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const { settings } = useSettings();
+  const [tips, setTips] = useState<Tip[]>([]);
+  const today = WEEKLY_PLAN[DAY_INDEX[new Date().getDay()]];
+  const days = daysUntil(settings.examDate);
+  const weeks = Math.max(0, Math.floor(days / 7));
 
   useEffect(() => {
     (async () => {
-      const [s, sess] = await Promise.all([getStats(), getDrillSessions()]);
-      setStats(s);
-      setSessions(sess);
-      setRecommendations(buildRecommendations(s, sess));
-    })();
+      const [stats, sessions, exams, mistakes] = await Promise.all([getStats(), getDrillSessions(), getExamSessions(), getMistakeSummary()]);
+      setTips(buildTips(stats, sessions, exams, mistakes.byModule, mistakes.due));
+    })().catch(() => {});
   }, []);
 
-  const today = DAY_NAMES[new Date().getDay()];
-  const todayPlan = WEEKLY_PLAN.find((p) => p.day === today) || WEEKLY_PLAN[0];
+  const phase =
+    days < 0 ? null
+      : days <= 21 ? { name: 'Finiš', desc: 'Celé testy nanečisto 2× týdně, rozbor chyb, krátké opakování slovíček. Žádné nové učivo.' }
+        : days <= 90 ? { name: 'Trénink formátu', desc: 'Každý týden aspoň jeden celý test, mezi tím jednotlivé části testu a oprava chyb.' }
+          : days <= 240 ? { name: 'Budování základů', desc: 'Pravidelná slovíčka, gramatika podle slabin, čtení a poslech. Jednou za 2–3 týdny test na zkoušku.' }
+            : { name: 'Rozjezd', desc: 'Buduj návyk: každý den slovíčka a jedno krátké cvičení. Zkus diagnostický test a jeden cvičný test pro představu.' };
 
   return (
-    <div className="page-container">
-      <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
-      <h1 className="page-title">Studijní plán</h1>
-      <p className="page-subtitle">Tvůj doporučený rozvrh a priority</p>
+    <div className="page-container page-container--wide">
+      <PageHeader title="Studijní plán" subtitle="Rozvrh na týden a priority podle tvých výsledků." back="/practice" icon="📅" />
 
-      {/* Today's focus */}
-      <div className="card mb-4 border-2 border-primary-200 dark:border-primary-700">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-3xl">{todayPlan.icon}</span>
-          <div>
-            <div className="font-bold text-slate-900 dark:text-white">Dnes — {today}</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Doporučené aktivity</div>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {todayPlan.activities.map((act, i) => (
-            <div key={i} className="flex items-center gap-2 p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-              <span className="text-primary-500">→</span>
-              <span className="text-sm text-slate-700 dark:text-slate-300">{act}</span>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="card g92-card--accent !p-5">
+          <div className="eyebrow">Do maturity</div>
+          {days >= 0 ? (
+            <>
+              <div className="mt-1 text-3xl font-black text-fg">
+                {days} {czechPlural(days, 'den', 'dny', 'dní')}
+                <span className="ml-2 text-base font-bold text-muted">({weeks} {czechPlural(weeks, 'týden', 'týdny', 'týdnů')})</span>
+              </div>
+              {phase && (
+                <p className="mt-2 text-sm text-fg">
+                  <strong>Fáze: {phase.name}.</strong> <span className="text-muted">{phase.desc}</span>
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mt-1 text-fg">Datum maturity je v minulosti — nastav si nové v <Link to="/settings">nastavení</Link>.</p>
+          )}
+          <p className="mt-3 text-xs text-muted">
+            Denní cíl: {settings.minutesPerDay} min · {settings.newCardsPerDay} nových slovíček · cílové skóre {settings.goalScore} b
+          </p>
+        </section>
+
+        <section className="card !p-5">
+          <div className="flex items-center gap-3">
+            <span className="tile-icon" aria-hidden="true">{today.icon}</span>
+            <div>
+              <div className="font-black text-fg">Dnes — {today.day}</div>
+              <div className="text-sm text-muted">Zaměření: {today.focus}</div>
             </div>
-          ))}
-        </div>
+          </div>
+          <ul className="mt-3 space-y-1.5">
+            {today.items.map((it) => (
+              <li key={it.label}>
+                <Link to={it.to} className="card-link flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm font-bold text-fg no-underline">
+                  {it.label} <span aria-hidden="true" className="text-muted">›</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
 
-      {/* Personalized recommendations */}
-      {recommendations.length > 0 && (
-        <>
+      {tips.length > 0 && (
+        <section className="mt-6">
           <h2 className="section-title">Doporučení pro tebe</h2>
-          <div className="space-y-2 mb-6">
-            {recommendations.map((rec, i) => (
-              <Link
-                key={i}
-                to={rec.link}
-                className={`card-hover flex items-center gap-3 !p-3 border-l-4 ${
-                  rec.priority === 'high'
-                    ? 'border-l-red-500'
-                    : rec.priority === 'medium'
-                    ? 'border-l-amber-500'
-                    : 'border-l-green-500'
-                }`}
-              >
-                <span className="text-2xl">{rec.icon}</span>
-                <div className="flex-1">
-                  <div className="font-medium text-slate-800 dark:text-slate-200 text-sm">{rec.title}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{rec.desc}</div>
-                </div>
-                <span className="text-slate-400 text-sm">→</span>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {tips.map((t) => (
+              <Link key={t.title} to={t.link} className={`card card-link flex items-start gap-3 !p-4 no-underline ${t.priority === 'high' ? '!border-warning' : ''}`}>
+                <span className="text-2xl" aria-hidden="true">{t.icon}</span>
+                <span className="min-w-0">
+                  <span className="block font-bold text-fg">{t.title}</span>
+                  <span className="block text-sm text-muted">{t.desc}</span>
+                </span>
               </Link>
             ))}
           </div>
-        </>
+        </section>
       )}
 
-      {/* Weekly schedule */}
-      <h2 className="section-title">Týdenní rozvrh</h2>
-      <div className="space-y-2">
-        {WEEKLY_PLAN.map((day) => (
-          <div
-            key={day.day}
-            className={`card !p-3 ${day.day === today ? 'ring-2 ring-primary-500' : ''}`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span>{day.icon}</span>
-              <span className={`font-semibold text-sm ${day.day === today ? 'text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                {day.day}
-                {day.day === today && <span className="text-xs ml-1 text-primary-400">(dnes)</span>}
-              </span>
+      <section className="mt-6">
+        <h2 className="section-title">Týdenní rozvrh</h2>
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {WEEKLY_PLAN.map((p) => (
+            <div key={p.day} className={`card !p-4 ${p === today ? '!border-accent ring-2 ring-accent/20' : ''}`}>
+              <div className="mb-1.5 flex items-center gap-2">
+                <span aria-hidden="true">{p.icon}</span>
+                <span className="font-bold text-fg">{p.day}</span>
+                <span className="ml-auto text-xs text-muted">{p.focus}</span>
+              </div>
+              <ul className="space-y-0.5 text-sm text-muted">
+                {p.items.map((it) => <li key={it.label}>• {it.label}</li>)}
+              </ul>
             </div>
-            <div className="pl-7 space-y-0.5">
-              {day.activities.map((act, i) => (
-                <div key={i} className="text-xs text-slate-500 dark:text-slate-400">• {act}</div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
 
-function buildRecommendations(stats: UserStats, sessions: DrillSession[]): Recommendation[] {
-  const recs: Recommendation[] = [];
-  const errors = getErrorAnalysis();
-  const last7 = sessions.filter((s) => s.startedAt > Date.now() - 7 * 86400000);
-  const typeCounts: Record<string, number> = {};
-  for (const s of last7) typeCounts[s.type] = (typeCounts[s.type] || 0) + 1;
+function buildTips(stats: UserStats, sessions: DrillSession[], exams: ExamSession[], mistakesByModule: Record<string, number>, mistakesDue: number): Tip[] {
+  const tips: Tip[] = [];
+  const weekStart = addDays(dayKey(), -6);
+  const recent = moduleStats(sessions.filter((s) => s.date >= weekStart));
 
   if (stats.diagnosticScores.length === 0) {
-    recs.push({ icon: '🩺', title: 'Udělej diagnostický test', desc: 'Zjistíš svou úroveň a my ti doporučíme, kde začít.', link: '/diagnostic', priority: 'high' });
+    tips.push({ icon: '🩺', title: 'Udělej rozřazovací test', desc: 'Za 10 minut zjistíš, na jaké úrovni jsi.', link: '/diagnostic', priority: 'high' });
   }
-
-  if (stats.totalCardsLearned < 50) {
-    recs.push({ icon: '📝', title: 'Nauč se víc slovíček', desc: `Zatím znáš ${stats.totalCardsLearned} slov. Cíl: alespoň 500 pro B1.`, link: '/vocab', priority: 'high' });
+  if (!exams.some((e) => e.mode === 'full')) {
+    tips.push({ icon: '🎯', title: 'Zkus cvičný test nanečisto', desc: 'Uvidíš formát maturity a kolik bodů by ti chybělo.', link: '/exam', priority: 'high' });
   }
-
-  if (errors.totalErrors > 10 && errors.weakestModule) {
-    const modLabel = getModuleLabel(errors.weakestModule);
-    const modLinks: Record<string, string> = {
-      grammar: '/grammar', prepositions: '/prepositions', vocab: '/vocab',
-      confusables: '/confusables', irregular_verbs: '/irregular-verbs',
-    };
-    recs.push({
-      icon: '⚠️',
-      title: `Zaměř se na: ${modLabel}`,
-      desc: `Máš ${errors.byModule[errors.weakestModule]} chyb v této oblasti.`,
-      link: modLinks[errors.weakestModule] || '/grammar',
-      priority: 'high',
-    });
+  if (mistakesDue > 0) {
+    tips.push({ icon: '🔁', title: `Oprav ${mistakesDue} ${czechPlural(mistakesDue, 'chybu', 'chyby', 'chyb')}`, desc: 'Chyby, které se vrací, jsou nejrychlejší cesta k bodům.', link: '/mistakes', priority: 'high' });
   }
+  const rec = recommendModule(sessions, mistakesByModule);
+  tips.push({ icon: rec.module.icon, title: `Procvič: ${rec.module.title}`, desc: rec.reason, link: rec.module.path, priority: 'medium' });
 
-  if (!typeCounts['grammar'] || typeCounts['grammar'] < 2) {
-    recs.push({ icon: '✏️', title: 'Procvič gramatiku', desc: 'Tento týden málo gramatických cvičení.', link: '/grammar', priority: 'medium' });
+  for (const skill of ['reading', 'listening'] as const) {
+    const mod = MODULES.find((m) => m.id === skill)!;
+    if (!recent[skill]) {
+      tips.push({ icon: moduleIcon(skill), title: `${moduleTitle(skill)} tento týden chybí`, desc: skill === 'reading' ? 'Čtení je 40 % bodů u maturity.' : 'Poslech je 40 % bodů u maturity.', link: mod.path, priority: 'medium' });
+    }
   }
-
-  if (!typeCounts['reading']) {
-    recs.push({ icon: '📖', title: 'Přečti si text', desc: 'Čtení je klíč k rozšíření slovní zásoby.', link: '/reading', priority: 'medium' });
+  if (stats.totalCardsLearned < 300) {
+    tips.push({ icon: '🗂️', title: 'Slovíčka každý den', desc: 'Pro B1 je potřeba aspoň 1 500–2 000 slov. Denní dávka nových slovíček to zvládne.', link: '/vocab', priority: 'low' });
   }
-
-  if (!typeCounts['listening']) {
-    recs.push({ icon: '🎧', title: 'Vyzkoušej poslech', desc: 'Poslech je důležitá část maturity.', link: '/listening', priority: 'medium' });
-  }
-
-  if (stats.streakDays === 0) {
-    recs.push({ icon: '🔥', title: 'Začni streak', desc: 'Pravidelnost je nejdůležitější. I 10 minut denně stačí!', link: '/vocab', priority: 'medium' });
-  }
-
-  recs.push({ icon: '🃏', title: 'Zahraj si pexeso', desc: 'Zábavný způsob jak si zopakovat slovíčka.', link: '/matching', priority: 'low' });
-
-  return recs.slice(0, 6);
+  return tips.slice(0, 6);
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { TRANSLATION_EXERCISES, GRAMMAR_FOCUS_LABELS } from '../data/translations';
 import type { TranslationExercise } from '../data/translations';

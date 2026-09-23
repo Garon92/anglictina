@@ -1,5 +1,5 @@
 import { useState, useMemo, Fragment, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { ARTICLE_EXERCISES, ARTICLE_RULES } from '../data/articles';
 import type { ArticleExercise } from '../data/articles';

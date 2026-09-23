@@ -1,15 +1,20 @@
-import { useEffect, useState, Suspense, createContext, useContext } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState, Suspense, createContext, useContext, lazy, useCallback, useMemo } from 'react';
+import { Outlet } from 'react-router';
 import Layout from './components/Layout';
 import LoadingSkeleton from './components/LoadingSkeleton';
-import { getSettings } from './db';
+import { getSettings, saveSettings } from './db';
 import { initTTS } from './tts';
-import { setSoundEnabled } from './sounds';
 import type { UserSettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
+import { getSettings as getKitSettings, setSettings as setKitSettings, SETTINGS_KEY } from './kit';
+import { appStore } from './lib/appStore';
+import { reportActivity } from './lib/activity';
+
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 interface SettingsContextType {
   settings: UserSettings;
+  /** Update settings in memory and persist them. */
   updateSettings: (s: UserSettings) => void;
 }
 
@@ -22,85 +27,96 @@ export function useSettings() {
   return useContext(SettingsContext);
 }
 
-function applyTheme(theme: 'light' | 'dark' | 'auto') {
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.classList.toggle('dark', isDark);
+function applyFontSize(size: UserSettings['fontSize']) {
+  const px = size === 'small' ? '15px' : size === 'large' ? '18px' : '16px';
+  document.documentElement.style.fontSize = px;
 }
 
-function applyFontSize(size: 'small' | 'medium' | 'large') {
-  const root = document.documentElement;
-  root.classList.remove('text-sm', 'text-base', 'text-lg');
-  if (size === 'small') root.style.fontSize = '14px';
-  else if (size === 'large') root.style.fontSize = '18px';
-  else root.style.fontSize = '16px';
+/**
+ * Before v2 the app kept its own theme + sound switches. They now live in the shared g92
+ * settings; copy the old choice over once (only if the global settings were never touched).
+ */
+function migrateAppearance(s: UserSettings) {
+  if (appStore.get('appearanceMigrated')) return;
+  appStore.set('appearanceMigrated', true);
+  let hasGlobal = false;
+  try {
+    hasGlobal = localStorage.getItem(SETTINGS_KEY) !== null;
+  } catch { /* ignore */ }
+  if (hasGlobal) return;
+  const patch: Parameters<typeof setKitSettings>[0] = {};
+  if (s.theme === 'light' || s.theme === 'dark') patch.theme = s.theme;
+  if (s.soundEnabled === false && getKitSettings().sound) patch.sound = false;
+  if (Object.keys(patch).length > 0) setKitSettings(patch);
 }
 
 export default function App() {
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<UserSettings | null>(null);
 
   useEffect(() => {
-    getSettings().then((s) => {
-      setSettings(s);
-      applyTheme(s.theme);
-      applyFontSize(s.fontSize);
-      setSoundEnabled(s.soundEnabled);
-      initTTS(s.ttsVoice).then(() => setLoading(false));
-    });
+    let alive = true;
+    getSettings()
+      .then((s) => {
+        if (!alive) return;
+        migrateAppearance(s);
+        applyFontSize(s.fontSize);
+        setSettings(s);
+        void initTTS(s.ttsVoice);
+      })
+      .catch(() => {
+        // IndexedDB unavailable (e.g. very old private mode) — run with defaults in memory.
+        if (alive) setSettings({ ...DEFAULT_SETTINGS, onboardingDone: true });
+      });
+    void reportActivity();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
-    applyTheme(settings.theme);
-    if (settings.theme === 'auto') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => applyTheme('auto');
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
-    }
-  }, [settings.theme]);
+    if (settings) applyFontSize(settings.fontSize);
+  }, [settings?.fontSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    applyFontSize(settings.fontSize);
-  }, [settings.fontSize]);
+  const updateSettings = useCallback((s: UserSettings) => {
+    setSettings(s);
+    void saveSettings(s);
+  }, []);
 
-  useEffect(() => {
-    setSoundEnabled(settings.soundEnabled);
-  }, [settings.soundEnabled]);
+  const ctx = useMemo(
+    () => ({ settings: settings ?? DEFAULT_SETTINGS, updateSettings }),
+    [settings, updateSettings],
+  );
 
-  if (loading) {
+  if (!settings) return <SplashScreen />;
+
+  if (!settings.onboardingDone) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-            EN
-          </div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm animate-pulse">Načítám...</p>
-        </div>
-      </div>
+      <Suspense fallback={<SplashScreen />}>
+        <Onboarding onComplete={(s: UserSettings) => setSettings(s)} />
+      </Suspense>
     );
   }
 
-  if (!settings.onboardingDone) {
-    const OnboardingLazy = () => {
-      const [Onboarding, setOnboarding] = useState<React.ComponentType<any> | null>(null);
-      useEffect(() => {
-        import('./pages/Onboarding').then((m) => setOnboarding(() => m.default));
-      }, []);
-      if (!Onboarding) return <LoadingSkeleton />;
-      return <Onboarding onComplete={(s: UserSettings) => setSettings(s)} />;
-    };
-    return <OnboardingLazy />;
-  }
-
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings: setSettings }}>
+    <SettingsContext.Provider value={ctx}>
       <Layout>
         <Suspense fallback={<LoadingSkeleton />}>
           <Outlet />
         </Suspense>
       </Layout>
     </SettingsContext.Provider>
+  );
+}
+
+export function SplashScreen() {
+  return (
+    <div className="g92-app items-center justify-center" role="status" aria-live="polite">
+      <div className="m-auto text-center">
+        <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-accent text-2xl font-black text-accent-contrast shadow-3">
+          EN
+        </div>
+        <p className="animate-pulse text-sm text-muted">Načítám…</p>
+      </div>
+    </div>
   );
 }

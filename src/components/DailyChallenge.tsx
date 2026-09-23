@@ -1,202 +1,150 @@
-import { useState, useEffect } from 'react';
-import { getStats, saveStats } from '../db';
+import { useEffect, useMemo, useState } from 'react';
 import { VOCABULARY } from '../data/vocabulary';
 import { GRAMMAR_EXERCISES } from '../data/grammar';
-import { shuffleArray, todayKey } from '../utils';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
+import { buildOptions, seededRandom, shuffleSeeded } from '../utils';
+import { dayKey } from '../lib/dates';
+import { kvGet, kvSet } from '../db';
+import { OptionList, Feedback, useDrillSession } from './drill';
+import { Stars, starsFor } from './ui';
 
 interface ChallengeQuestion {
-  type: 'vocab' | 'grammar';
-  question: string;
+  id: string;
+  kind: 'vocab' | 'grammar';
+  prompt: string;
+  hint?: string;
   options: string[];
   correctIndex: number;
-  hint?: string;
+  explanation?: string;
 }
 
-function generateDailyQuestions(): ChallengeQuestion[] {
-  const seed = todayKey().replace(/-/g, '');
-  const numSeed = parseInt(seed, 10);
-
-  const richVocab = VOCABULARY.filter((w) => w.example !== '');
-  const vocabPool = shuffleArray(richVocab).slice(0, 200);
-  const grammarPool = GRAMMAR_EXERCISES.filter((e) => e.type === 'mcq' && e.options);
-
-  const questions: ChallengeQuestion[] = [];
-
-  for (let i = 0; i < 3; i++) {
-    const idx = (numSeed + i * 7) % vocabPool.length;
-    const word = vocabPool[idx];
-    const wrongWords = shuffleArray(richVocab.filter((w) => w.en !== word.en)).slice(0, 3);
-    const allOptions = shuffleArray([word.cs, ...wrongWords.map((w) => w.cs)]);
-    questions.push({
-      type: 'vocab',
-      question: `Co znamená "${word.en}"?`,
-      options: allOptions,
-      correctIndex: allOptions.indexOf(word.cs),
-      hint: word.example,
+/** Five questions that are the same for the whole day. */
+export function generateDailyQuestions(day = dayKey()): ChallengeQuestion[] {
+  const rand = seededRandom(`daily:${day}`);
+  const rich = VOCABULARY.filter((w) => w.example);
+  const words = shuffleSeeded(rich, rand).slice(0, 3);
+  const pool = rich.map((w) => w.cs);
+  const qs: ChallengeQuestion[] = words.map((w) => {
+    const { options, correctIndex } = buildOptions(w.cs, pool, 3, rand);
+    return { id: w.id, kind: 'vocab', prompt: `Co znamená „${w.en}“?`, hint: w.example, options, correctIndex };
+  });
+  const grammar = shuffleSeeded(
+    GRAMMAR_EXERCISES.filter((e) => e.type === 'mcq' && e.options && e.options.includes(e.answer)),
+    rand,
+  ).slice(0, 2);
+  for (const g of grammar) {
+    qs.push({
+      id: g.id,
+      kind: 'grammar',
+      prompt: g.prompt,
+      options: g.options!,
+      correctIndex: g.options!.indexOf(g.answer),
+      explanation: g.explanationCs,
     });
   }
-
-  for (let i = 0; i < 2; i++) {
-    const idx = (numSeed + i * 13) % grammarPool.length;
-    const ex = grammarPool[idx];
-    questions.push({
-      type: 'grammar',
-      question: ex.prompt,
-      options: ex.options!,
-      correctIndex: ex.options!.indexOf(ex.answer),
-    });
-  }
-
-  return questions;
+  return qs;
 }
 
-export default function DailyChallenge() {
-  const [questions] = useState(generateDailyQuestions);
-  const [current, setCurrent] = useState(0);
+interface DailyResult {
+  correct: number;
+  total: number;
+}
+
+export default function DailyChallenge({ onDone }: { onDone?: () => void }) {
+  const day = dayKey();
+  const questions = useMemo(() => generateDailyQuestions(day), [day]);
+  const [result, setResult] = useState<DailyResult | null | undefined>(undefined);
+  const [open, setOpen] = useState(false);
+  const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [done, setDone] = useState(false);
-  const [alreadyDone, setAlreadyDone] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
+  const session = useDrillSession('daily');
 
   useEffect(() => {
-    getStats().then((s) => {
-      const key = `dc_${todayKey()}`;
-      if ((s as any)[key]) {
-        setAlreadyDone(true);
-      }
-    });
-  }, []);
+    kvGet<DailyResult>(`daily:${day}`).then((r) => setResult(r ?? null)).catch(() => setResult(null));
+  }, [day]);
 
-  function handleSelect(idx: number) {
+  if (result === undefined) return null;
+
+  const q = questions[idx];
+  const revealed = selected !== null;
+
+  function choose(i: number) {
     if (selected !== null) return;
-    setSelected(idx);
-    const correct = idx === questions[current].correctIndex;
-    if (correct) {
-      setScore((s) => s + 1);
-      playCorrect();
-    } else {
-      playIncorrect();
-    }
-    setTimeout(() => {
-      if (current + 1 >= questions.length) {
-        setDone(true);
-        playComplete();
-        getStats().then((s) => {
-          const key = `dc_${todayKey()}`;
-          saveStats({ ...s, [key]: true } as any);
-        });
-      } else {
-        setCurrent((c) => c + 1);
-        setSelected(null);
-      }
-    }, 1200);
+    setSelected(i);
+    session.answer({
+      itemId: q.id,
+      prompt: q.prompt,
+      options: q.options,
+      answer: q.options[q.correctIndex],
+      userAnswer: q.options[i],
+      correct: i === q.correctIndex,
+      explanation: q.explanation,
+      category: q.kind,
+    });
   }
 
-  if (collapsed) {
+  async function next() {
+    if (idx + 1 < questions.length) {
+      setIdx(idx + 1);
+      setSelected(null);
+      return;
+    }
+    await session.finish();
+    const r = { correct: session.correct, total: session.total };
+    await kvSet(`daily:${day}`, r);
+    setResult(r);
+    onDone?.();
+  }
+
+  if (result) {
     return (
-      <button
-        onClick={() => setCollapsed(false)}
-        className="card mb-4 w-full text-left border-2 border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">⚡</span>
-            <div>
-              <div className="font-semibold text-amber-800 dark:text-amber-200">Denní výzva</div>
-              <div className="text-xs text-amber-600 dark:text-amber-400">
-                {alreadyDone ? 'Splněno! Přijď zítra.' : '5 otázek — rychlý mini-test'}
-              </div>
-            </div>
-          </div>
-          {alreadyDone ? (
-            <span className="text-green-500 text-xl">✓</span>
-          ) : (
-            <span className="text-amber-500 text-sm font-medium">Otevřít →</span>
-          )}
+      <div className="flex items-center gap-3">
+        <span className="tile-icon" aria-hidden="true">☀️</span>
+        <div className="min-w-0 flex-1">
+          <div className="font-bold text-fg">Denní výzva splněna</div>
+          <div className="text-xs text-muted">{result.correct} z {result.total} správně · zítra přibudou nové otázky</div>
         </div>
+        <Stars count={starsFor(result.correct / result.total)} />
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="flex w-full items-center gap-3 text-left" onClick={() => { session.start(); setOpen(true); }}>
+        <span className="tile-icon" aria-hidden="true">☀️</span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-bold text-fg">Denní výzva</span>
+          <span className="block text-xs text-muted">5 rychlých otázek — každý den jiné</span>
+        </span>
+        <span className="btn-soft btn-sm">Začít</span>
       </button>
     );
   }
 
-  if (alreadyDone) {
-    return (
-      <div className="card mb-4 border-2 border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30">
-        <div className="text-center py-2">
-          <div className="text-3xl mb-2">✅</div>
-          <div className="font-semibold text-green-800 dark:text-green-200">Dnešní výzva splněna!</div>
-          <div className="text-sm text-green-600 dark:text-green-400 mt-1">Přijď zítra na další.</div>
-          <button onClick={() => setCollapsed(true)} className="text-xs text-slate-400 mt-3 underline">
-            Skrýt
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (done) {
-    return (
-      <div className="card mb-4 border-2 border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30">
-        <div className="text-center py-2">
-          <div className="text-3xl mb-2">{score === 5 ? '🏆' : score >= 3 ? '⭐' : '💪'}</div>
-          <div className="font-bold text-lg text-green-800 dark:text-green-200">
-            {score}/{questions.length} správně
-          </div>
-          <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-            {score === 5 ? 'Perfektní! Jsi úžasná!' : score >= 3 ? 'Dobrá práce!' : 'Nevadí, zítra to bude lepší!'}
-          </div>
-          <button onClick={() => setCollapsed(true)} className="text-xs text-slate-400 mt-3 underline">
-            Skrýt
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const q = questions[current];
-
   return (
-    <div className="card mb-4 border-2 border-amber-200 dark:border-amber-700">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">⚡</span>
-          <span className="font-semibold text-amber-800 dark:text-amber-200 text-sm">Denní výzva</span>
-        </div>
-        <span className="text-xs text-slate-500 dark:text-slate-400">
-          {current + 1}/{questions.length}
-        </span>
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="font-bold text-fg">☀️ Denní výzva</span>
+        <span className="text-sm font-bold tabular-nums text-muted">{idx + 1} / {questions.length}</span>
       </div>
-
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1 mb-4">
-        <div
-          className="bg-amber-500 h-full rounded-full transition-all"
-          style={{ width: `${((current + 1) / questions.length) * 100}%` }}
-        />
-      </div>
-
-      <p className="text-slate-900 dark:text-white font-medium mb-3">{q.question}</p>
-      {q.hint && <p className="text-xs text-slate-400 dark:text-slate-500 italic mb-3">"{q.hint}"</p>}
-
-      <div className="grid gap-2">
-        {q.options.map((opt, idx) => {
-          let cls = 'w-full text-left px-4 py-2.5 rounded-xl border transition-all text-sm ';
-          if (selected === null) {
-            cls += 'border-slate-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-500 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800';
-          } else if (idx === q.correctIndex) {
-            cls += 'border-green-500 bg-green-50 dark:bg-green-900/40 text-green-800 dark:text-green-200 font-medium';
-          } else if (idx === selected) {
-            cls += 'border-red-500 bg-red-50 dark:bg-red-900/40 text-red-800 dark:text-red-200';
-          } else {
-            cls += 'border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 opacity-60';
-          }
-          return (
-            <button key={idx} className={cls} onClick={() => handleSelect(idx)} disabled={selected !== null}>
-              {opt}
-            </button>
-          );
-        })}
-      </div>
+      <p className="mb-1 font-bold text-fg" lang={q.kind === 'grammar' ? 'en' : undefined}>{q.prompt}</p>
+      {q.hint && <p className="mb-3 text-sm italic text-muted" lang="en">„{q.hint}“</p>}
+      <OptionList
+        options={q.options}
+        selected={selected}
+        correctIndex={q.correctIndex}
+        revealed={revealed}
+        onSelect={choose}
+        lang={q.kind === 'grammar' ? 'en' : 'cs'}
+      />
+      {revealed && (
+        <>
+          <Feedback correct={selected === q.correctIndex} answer={q.options[q.correctIndex]} explanation={q.explanation} />
+          <button type="button" className="btn-primary mt-3 w-full" onClick={next} autoFocus>
+            {idx + 1 < questions.length ? 'Další' : 'Dokončit výzvu'}
+          </button>
+        </>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { VOCAB_TOPICS, type TopicVocab } from '../data/vocabTopics';
 import { speak } from '../tts';
 import { toggleFavorite, isFavorite } from '../favorites';

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { VOCABULARY } from '../data/vocabulary';
 import { IRREGULAR_VERBS } from '../data/irregularVerbs';
 import { IDIOMS, COLLOCATIONS } from '../data/idioms';

@@ -1,5 +1,5 @@
 import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { CZECH_ERRORS, CZECH_ERROR_CATEGORIES, type CzechErrorEntry } from '../data/czechErrors';
 import { shuffleArray } from '../utils';
 import { playCorrect, playIncorrect, playComplete } from '../sounds';

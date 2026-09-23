@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { speak } from '../tts';
 import { shuffleArray } from '../utils';
 import { playCorrect, playIncorrect, playComplete } from '../sounds';

@@ -1,62 +1,70 @@
-import { createBrowserRouter } from 'react-router-dom';
-import App from './App';
+import { createBrowserRouter, type RouteObject } from 'react-router';
+import App, { SplashScreen } from './App';
+import RouteError from './components/RouteError';
 
-function lazyPage(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
-  return {
-    lazy: async () => {
-      const mod = await importFn();
-      return { Component: mod.default };
-    },
+type PageModule = { default: React.ComponentType };
+
+function page(path: string | undefined, importFn: () => Promise<PageModule>): RouteObject {
+  const lazy = async () => {
+    const mod = await importFn();
+    return { Component: mod.default };
   };
+  return path === undefined ? { index: true, lazy } : { path, lazy };
 }
 
-export const router = createBrowserRouter(
-  [
-    {
-      path: '/',
-      Component: App,
-      children: [
-        { index: true, ...lazyPage(() => import('./pages/Dashboard')) },
-        { path: 'vocab', ...lazyPage(() => import('./pages/VocabDrill')) },
-        { path: 'grammar', ...lazyPage(() => import('./pages/GrammarDrill')) },
-        { path: 'reading', ...lazyPage(() => import('./pages/ReadingPractice')) },
-        { path: 'listening', ...lazyPage(() => import('./pages/ListeningPractice')) },
-        { path: 'phrasal-verbs', ...lazyPage(() => import('./pages/PhrasalVerbsDrill')) },
-        { path: 'writing', ...lazyPage(() => import('./pages/WritingTips')) },
-        { path: 'irregular-verbs', ...lazyPage(() => import('./pages/IrregularVerbsDrill')) },
-        { path: 'word-order', ...lazyPage(() => import('./pages/WordOrderDrill')) },
-        { path: 'diagnostic', ...lazyPage(() => import('./pages/DiagnosticTest')) },
-        { path: 'confusables', ...lazyPage(() => import('./pages/ConfusablesDrill')) },
-        { path: 'prepositions', ...lazyPage(() => import('./pages/PrepositionsDrill')) },
-        { path: 'conversation', ...lazyPage(() => import('./pages/ConversationTopics')) },
-        { path: 'matching', ...lazyPage(() => import('./pages/MatchingGame')) },
-        { path: 'articles', ...lazyPage(() => import('./pages/ArticlesDrill')) },
-        { path: 'translation', ...lazyPage(() => import('./pages/TranslationDrill')) },
-        { path: 'idioms', ...lazyPage(() => import('./pages/IdiomsDrill')) },
-        { path: 'tenses', ...lazyPage(() => import('./pages/TenseOverview')) },
-        { path: 'study-plan', ...lazyPage(() => import('./pages/StudyPlan')) },
-        { path: 'mistakes', ...lazyPage(() => import('./pages/MistakeDrill')) },
-        { path: 'speed', ...lazyPage(() => import('./pages/SpeedChallenge')) },
-        { path: 'search', ...lazyPage(() => import('./pages/GlobalSearch')) },
-        { path: 'favorites', ...lazyPage(() => import('./pages/Favorites')) },
-        { path: 'conditionals', ...lazyPage(() => import('./pages/ConditionalsDrill')) },
-        { path: 'reported-speech', ...lazyPage(() => import('./pages/ReportedSpeechDrill')) },
-        { path: 'sentence-transform', ...lazyPage(() => import('./pages/SentenceTransformDrill')) },
-        { path: 'cheatsheet', ...lazyPage(() => import('./pages/GrammarCheatsheet')) },
-        { path: 'vocab-topics', ...lazyPage(() => import('./pages/VocabTopics')) },
-        { path: 'mixed-quiz', ...lazyPage(() => import('./pages/MixedQuiz')) },
-        { path: 'favorites-quiz', ...lazyPage(() => import('./pages/FavoritesQuiz')) },
-        { path: 'error-correction', ...lazyPage(() => import('./pages/ErrorCorrectionDrill')) },
-        { path: 'passive', ...lazyPage(() => import('./pages/PassiveVoiceDrill')) },
-        { path: 'custom-words', ...lazyPage(() => import('./pages/CustomWords')) },
-        { path: 'czech-errors', ...lazyPage(() => import('./pages/CzechErrorsDrill')) },
-        { path: 'review', ...lazyPage(() => import('./pages/Review')) },
-        { path: 'settings', ...lazyPage(() => import('./pages/Settings')) },
-        { path: 'grammar-ref', ...lazyPage(() => import('./pages/GrammarRef')) },
-        { path: 'word-formation', ...lazyPage(() => import('./pages/WordFormationDrill')) },
-        { path: 'exam', ...lazyPage(() => import('./pages/ExamSim')) },
-      ],
-    },
-  ],
-  { basename: '/anglictina' }
-);
+export const routes: RouteObject[] = [
+  {
+    path: '/',
+    Component: App,
+    HydrateFallback: SplashScreen,
+    ErrorBoundary: RouteError,
+    children: [
+      page(undefined, () => import('./pages/Dashboard')),
+      page('practice', () => import('./pages/Practice')),
+      page('vocab', () => import('./pages/VocabDrill')),
+      page('grammar', () => import('./pages/GrammarDrill')),
+      page('reading', () => import('./pages/ReadingPractice')),
+      page('listening', () => import('./pages/ListeningPractice')),
+      page('phrasal-verbs', () => import('./pages/PhrasalVerbsDrill')),
+      page('writing', () => import('./pages/WritingTips')),
+      page('irregular-verbs', () => import('./pages/IrregularVerbsDrill')),
+      page('word-order', () => import('./pages/WordOrderDrill')),
+      page('diagnostic', () => import('./pages/DiagnosticTest')),
+      page('confusables', () => import('./pages/ConfusablesDrill')),
+      page('prepositions', () => import('./pages/PrepositionsDrill')),
+      page('conversation', () => import('./pages/ConversationTopics')),
+      page('matching', () => import('./pages/MatchingGame')),
+      page('articles', () => import('./pages/ArticlesDrill')),
+      page('translation', () => import('./pages/TranslationDrill')),
+      page('idioms', () => import('./pages/IdiomsDrill')),
+      page('tenses', () => import('./pages/TenseOverview')),
+      page('study-plan', () => import('./pages/StudyPlan')),
+      page('mistakes', () => import('./pages/MistakeDrill')),
+      page('speed', () => import('./pages/SpeedChallenge')),
+      page('search', () => import('./pages/GlobalSearch')),
+      page('favorites', () => import('./pages/Favorites')),
+      page('conditionals', () => import('./pages/ConditionalsDrill')),
+      page('reported-speech', () => import('./pages/ReportedSpeechDrill')),
+      page('sentence-transform', () => import('./pages/SentenceTransformDrill')),
+      page('cheatsheet', () => import('./pages/GrammarCheatsheet')),
+      page('vocab-topics', () => import('./pages/VocabTopics')),
+      page('mixed-quiz', () => import('./pages/MixedQuiz')),
+      page('favorites-quiz', () => import('./pages/FavoritesQuiz')),
+      page('error-correction', () => import('./pages/ErrorCorrectionDrill')),
+      page('passive', () => import('./pages/PassiveVoiceDrill')),
+      page('custom-words', () => import('./pages/CustomWords')),
+      page('czech-errors', () => import('./pages/CzechErrorsDrill')),
+      page('review', () => import('./pages/Review')),
+      page('settings', () => import('./pages/Settings')),
+      page('grammar-ref', () => import('./pages/GrammarRef')),
+      page('word-formation', () => import('./pages/WordFormationDrill')),
+      page('exam', () => import('./exam/ExamHome')),
+      page('exam/run', () => import('./exam/ExamRunner')),
+      page('exam/history/:id', () => import('./exam/ExamHistoryDetail')),
+      page('exam/timer', () => import('./exam/ExamTimer')),
+      page('*', () => import('./pages/NotFound')),
+    ],
+  },
+];
+
+export const router = createBrowserRouter(routes, { basename: '/anglictina' });

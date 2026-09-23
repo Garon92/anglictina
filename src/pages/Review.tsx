@@ -1,562 +1,451 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getStats, getAllSRSStates, getDrillSessions, getExamSessions } from '../db';
-import { formatMinutes, percentOf, getScoreColor } from '../utils';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router';
+import { getStats, getAllSRSStates, getDrillSessions, getExamSessions, currentStreak } from '../db';
+import { formatMinutes } from '../utils';
 import { VOCABULARY } from '../data/vocabulary';
-import { getErrorAnalysis, getModuleLabel, clearErrors, type ErrorAnalysis } from '../errorTracker';
+import { getMistakeSummary, type MistakeSummary } from '../progress';
+import { MODULES, GROUPS, moduleTitle, moduleIcon, sessionModule } from '../modules';
+import { moduleStats } from '../recommend';
+import { cardStage } from '../srs';
+import { dayKey, addDays, parseDayKey, startOfDay, czechPlural } from '../lib/dates';
 import type { UserStats, SRSState, DrillSession, ExamSession } from '../types';
 import { DEFAULT_STATS } from '../types';
+import { PageHeader, ProgressBar, StatTile } from '../components/ui';
+import { Segmented } from '../components/ui';
 
-type TabKey = 'overview' | 'activity' | 'skills' | 'achievements' | 'vocab' | 'errors';
+type TabKey = 'overview' | 'skills' | 'vocab' | 'exams' | 'achievements';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'overview', label: 'Přehled' },
-  { key: 'activity', label: 'Aktivita' },
-  { key: 'skills', label: 'Dovednosti' },
-  { key: 'errors', label: 'Chyby' },
-  { key: 'achievements', label: 'Úspěchy' },
-  { key: 'vocab', label: 'Slovíčka' },
+const TABS: { value: TabKey; label: string }[] = [
+  { value: 'overview', label: 'Přehled' },
+  { value: 'skills', label: 'Dovednosti' },
+  { value: 'vocab', label: 'Slovíčka' },
+  { value: 'exams', label: 'Testy' },
+  { value: 'achievements', label: 'Úspěchy' },
 ];
 
-const SKILL_TYPES = ['vocab', 'grammar', 'reading', 'listening', 'phrasal_verbs'] as const;
-type SkillType = (typeof SKILL_TYPES)[number];
+const MONTHS_CS = ['led', 'úno', 'bře', 'dub', 'kvě', 'čvn', 'čvc', 'srp', 'zář', 'říj', 'lis', 'pro'];
 
-const SKILL_LABELS: Record<SkillType, string> = {
-  vocab: 'Slovíčka',
-  grammar: 'Gramatika',
-  reading: 'Čtení',
-  listening: 'Poslech',
-  phrasal_verbs: 'Frázová slovesa',
-};
-
-const SKILL_ICONS: Record<SkillType, string> = {
-  vocab: '📝',
-  grammar: '✏️',
-  reading: '📖',
-  listening: '🎧',
-  phrasal_verbs: '🔗',
-};
-
-const MONTHS_CS = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
-
-function dateToKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+interface ReviewData {
+  stats: UserStats;
+  srs: SRSState[];
+  sessions: DrillSession[];
+  exams: ExamSession[];
+  mistakes: MistakeSummary;
 }
 
-/* ══════════════════════════════════════════════════════════ */
-
 export default function Review() {
-  const navigate = useNavigate();
-  const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
-  const [srsStates, setSrsStates] = useState<SRSState[]>([]);
-  const [sessions, setSessions] = useState<DrillSession[]>([]);
-  const [examSessions, setExamSessions] = useState<ExamSession[]>([]);
-  const [errorAnalysis, setErrorAnalysis] = useState<ErrorAnalysis | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [data, setData] = useState<ReviewData | null>(null);
+  const [tab, setTab] = useState<TabKey>('overview');
 
   useEffect(() => {
     (async () => {
-      const [s, srs, sess, exams] = await Promise.all([
+      const [stats, srs, sessions, exams, mistakes] = await Promise.all([
         getStats(),
         getAllSRSStates(),
         getDrillSessions(),
         getExamSessions(),
+        getMistakeSummary(),
       ]);
-      setStats(s);
-      setSrsStates(srs);
-      setSessions(sess.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)));
-      setExamSessions(exams.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)));
-      setErrorAnalysis(getErrorAnalysis());
-    })();
+      setData({
+        stats,
+        srs,
+        sessions: sessions.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)),
+        exams: exams.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)),
+        mistakes,
+      });
+    })().catch(() => setData({ stats: DEFAULT_STATS, srs: [], sessions: [], exams: [], mistakes: { active: 0, due: 0, resolved: 0, byModule: {}, byCategory: {}, weakestModule: '' } }));
   }, []);
 
-  /* ── Vocabulary SRS ── */
-  const totalWords = srsStates.filter((s) => s.deckId === 'vocab').length;
-  const masteredWords = srsStates.filter((s) => s.deckId === 'vocab' && s.intervalDays >= 21).length;
-  const learningWords = totalWords - masteredWords;
-  const dueNow = srsStates.filter((s) => s.dueAt <= Date.now()).length;
+  if (!data) {
+    return (
+      <div className="page-container page-container--wide">
+        <div className="skeleton mb-4 h-8 w-48" />
+        <div className="skeleton h-40 w-full" />
+      </div>
+    );
+  }
 
-  /* ── Last 7 days ── */
-  const last7 = sessions.filter((s) => s.startedAt > Date.now() - 7 * 86400000);
-  const last7correct = last7.reduce((n, s) => n + s.correctItems, 0);
-  const last7total = last7.reduce((n, s) => n + s.totalItems, 0);
-  const weekAcc = percentOf(last7correct, last7total);
-
-  /* ── Per-type count ── */
-  const countByType = (t: string) => sessions.filter((s) => s.type === t).length;
-
-  /* ── Skill stats ── */
-  const skillStats = SKILL_TYPES.map((type) => {
-    const ts = sessions.filter((s) => s.type === type);
-    const cor = ts.reduce((n, s) => n + s.correctItems, 0);
-    const tot = ts.reduce((n, s) => n + s.totalItems, 0);
-    return { type, label: SKILL_LABELS[type], icon: SKILL_ICONS[type], count: ts.length, accuracy: percentOf(cor, tot) };
-  });
-
-  const practiced = skillStats.filter((s) => s.count > 0);
-  const weakest = practiced.length > 0 ? practiced.reduce((a, b) => (a.accuracy < b.accuracy ? a : b)) : null;
-  const unpracticed = skillStats.filter((s) => s.count === 0);
-
-  /* ── Heatmap ── */
-  const heatWeeks = buildHeatmap(sessions);
-  const heatFlat = heatWeeks.flat().filter((d) => !d.future);
-  const activeDays = heatFlat.filter((d) => d.mins > 0).length;
-  const avgDaily = heatFlat.length > 0 ? Math.round(heatFlat.reduce((s, d) => s + d.mins, 0) / heatFlat.length) : 0;
-
-  /* ── Achievements ── */
-  const achievements = buildAchievements(stats, sessions, examSessions);
+  const { stats, srs, sessions, exams, mistakes } = data;
+  const vocabSeen = srs.filter((s) => s.deckId === 'vocab' && s.totalReviews > 0).length;
+  const lv = computeLevel({ ...stats, totalCardsLearned: Math.max(stats.totalCardsLearned, vocabSeen) });
 
   return (
-    <div className="page-container">
-      <h1 className="page-title">Tvůj pokrok</h1>
-      <p className="page-subtitle">Přehled tvého učení a statistik.</p>
+    <div className="page-container page-container--wide">
+      <PageHeader title="Tvůj pokrok" subtitle="Statistiky učení, slovíček a cvičných testů." back={null} />
 
-      {/* ── Level card ── */}
-      {(() => {
-        const lv = computeLevel(stats);
-        return (
-          <div className="card mb-4 !p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">{lv.level.icon}</span>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 dark:text-white">{lv.level.name}</span>
-                  <span className="text-xs text-slate-400 dark:text-slate-500">{lv.xp} XP</span>
-                </div>
-                {lv.nextLevel && (
-                  <div className="text-xs text-slate-400 dark:text-slate-500 mb-1">
-                    Dalši: {lv.nextLevel.icon} {lv.nextLevel.name} ({lv.nextLevel.minXP} XP)
-                  </div>
-                )}
-                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
-                  <div
-                    className="bg-gradient-to-r from-primary-500 to-primary-400 h-full rounded-full transition-all"
-                    style={{ width: `${lv.progress * 100}%` }}
-                  />
-                </div>
-              </div>
+      {/* Level */}
+      <div className="card g92-card--accent mb-4 flex items-center gap-4 !p-5">
+        <span className="text-4xl" aria-hidden="true">{lv.level.icon}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-lg font-black text-fg">{lv.level.name}</span>
+            <span className="text-sm font-bold tabular-nums text-muted">{lv.xp.toLocaleString('cs-CZ')} XP</span>
+          </div>
+          <ProgressBar value={lv.progress} className="my-1.5" label="Postup na další úroveň" />
+          {lv.nextLevel && (
+            <div className="text-xs text-muted">
+              Další úroveň: {lv.nextLevel.icon} {lv.nextLevel.name} ({lv.nextLevel.minXP.toLocaleString('cs-CZ')} XP)
             </div>
-          </div>
-        );
-      })()}
-
-      {/* ── Streak & time cards ── */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="card text-center">
-          <div className="text-3xl mb-1">🔥</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.streakDays}</div>
-          <div className="text-xs text-slate-400">dní v řadě</div>
-          <div className="text-xs text-slate-300 dark:text-slate-600 mt-1">Rekord: {stats.bestStreak}</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-3xl mb-1">⏱️</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">
-            {formatMinutes(stats.totalStudyMinutes)}
-          </div>
-          <div className="text-xs text-slate-400">celkový čas</div>
+          )}
         </div>
       </div>
 
-      {/* ── Tab bar ── */}
-      <div className="flex overflow-x-auto bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-4 gap-0.5">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            className={`flex-1 min-w-0 py-2 px-1 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-              activeTab === tab.key
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400'
-            }`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile icon="🔥" value={currentStreak(stats)} label={`dní v řadě · rekord ${stats.bestStreak}`} />
+        <StatTile icon="⏱️" value={formatMinutes(stats.totalStudyMinutes)} label="celkový čas" />
+        <StatTile icon="🗂️" value={vocabSeen} label="slovíček v opakování" />
+        <StatTile icon="✅" value={stats.totalExercisesDone.toLocaleString('cs-CZ')} label="zodpovězených úloh" />
+      </div>
+
+      <div className="mb-5 overflow-x-auto pb-1">
+        <Segmented value={tab} options={TABS} onChange={setTab} label="Zobrazení statistik" />
+      </div>
+
+      {tab === 'overview' && <OverviewTab sessions={sessions} mistakes={mistakes} />}
+      {tab === 'skills' && <SkillsTab sessions={sessions} />}
+      {tab === 'vocab' && <VocabTab srs={srs} />}
+      {tab === 'exams' && <ExamsTab exams={exams} />}
+      {tab === 'achievements' && <AchievementsTab stats={{ ...stats, totalCardsLearned: Math.max(stats.totalCardsLearned, vocabSeen) }} sessions={sessions} exams={exams} />}
+    </div>
+  );
+}
+
+/* ─── Overview ─────────────────────────────────────────────────────── */
+
+function OverviewTab({ sessions, mistakes }: { sessions: DrillSession[]; mistakes: MistakeSummary }) {
+  const weekStart = addDays(dayKey(), -6);
+  const last7 = sessions.filter((s) => s.date >= weekStart);
+  const items = last7.reduce((n, s) => n + s.totalItems, 0);
+  const correct = last7.reduce((n, s) => n + s.correctItems, 0);
+  const heat = useMemo(() => buildHeatmap(sessions), [sessions]);
+  const activeDays = heat.flat().filter((d) => !d.future && d.mins > 0).length;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <section className="card !p-5">
+        <h2 className="section-title">Posledních 7 dní</h2>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <Mini value={last7.length} label={czechPlural(last7.length, 'cvičení', 'cvičení', 'cvičení')} />
+          <Mini value={items} label="úloh" />
+          <Mini value={items ? `${Math.round((correct / items) * 100)} %` : '—'} label="úspěšnost" />
+        </div>
+      </section>
+
+      <section className="card !p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="section-title">Chyby k opravě</h2>
+          <Link to="/mistakes" className="text-sm font-bold">Otevřít →</Link>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <Mini value={mistakes.due} label="čeká dnes" />
+          <Mini value={mistakes.active} label="aktivních" />
+          <Mini value={mistakes.resolved} label="opraveno" />
+        </div>
+        {mistakes.weakestModule && (
+          <p className="mt-3 text-sm text-muted">
+            Nejvíc chyb: <strong className="text-fg">{moduleIcon(mistakes.weakestModule)} {moduleTitle(mistakes.weakestModule)}</strong>
+          </p>
+        )}
+      </section>
+
+      <section className="card !p-5 lg:col-span-2">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="section-title !mb-0">Kalendář aktivity</h2>
+          <span className="text-sm text-muted">{activeDays} {czechPlural(activeDays, 'aktivní den', 'aktivní dny', 'aktivních dní')} za 13 týdnů</span>
+        </div>
+        <HeatmapGrid weeks={heat} />
+      </section>
+
+      <section className="card !p-5 lg:col-span-2">
+        <h2 className="section-title">Poslední cvičení</h2>
+        {sessions.length === 0 ? (
+          <p className="text-sm text-muted">Zatím žádná cvičení. <Link to="/practice">Začni procvičovat →</Link></p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {sessions.slice(0, 8).map((s, i) => {
+              const id = sessionModule(s);
+              const pct = s.totalItems ? Math.round((s.correctItems / s.totalItems) * 100) : 0;
+              return (
+                <li key={s.id ?? i} className="flex items-center gap-3 py-2">
+                  <span aria-hidden="true" className="w-7 text-center text-lg">{moduleIcon(id)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold text-fg">{moduleTitle(id)}</span>
+                    <span className="block text-xs text-muted">{formatWhen(s.startedAt)}</span>
+                  </span>
+                  <span className="text-sm tabular-nums text-muted">{s.correctItems}/{s.totalItems}</span>
+                  <span className={`w-12 text-right text-sm font-black tabular-nums ${pct >= 80 ? 'text-success' : pct >= 60 ? 'text-warning' : 'text-danger'}`}>{pct} %</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function formatWhen(ts: number): string {
+  const d = new Date(ts);
+  const key = dayKey(d);
+  const time = d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+  if (key === dayKey()) return `dnes ${time}`;
+  if (key === addDays(dayKey(), -1)) return `včera ${time}`;
+  return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' }) + ` ${time}`;
+}
+
+function Mini({ value, label }: { value: number | string; label: string }) {
+  return (
+    <div className="rounded-xl bg-surface-2 p-2.5">
+      <div className="text-xl font-black tabular-nums text-fg">{value}</div>
+      <div className="text-xs text-muted">{label}</div>
+    </div>
+  );
+}
+
+/* ─── Skills ───────────────────────────────────────────────────────── */
+
+function SkillsTab({ sessions }: { sessions: DrillSession[] }) {
+  const stats = moduleStats(sessions);
+  const skill = (k: 'listening' | 'reading' | 'language') => {
+    let t = 0, c = 0;
+    for (const m of MODULES.filter((x) => x.examSkill === k)) {
+      t += stats[m.id]?.total ?? 0;
+      c += stats[m.id]?.correct ?? 0;
+    }
+    return { t, c };
+  };
+  const skills = [
+    { label: 'Poslech', icon: '🎧', ...skill('listening') },
+    { label: 'Čtení', icon: '📖', ...skill('reading') },
+    { label: 'Jazyková kompetence', icon: '✏️', ...skill('language') },
+  ];
+  return (
+    <div className="space-y-4">
+      <section className="card !p-5">
+        <h2 className="section-title">Dovednosti jako u maturity</h2>
+        <div className="space-y-3">
+          {skills.map((s) => {
+            const pct = s.t ? Math.round((s.c / s.t) * 100) : null;
+            return (
+              <div key={s.label}>
+                <div className="mb-1 flex justify-between text-sm">
+                  <span className="font-bold text-fg">{s.icon} {s.label}</span>
+                  <span className="tabular-nums text-muted">{pct === null ? 'zatím bez dat' : `${pct} % · ${s.t} úloh`}</span>
+                </div>
+                <ProgressBar value={pct ?? 0} max={100} tone={pct === null ? 'accent' : pct >= 70 ? 'success' : pct >= 44 ? 'warning' : 'danger'} label={s.label} />
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {GROUPS.filter((g) => ['vocab', 'grammar', 'reading', 'listening', 'quiz'].includes(g.id)).map((g) => {
+        const mods = MODULES.filter((m) => m.group === g.id && m.tracked);
+        return (
+          <section key={g.id} className="card !p-5">
+            <h2 className="section-title">{g.icon} {g.title}</h2>
+            <ul className="space-y-2.5">
+              {mods.map((m) => {
+                const st = stats[m.id];
+                const pct = st && st.total ? Math.round((st.correct / st.total) * 100) : null;
+                return (
+                  <li key={m.id}>
+                    <Link to={m.path} className="flex items-center gap-3 no-underline">
+                      <span className="w-6 text-center" aria-hidden="true">{m.icon}</span>
+                      <span className="w-40 shrink-0 truncate text-sm font-bold text-fg sm:w-52">{m.title}</span>
+                      <span className="flex-1">
+                        <ProgressBar value={pct ?? 0} max={100} tone={pct === null ? 'accent' : pct >= 80 ? 'success' : pct >= 60 ? 'warning' : 'danger'} label={m.title} />
+                      </span>
+                      <span className="w-20 text-right text-xs tabular-nums text-muted">{pct === null ? '—' : `${pct} % · ${st!.sessions}×`}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Vocabulary ───────────────────────────────────────────────────── */
+
+function VocabTab({ srs }: { srs: SRSState[] }) {
+  const vocab = srs.filter((s) => s.deckId === 'vocab' && s.totalReviews > 0);
+  const counts = { learning: 0, young: 0, mature: 0 };
+  for (const s of vocab) {
+    const st = cardStage(s);
+    if (st !== 'new') counts[st]++;
+  }
+  const total = VOCABULARY.length;
+  const unseen = total - vocab.length;
+  // Forecast: cards due per day for the next 7 days.
+  const sod = startOfDay();
+  const forecast = Array.from({ length: 7 }, (_, i) => {
+    const from = i === 0 ? -Infinity : sod + i * 86400000;
+    const to = sod + (i + 1) * 86400000;
+    return { day: addDays(dayKey(), i), count: vocab.filter((s) => s.dueAt >= from && s.dueAt < to).length };
+  });
+  const maxF = Math.max(1, ...forecast.map((f) => f.count));
+  const other = srs.filter((s) => s.deckId !== 'vocab' && s.totalReviews > 0).length;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <section className="card !p-5">
+        <h2 className="section-title">Stav slovíček</h2>
+        <div className="mb-3 flex h-4 overflow-hidden rounded-full bg-surface-3" aria-hidden="true">
+          <div style={{ width: `${(counts.mature / total) * 100}%`, background: 'var(--g92-success)' }} />
+          <div style={{ width: `${(counts.young / total) * 100}%`, background: 'var(--accent)' }} />
+          <div style={{ width: `${(counts.learning / total) * 100}%`, background: 'var(--g92-warning)' }} />
+        </div>
+        <ul className="space-y-1.5 text-sm">
+          <Legend color="var(--g92-success)" label="Zažitá (interval 3+ týdny)" value={counts.mature} />
+          <Legend color="var(--accent)" label="Opakovaná" value={counts.young} />
+          <Legend color="var(--g92-warning)" label="Právě se učíš" value={counts.learning} />
+          <Legend color="var(--g92-surface-3)" label="Ještě neviděná" value={unseen} />
+        </ul>
+        {other > 0 && <p className="mt-3 text-xs text-muted">+ {other} vlastních kartiček.</p>}
+        <Link to="/vocab" className="btn-primary mt-4">Opakovat slovíčka</Link>
+      </section>
+
+      <section className="card !p-5">
+        <h2 className="section-title">Kolik tě čeká v příštích dnech</h2>
+        <div className="flex h-32 items-end gap-2">
+          {forecast.map((f, i) => (
+            <div key={f.day} className="flex flex-1 flex-col items-center justify-end gap-1" style={{ height: '100%' }}>
+              <span className="text-xs font-bold tabular-nums text-muted">{f.count || ''}</span>
+              <div className="w-full max-w-10 rounded-md" style={{ height: `${Math.max(4, (f.count / maxF) * 80)}%`, background: i === 0 ? 'var(--g92-warning)' : 'var(--accent)' }} />
+              <span className="text-[0.65rem] font-bold text-muted">{i === 0 ? 'dnes' : ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'][parseDayKey(f.day).getDay()]}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-muted">Předpověď počítá jen se slovíčky, která už opakuješ. Nová slovíčka přibývají podle denního limitu v nastavení.</p>
+      </section>
+    </div>
+  );
+}
+
+function Legend({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <li className="flex items-center gap-2">
+      <span className="h-3 w-3 rounded-sm" style={{ background: color }} aria-hidden="true" />
+      <span className="flex-1 text-fg">{label}</span>
+      <span className="font-bold tabular-nums text-fg">{value}</span>
+    </li>
+  );
+}
+
+/* ─── Exams ────────────────────────────────────────────────────────── */
+
+function ExamsTab({ exams }: { exams: ExamSession[] }) {
+  const full = exams.filter((e) => e.mode === 'full' || (!e.mode && e.notes !== 'mini-test'));
+  if (exams.length === 0) {
+    return (
+      <div className="card flex flex-col items-center gap-3 !py-10 text-center">
+        <div className="text-5xl" aria-hidden="true">🎓</div>
+        <p className="font-bold text-fg">Zatím žádný cvičný test</p>
+        <Link to="/exam" className="btn-primary">Vyzkoušet test nanečisto</Link>
+      </div>
+    );
+  }
+  const chart = full.slice(0, 12).reverse();
+  return (
+    <div className="space-y-4">
+      {chart.length > 0 && (
+        <section className="card !p-5">
+          <h2 className="section-title">Vývoj skóre (celé testy)</h2>
+          <div className="relative flex h-40 items-end gap-2 border-b border-border">
+            <div className="absolute inset-x-0 border-t-2 border-dashed border-danger/60" style={{ bottom: '44%' }}>
+              <span className="absolute -top-5 right-0 text-[0.65rem] font-bold text-danger">hranice 44</span>
+            </div>
+            {chart.map((e, i) => {
+              const pct = e.maxScore ? (e.scoreTotal / e.maxScore) * 100 : 0;
+              return (
+                <div key={e.id ?? i} className="flex flex-1 flex-col items-center justify-end" style={{ height: '100%' }}>
+                  <span className="text-xs font-bold tabular-nums text-fg">{Math.round(e.scoreTotal)}</span>
+                  <div className="w-full max-w-10 rounded-t-md" style={{ height: `${pct}%`, background: pct >= 44 ? 'var(--g92-success)' : 'var(--g92-danger)' }} />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      <section className="card !p-5">
+        <h2 className="section-title">Historie</h2>
+        <ul className="divide-y divide-border">
+          {exams.map((e, i) => {
+            const pct = e.maxScore ? Math.round((e.scoreTotal / e.maxScore) * 100) : 0;
+            const inner = (
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-fg">{examLabel(e)}</span>
+                  <span className="block text-xs text-muted">
+                    {new Date(e.startedAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {' · '}P {Math.round(e.scoreBySkill.listening)} % · Č {Math.round(e.scoreBySkill.reading)} % · J {Math.round(e.scoreBySkill.language)} %
+                  </span>
+                </span>
+                <span className={`text-lg font-black tabular-nums ${pct >= 44 ? 'text-success' : 'text-danger'}`}>
+                  {e.mode === 'full' ? `${Math.round(e.scoreTotal)} b` : `${pct} %`}
+                </span>
+              </>
+            );
+            return (
+              <li key={e.id ?? i}>
+                {e.id !== undefined && e.partPoints ? (
+                  <Link to={`/exam/history/${e.id}`} className="flex items-center gap-3 py-2.5 no-underline">{inner}<span aria-hidden="true" className="text-muted">›</span></Link>
+                ) : (
+                  <div className="flex items-center gap-3 py-2.5">{inner}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function examLabel(e: ExamSession): string {
+  if (e.mode === 'full') return 'Celý didaktický test';
+  if (e.mode === 'listening') return 'Poslech (části 1–4)';
+  if (e.mode === 'reading') return 'Čtení a jazyková kompetence (části 5–10)';
+  if (e.mode === 'part') return 'Trénink části testu';
+  if (e.notes === 'mini-test' || e.mode === 'mini') return 'Mini-test';
+  return 'Simulace (starší verze)';
+}
+
+/* ─── Achievements ─────────────────────────────────────────────────── */
+
+function AchievementsTab({ stats, sessions, exams }: { stats: UserStats; sessions: DrillSession[]; exams: ExamSession[] }) {
+  const list = buildAchievements(stats, sessions, exams);
+  const earned = list.filter((a) => a.earned).length;
+  return (
+    <div>
+      <p className="mb-3 text-sm text-muted">Splněno <strong className="text-fg">{earned}</strong> z {list.length} úspěchů.</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {list.map((a) => (
+          <div key={a.id} className={`card !p-3 ${a.earned ? '!border-success' : 'opacity-70'}`}>
+            <div className="flex items-start justify-between">
+              <span className={`text-3xl ${a.earned ? '' : 'grayscale'}`} aria-hidden="true">{a.icon}</span>
+              {a.earned && <span className="font-black text-success" aria-label="splněno">✓</span>}
+            </div>
+            <div className="mt-1 text-sm font-bold text-fg">{a.name}</div>
+            <div className="text-xs text-muted">{a.desc}</div>
+            {!a.earned && a.target > 1 && (
+              <div className="mt-2">
+                <ProgressBar value={a.current} max={a.target} className="!h-1.5" label={a.name} />
+                <div className="mt-0.5 text-[0.65rem] tabular-nums text-muted">{a.current} / {a.target}</div>
+              </div>
+            )}
+          </div>
         ))}
       </div>
-
-      {/* ════════════ TAB 1 — Přehled ════════════ */}
-      {activeTab === 'overview' && (
-        <div className="space-y-3">
-          <div className="card">
-            <h3 className="section-title">Posledních 7 dní</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <StatCell value={last7.length} label="lekcí" />
-              <StatCell value={last7total} label="úloh" />
-              <StatCell value={`${weekAcc}%`} label="úspěšnost" color={getScoreColor(weekAcc)} />
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="section-title">Celkem podle typu</h3>
-            <div className="space-y-2">
-              <StatRow label="Naučených slov" value={stats.totalCardsLearned} />
-              <StatRow label="Dokončených cvičení" value={stats.totalExercisesDone} />
-              <StatRow label="Slovíčkových lekcí" value={countByType('vocab')} />
-              <StatRow label="Gramatických lekcí" value={countByType('grammar')} />
-              <StatRow label="Čtení" value={countByType('reading')} />
-              <StatRow label="Poslechů" value={countByType('listening')} />
-              <StatRow label="Frázových sloves" value={countByType('phrasal_verbs')} />
-              <StatRow label="Zkoušek" value={examSessions.length} />
-            </div>
-          </div>
-
-          {examSessions.length > 0 && (
-            <div className="card">
-              <h3 className="section-title">Historie zkoušek</h3>
-              <div className="space-y-2">
-                {examSessions.slice(0, 5).map((e, i) => {
-                  const pct = percentOf(e.scoreTotal, e.maxScore);
-                  return (
-                    <div
-                      key={e.id ?? i}
-                      className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-700 last:border-0"
-                    >
-                      <div>
-                        <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                          {new Date(e.startedAt).toLocaleDateString('cs-CZ')}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {e.scoreTotal}/{e.maxScore} bodů
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold" style={{ color: getScoreColor(pct) }}>
-                          {pct}%
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          L:{e.scoreBySkill.listening} R:{e.scoreBySkill.reading} G:{e.scoreBySkill.language}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ════════════ TAB 2 — Aktivita ════════════ */}
-      {activeTab === 'activity' && (
-        <div className="space-y-3">
-          <div className="card">
-            <h3 className="section-title">Kalendář aktivity (90 dní)</h3>
-            <HeatmapGrid weeks={heatWeeks} />
-            <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-slate-400">
-              <span>Méně</span>
-              <span className="inline-block w-3 h-3 rounded-sm bg-slate-200 dark:bg-slate-700" />
-              <span className="inline-block w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900" />
-              <span className="inline-block w-3 h-3 rounded-sm bg-green-400 dark:bg-green-600" />
-              <span className="inline-block w-3 h-3 rounded-sm bg-green-600 dark:bg-green-400" />
-              <span>Více</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="grid grid-cols-3 gap-3">
-              <StatCell value={activeDays} label="aktivních dní" />
-              <StatCell value={stats.bestStreak} label="nejdelší streak" />
-              <StatCell value={`${avgDaily} min`} label="průměr / den" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ════════════ TAB 3 — Dovednosti ════════════ */}
-      {activeTab === 'skills' && (
-        <div className="space-y-3">
-          <div className="card">
-            <h3 className="section-title">Přehled dovedností</h3>
-            <div className="space-y-4">
-              {skillStats.map((sk) => (
-                <div key={sk.type}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span>{sk.icon}</span>
-                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{sk.label}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-400">{sk.count} lekcí</span>
-                      <span
-                        className="text-sm font-bold"
-                        style={{ color: sk.count > 0 ? getScoreColor(sk.accuracy) : '#94a3b8' }}
-                      >
-                        {sk.count > 0 ? `${sk.accuracy}%` : '—'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${sk.count > 0 ? sk.accuracy : 0}%`,
-                        backgroundColor: sk.count > 0 ? getScoreColor(sk.accuracy) : '#cbd5e1',
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="section-title">Porovnání silných stránek</h3>
-            {practiced.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">Zatím nemáš žádná data. Začni cvičit!</p>
-            ) : (
-              <div className="space-y-3">
-                {practiced
-                  .slice()
-                  .sort((a, b) => b.accuracy - a.accuracy)
-                  .map((sk) => {
-                    const maxAcc = Math.max(...practiced.map((p) => p.accuracy), 1);
-                    const rel = (sk.accuracy / maxAcc) * 100;
-                    return (
-                      <div key={sk.type} className="flex items-center gap-3">
-                        <span className="w-20 text-xs text-slate-500 dark:text-slate-400 text-right shrink-0">
-                          {sk.label}
-                        </span>
-                        <div className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
-                          <div
-                            className="h-full rounded-full flex items-center justify-end pr-1.5"
-                            style={{
-                              width: `${Math.max(rel, 12)}%`,
-                              backgroundColor: getScoreColor(sk.accuracy),
-                            }}
-                          >
-                            <span className="text-[10px] font-bold text-white leading-none">{sk.accuracy}%</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
-
-          {(weakest || unpracticed.length > 0) && (
-            <div className="card bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0">💡</span>
-                <div>
-                  <div className="font-semibold text-blue-800 dark:text-blue-200 text-sm">Doporučení</div>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    {unpracticed.length > 0
-                      ? `Ještě jsi nezkoušel/a: ${unpracticed.map((s) => s.label.toLowerCase()).join(', ')}. Vyzkoušej nové typy cvičení pro vyrovnaný pokrok!`
-                      : weakest
-                        ? `Tvá nejslabší oblast je ${weakest.label.toLowerCase()} (${weakest.accuracy}%). Zaměř se na ni pro lepší výsledky u maturity.`
-                        : ''}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ════════════ TAB 4 — Úspěchy ════════════ */}
-      {activeTab === 'achievements' && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <div className="text-lg font-bold text-slate-900 dark:text-white">
-              {achievements.filter((a) => a.earned).length} / {achievements.length}
-            </div>
-            <div className="text-xs text-slate-400">splněných úspěchů</div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {achievements.map((a) => (
-              <div
-                key={a.id}
-                className={`card !p-3 transition-all ${
-                  a.earned ? 'ring-2 ring-green-400 dark:ring-green-600' : 'opacity-50 grayscale'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <span className="text-2xl">{a.icon}</span>
-                  {a.earned && <span className="text-green-500 font-bold text-sm">✓</span>}
-                </div>
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1">{a.name}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{a.desc}</div>
-                {!a.earned && a.target > 1 && (
-                  <div className="mt-2">
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-blue-400 dark:bg-blue-500 h-full rounded-full"
-                        style={{ width: `${percentOf(a.current, a.target)}%` }}
-                      />
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      {a.current} / {a.target}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ════════════ TAB — Chyby ════════════ */}
-      {activeTab === 'errors' && errorAnalysis && (
-        <div className="space-y-3">
-          {errorAnalysis.totalErrors === 0 ? (
-            <div className="card text-center py-8">
-              <div className="text-4xl mb-3">✅</div>
-              <p className="text-slate-500 dark:text-slate-400">Zatím žádné zaznamenané chyby. Pokračuj v procvičování!</p>
-            </div>
-          ) : (
-            <>
-              <div className="card">
-                <h3 className="section-title">Přehled chyb</h3>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{errorAnalysis.totalErrors}</div>
-                    <div className="text-xs text-slate-500">celkem chyb</div>
-                  </div>
-                  <div className="text-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-                    <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{getModuleLabel(errorAnalysis.weakestModule)}</div>
-                    <div className="text-xs text-slate-500">nejslabší oblast</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card">
-                <h3 className="section-title">Chyby podle modulu</h3>
-                <div className="space-y-2">
-                  {Object.entries(errorAnalysis.byModule)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([mod, count]) => {
-                      const pct = Math.round((count / errorAnalysis.totalErrors) * 100);
-                      return (
-                        <div key={mod}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-slate-700 dark:text-slate-300">{getModuleLabel(mod)}</span>
-                            <span className="text-slate-500">{count}x ({pct}%)</span>
-                          </div>
-                          <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
-                            <div className="bg-red-400 h-full rounded-full" style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              <div className="card">
-                <h3 className="section-title">Poslední chyby</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {errorAnalysis.recentErrors.map((e, i) => (
-                    <div key={i} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm">
-                      <div className="text-slate-700 dark:text-slate-200 mb-1">{e.question}</div>
-                      <div className="flex gap-3 text-xs">
-                        <span className="text-red-500">✗ {e.userAnswer}</span>
-                        <span className="text-green-500">✓ {e.correctAnswer}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                className="btn-ghost text-sm text-red-500 w-full"
-                onClick={() => { clearErrors(); setErrorAnalysis(getErrorAnalysis()); }}
-              >
-                Vymazat historii chyb
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ════════════ TAB 5 — Slovíčka ════════════ */}
-      {activeTab === 'vocab' && (
-        <div className="space-y-3">
-          <div className="card">
-            <h3 className="section-title">Stav slovíček</h3>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="text-center">
-                <div className="text-xl font-bold text-blue-600">{totalWords}</div>
-                <div className="text-xs text-slate-400">celkem</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-amber-600">{learningWords}</div>
-                <div className="text-xs text-slate-400">učí se</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-green-600">{masteredWords}</div>
-                <div className="text-xs text-slate-400">zvládnuto</div>
-              </div>
-            </div>
-            {totalWords > 0 && (
-              <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden flex">
-                <div className="bg-green-500 h-full" style={{ width: `${percentOf(masteredWords, totalWords)}%` }} />
-                <div className="bg-amber-400 h-full" style={{ width: `${percentOf(learningWords, totalWords)}%` }} />
-              </div>
-            )}
-          </div>
-
-          {dueNow > 0 && (
-            <div className="card bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-amber-800 dark:text-amber-200">{dueNow} slov k opakování</div>
-                  <div className="text-sm text-amber-600 dark:text-amber-400">Opakuj teď pro lepší zapamatování</div>
-                </div>
-                <button className="btn bg-amber-500 text-white hover:bg-amber-600" onClick={() => navigate('/vocab')}>
-                  Opakovat
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="card">
-            <h3 className="section-title">Dostupná slovíčka</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              V databázi je celkem {VOCABULARY.length} slov z NGSL wordlistu. Každý den se přidávají nová podle tvého
-              nastavení.
-            </p>
-            <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mt-3">
-              <div
-                className="bg-primary-500 h-full rounded-full"
-                style={{ width: `${percentOf(totalWords, VOCABULARY.length)}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              {totalWords} / {VOCABULARY.length} odhaleno
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-/* ══════════════════════════════════════════════════════════
-   Helper components
-   ══════════════════════════════════════════════════════════ */
-
-function StatCell({ value, label, color }: { value: number | string; label: string; color?: string }) {
-  return (
-    <div className="text-center">
-      <div className="text-xl font-bold text-slate-900 dark:text-white" style={color ? { color } : undefined}>
-        {value}
-      </div>
-      <div className="text-xs text-slate-400">{label}</div>
-    </div>
-  );
-}
-
-function StatRow({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="flex items-center justify-between py-1.5 border-b border-slate-50 dark:border-slate-800 last:border-0">
-      <span className="text-sm text-slate-500 dark:text-slate-400">{label}</span>
-      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{value}</span>
-    </div>
-  );
-}
-
-/* ── Heatmap SVG ── */
+/* ─── Heatmap ──────────────────────────────────────────────────────── */
 
 interface HeatDay {
   dateKey: string;
@@ -566,107 +455,67 @@ interface HeatDay {
 
 function HeatmapGrid({ weeks }: { weeks: HeatDay[][] }) {
   const CELL = 14;
-  const GAP = 2;
+  const GAP = 3;
   const S = CELL + GAP;
-  const TOP = 18;
-
+  const TOP = 16;
   const monthLabels: { col: number; label: string }[] = [];
   let prevMonth = -1;
   weeks.forEach((week, wi) => {
-    const m = new Date(week[0].dateKey + 'T12:00:00').getMonth();
+    const m = parseDayKey(week[0].dateKey).getMonth();
     if (m !== prevMonth) {
       monthLabels.push({ col: wi, label: MONTHS_CS[m] });
       prevMonth = m;
     }
   });
-
+  const level = (m: number) => (m <= 0 ? 0 : m < 10 ? 1 : m < 20 ? 2 : 3);
+  const fills = ['var(--g92-surface-3)', 'color-mix(in srgb, var(--g92-success) 35%, var(--g92-surface))', 'color-mix(in srgb, var(--g92-success) 65%, var(--g92-surface))', 'var(--g92-success)'];
   return (
     <div className="overflow-x-auto pb-1">
-      <svg
-        width={weeks.length * S}
-        height={TOP + 7 * S}
-        className="mx-auto block"
-        role="img"
-        aria-label="Kalendář aktivity za posledních 90 dní"
-      >
+      <svg width={weeks.length * S} height={TOP + 7 * S} className="mx-auto block" role="img" aria-label="Kalendář aktivity za posledních 13 týdnů">
         {monthLabels.map((ml, i) => (
-          <text
-            key={i}
-            x={ml.col * S}
-            y={12}
-            fontSize={10}
-            className="fill-slate-400 dark:fill-slate-500"
-            fontFamily="system-ui, sans-serif"
-          >
-            {ml.label}
-          </text>
+          <text key={i} x={ml.col * S} y={11} fontSize={10} fill="var(--g92-text-muted)" fontFamily="inherit">{ml.label}</text>
         ))}
-
         {weeks.map((week, wi) =>
           week.map((day, di) => (
-            <rect
-              key={`${wi}-${di}`}
-              x={wi * S}
-              y={TOP + di * S}
-              width={CELL}
-              height={CELL}
-              rx={2}
-              className={
-                day.future
-                  ? 'fill-transparent'
-                  : day.mins <= 0
-                    ? 'fill-slate-200 dark:fill-slate-700'
-                    : day.mins < 10
-                      ? 'fill-green-200 dark:fill-green-900'
-                      : day.mins < 20
-                        ? 'fill-green-400 dark:fill-green-600'
-                        : 'fill-green-600 dark:fill-green-400'
-              }
-            >
-              <title>
-                {day.dateKey}: {day.future ? '—' : `${Math.round(day.mins)} min`}
-              </title>
+            <rect key={`${wi}-${di}`} x={wi * S} y={TOP + di * S} width={CELL} height={CELL} rx={3} fill={day.future ? 'transparent' : fills[level(day.mins)]}>
+              <title>{parseDayKey(day.dateKey).toLocaleDateString('cs-CZ')}: {day.future ? '—' : `${Math.round(day.mins)} min`}</title>
             </rect>
           )),
         )}
       </svg>
+      <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted">
+        <span>méně</span>
+        {fills.map((f) => <span key={f} className="inline-block h-3 w-3 rounded-sm" style={{ background: f }} />)}
+        <span>více</span>
+      </div>
     </div>
   );
 }
 
-/* ══════════════════════════════════════════════════════════
-   Data builders
-   ══════════════════════════════════════════════════════════ */
-
 function buildHeatmap(sessions: DrillSession[]): HeatDay[][] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const activityMap = new Map<string, number>();
+  const activity = new Map<string, number>();
   for (const s of sessions) {
     if (!s.endedAt) continue;
     const mins = (s.endedAt - s.startedAt) / 60000;
-    if (mins > 0) activityMap.set(s.date, (activityMap.get(s.date) || 0) + mins);
+    if (mins > 0) activity.set(s.date, (activity.get(s.date) || 0) + mins);
   }
-
-  const todayDow = (today.getDay() + 6) % 7; // Mon=0 … Sun=6
-  const start = new Date(today);
-  start.setDate(today.getDate() - todayDow - 12 * 7);
-
+  const today = dayKey();
+  const dow = (parseDayKey(today).getDay() + 6) % 7; // Mon=0
+  const start = addDays(today, -dow - 12 * 7);
   const weeks: HeatDay[][] = [];
-  const cur = new Date(start);
   for (let w = 0; w < 13; w++) {
     const week: HeatDay[] = [];
     for (let d = 0; d < 7; d++) {
-      const key = dateToKey(cur);
-      const isFuture = cur > today;
-      week.push({ dateKey: key, mins: isFuture ? 0 : (activityMap.get(key) || 0), future: isFuture });
-      cur.setDate(cur.getDate() + 1);
+      const key = addDays(start, w * 7 + d);
+      const future = key > today;
+      week.push({ dateKey: key, mins: future ? 0 : activity.get(key) || 0, future });
     }
     weeks.push(week);
   }
   return weeks;
 }
+
+/* ─── Achievements & level ─────────────────────────────────────────── */
 
 interface AchievementDef {
   id: string;
@@ -678,46 +527,52 @@ interface AchievementDef {
   target: number;
 }
 
+const GRAMMAR_MODULES = new Set(MODULES.filter((m) => m.group === 'grammar').map((m) => m.id));
+
 function buildAchievements(stats: UserStats, sessions: DrillSession[], exams: ExamSession[]): AchievementDef[] {
-  const gram = sessions.filter((s) => s.type === 'grammar').length;
-  const read = sessions.filter((s) => s.type === 'reading').length;
-  const listen = sessions.filter((s) => s.type === 'listening').length;
-  const wordOrder = sessions.filter((s) => s.type === 'word_order').length;
-  const mixed = sessions.filter((s) => s.tags?.includes('speed_challenge')).length;
-  const mistakeDrills = sessions.filter((s) => s.tags?.includes('mistake_drill')).length;
-  const allTypes = new Set(sessions.map((s) => s.type));
-  const uniqSkills = new Set(
-    sessions.map((s) => s.type).filter((t) =>
-      (['vocab', 'grammar', 'reading', 'listening', 'phrasal_verbs', 'word_order', 'mixed', 'diagnostic', 'exam'] as string[]).includes(t),
-    ),
+  const byModule = (id: string) => sessions.filter((s) => sessionModule(s) === id).length;
+  const gram = sessions.filter((s) => GRAMMAR_MODULES.has(sessionModule(s))).length;
+  const read = byModule('reading');
+  const listen = byModule('listening');
+  const wordOrder = byModule('word_order');
+  const speed = byModule('speed');
+  const mistakeDrills = byModule('mistakes');
+  const modules = new Set(sessions.map((s) => sessionModule(s)));
+  const skills = new Set(
+    [...modules].map((id) => MODULES.find((m) => m.id === id)?.group).filter((g): g is NonNullable<typeof g> => !!g && ['vocab', 'grammar', 'reading', 'listening', 'quiz'].includes(g)),
   );
-  const passed = exams.some((e) => e.maxScore > 0 && percentOf(e.scoreTotal, e.maxScore) >= 44);
-  const excellent = exams.some((e) => e.maxScore > 0 && percentOf(e.scoreTotal, e.maxScore) >= 80);
+  const fullExams = exams.filter((e) => e.mode === 'full');
+  const passed = fullExams.some((e) => e.scoreTotal >= 44);
+  const excellent = fullExams.some((e) => e.scoreTotal >= 80);
   const totalDrills = sessions.length;
   const totalEx = stats.totalExercisesDone;
+  const a = (id: string, name: string, desc: string, icon: string, current: number, target: number): AchievementDef => ({
+    id, name, desc, icon, earned: current >= target, current: Math.min(target, Math.round(current)), target,
+  });
 
   return [
-    { id: 'first', name: 'První kroky', desc: 'Dokonči první cvičení', icon: '👣', earned: totalDrills >= 1, current: Math.min(1, totalDrills), target: 1 },
-    { id: 'vocab100', name: 'Slovíčkář', desc: 'Nauč se 100 slovíček', icon: '📚', earned: stats.totalCardsLearned >= 100, current: Math.min(100, stats.totalCardsLearned), target: 100 },
-    { id: 'gram50', name: 'Gramatik', desc: 'Dokonči 50 gramatických cvičení', icon: '✏️', earned: gram >= 50, current: Math.min(50, gram), target: 50 },
-    { id: 'read10', name: 'Čtenář', desc: 'Dokonči 10 čtecích textů', icon: '📖', earned: read >= 10, current: Math.min(10, read), target: 10 },
-    { id: 'listen10', name: 'Posluchač', desc: 'Dokonči 10 poslechových cvičení', icon: '🎧', earned: listen >= 10, current: Math.min(10, listen), target: 10 },
-    { id: 'streak7', name: 'Týdenní streak', desc: '7 dní učení v řadě', icon: '🔥', earned: stats.bestStreak >= 7, current: Math.min(7, stats.bestStreak), target: 7 },
-    { id: 'streak30', name: 'Měsíční streak', desc: '30 dní učení v řadě', icon: '🏅', earned: stats.bestStreak >= 30, current: Math.min(30, stats.bestStreak), target: 30 },
-    { id: 'vocab500', name: 'Polyglot', desc: 'Nauč se 500 slovíček', icon: '🌍', earned: stats.totalCardsLearned >= 500, current: Math.min(500, stats.totalCardsLearned), target: 500 },
-    { id: 'gram200', name: 'Mistr gramatiky', desc: 'Dokonči 200 gram. cvičení', icon: '🎓', earned: gram >= 200, current: Math.min(200, gram), target: 200 },
-    { id: 'maturant', name: 'Maturant', desc: 'Složi zkoušku na 44%+', icon: '🎯', earned: passed, current: passed ? 1 : 0, target: 1 },
-    { id: 'vyborny', name: 'Výborný', desc: 'Získej 80%+ u zkoušky', icon: '⭐', earned: excellent, current: excellent ? 1 : 0, target: 1 },
-    { id: 'persistent', name: 'Vytrvalec', desc: 'Studuj celkem 1000+ minut', icon: '⏱️', earned: stats.totalStudyMinutes >= 1000, current: Math.min(1000, Math.round(stats.totalStudyMinutes)), target: 1000 },
-    { id: 'decathlon', name: 'Desetibojař', desc: 'Procvič všech 5 typů dovedností', icon: '🏆', earned: uniqSkills.size >= 5, current: uniqSkills.size, target: 5 },
-    { id: 'vocab1000', name: 'Expert', desc: 'Nauč se 1000 slovíček', icon: '👑', earned: stats.totalCardsLearned >= 1000, current: Math.min(1000, stats.totalCardsLearned), target: 1000 },
-    { id: 'wordOrder20', name: 'Stavitel vět', desc: 'Dokonči 20 cvičení na skládání vět', icon: '🧩', earned: wordOrder >= 20, current: Math.min(20, wordOrder), target: 20 },
-    { id: 'speed5', name: 'Blesk', desc: 'Dokonči 5 rychlostních výzev', icon: '⚡', earned: mixed >= 5, current: Math.min(5, mixed), target: 5 },
-    { id: 'mistake10', name: 'Poučený', desc: 'Dokonči 10 drillů z chyb', icon: '🔁', earned: mistakeDrills >= 10, current: Math.min(10, mistakeDrills), target: 10 },
-    { id: 'exercises500', name: 'Maratonec', desc: 'Dokonči celkem 500 cvičení', icon: '🏃', earned: totalEx >= 500, current: Math.min(500, totalEx), target: 500 },
-    { id: 'exercises2000', name: 'Ultra', desc: 'Dokonči celkem 2000 cvičení', icon: '💎', earned: totalEx >= 2000, current: Math.min(2000, totalEx), target: 2000 },
-    { id: 'allModules', name: 'Všeuměl', desc: 'Zkus alespoň 8 různých typů cvičení', icon: '🎪', earned: allTypes.size >= 8, current: Math.min(8, allTypes.size), target: 8 },
-    { id: 'streak100', name: 'Stodenní válečník', desc: '100 dní učení v řadě', icon: '🛡️', earned: stats.bestStreak >= 100, current: Math.min(100, stats.bestStreak), target: 100 },
+    a('first', 'První kroky', 'Dokonči první cvičení', '👣', totalDrills, 1),
+    a('vocab100', 'Slovíčkář', 'Nauč se 100 slovíček', '📚', stats.totalCardsLearned, 100),
+    a('gram50', 'Gramatik', 'Dokonči 50 gramatických cvičení', '✏️', gram, 50),
+    a('read10', 'Čtenář', 'Dokonči 10 čtení', '📖', read, 10),
+    a('listen10', 'Posluchač', 'Dokonči 10 poslechů', '🎧', listen, 10),
+    a('streak7', 'Týden v kuse', '7 dní učení v řadě', '🔥', stats.bestStreak, 7),
+    a('streak30', 'Měsíc v kuse', '30 dní učení v řadě', '🏅', stats.bestStreak, 30),
+    a('exam1', 'Nanečisto', 'Dokonči celý cvičný test', '📝', fullExams.length, 1),
+    a('maturant', 'Maturant', 'Získej v testu 44+ bodů', '🎯', passed ? 1 : 0, 1),
+    a('vyborny', 'Výborně', 'Získej v testu 80+ bodů', '⭐', excellent ? 1 : 0, 1),
+    a('vocab500', 'Polyglot', 'Nauč se 500 slovíček', '🌍', stats.totalCardsLearned, 500),
+    a('gram200', 'Mistr gramatiky', 'Dokonči 200 gramatických cvičení', '🎓', gram, 200),
+    a('persistent', 'Vytrvalec', 'Studuj celkem 1000 minut', '⏱️', stats.totalStudyMinutes, 1000),
+    a('skills', 'Všestranný', 'Procvič všech 5 oblastí', '🏆', skills.size, 5),
+    a('vocab1000', 'Expert', 'Nauč se 1000 slovíček', '👑', stats.totalCardsLearned, 1000),
+    a('wordOrder20', 'Stavitel vět', 'Dokonči 20× slovosled', '🧱', wordOrder, 20),
+    a('speed5', 'Blesk', 'Dokonči 5 rychlovek', '⚡', speed, 5),
+    a('mistake10', 'Poučený', 'Dokonči 10 kol oprav chyb', '🔁', mistakeDrills, 10),
+    a('exercises500', 'Maratonec', 'Zodpověz 500 úloh', '🏃', totalEx, 500),
+    a('exercises2000', 'Ultra', 'Zodpověz 2000 úloh', '💎', totalEx, 2000),
+    a('allModules', 'Zvídavý', 'Zkus 10 různých cvičení', '🎪', modules.size, 10),
+    a('streak100', 'Stodenní', '100 dní učení v řadě', '🛡️', stats.bestStreak, 100),
   ];
 }
 
@@ -736,16 +591,15 @@ const LEVELS = [
 
 export function computeLevel(stats: UserStats) {
   const xp = Math.round(stats.totalExercisesDone * 5 + stats.totalCardsLearned * 10 + stats.totalStudyMinutes * 2 + stats.bestStreak * 20);
-  let level = LEVELS[0];
-  let nextLevel = LEVELS[1];
+  let idx = 0;
   for (let i = LEVELS.length - 1; i >= 0; i--) {
     if (xp >= LEVELS[i].minXP) {
-      level = LEVELS[i];
-      nextLevel = LEVELS[i + 1] || null;
+      idx = i;
       break;
     }
   }
-  const nextXP = nextLevel ? nextLevel.minXP : level.minXP;
-  const progress = nextLevel ? (xp - level.minXP) / (nextXP - level.minXP) : 1;
+  const level = LEVELS[idx];
+  const nextLevel = LEVELS[idx + 1] ?? null;
+  const progress = nextLevel ? (xp - level.minXP) / (nextLevel.minXP - level.minXP) : 1;
   return { xp, level, nextLevel, progress: Math.min(1, Math.max(0, progress)) };
 }

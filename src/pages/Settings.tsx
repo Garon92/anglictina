@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router';
 import { saveSettings, exportAllData, importData, clearAllData } from '../db';
 import { downloadFile } from '../utils';
 import { getAvailableVoices, setVoiceByName, speak, getCurrentVoiceName } from '../tts';

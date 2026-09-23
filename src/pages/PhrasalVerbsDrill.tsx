@@ -1,5 +1,5 @@
 import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
 import { PHRASAL_VERBS, PHRASE_CATEGORIES } from '../data/phrases';
 import { speak } from '../tts';

@@ -11,6 +11,53 @@ export function pickRandom<T>(arr: T[], count: number): T[] {
   return shuffleArray(arr).slice(0, count);
 }
 
+/** Deterministic PRNG (mulberry32) — same seed, same sequence. */
+export function seededRandom(seed: string | number): () => number {
+  let h = typeof seed === 'number' ? seed : 0;
+  if (typeof seed === 'string') for (let i = 0; i < seed.length; i++) h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  let a = h >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function shuffleSeeded<T>(arr: readonly T[], rand: () => number): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** Unique by a key (first occurrence wins). */
+export function uniqueBy<T>(arr: readonly T[], key: (x: T) => string): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const x of arr) {
+    const k = key(x);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(x);
+  }
+  return out;
+}
+
+/** Pick `n` distractors different from `correct` (by display text), shuffled together with it. */
+export function buildOptions(correct: string, pool: readonly string[], n = 3, rand: () => number = Math.random): { options: string[]; correctIndex: number } {
+  const norm = (s: string) => s.trim().toLowerCase();
+  const distractors = uniqueBy(
+    shuffleSeeded(pool.filter((p) => p && norm(p) !== norm(correct)), rand),
+    norm,
+  ).slice(0, n);
+  const options = shuffleSeeded([correct, ...distractors], rand);
+  return { options, correctIndex: options.indexOf(correct) };
+}
+
 export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -21,15 +68,8 @@ export function formatDateShort(date: Date | string): string {
   return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' });
 }
 
-export function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export function daysUntil(dateStr: string): number {
-  const target = new Date(dateStr).getTime();
-  const now = Date.now();
-  return Math.ceil((target - now) / 86400000);
-}
+/** Local day key YYYY-MM-DD (was UTC before v2). */
+export { dayKey as todayKey, daysUntil } from './lib/dates';
 
 export function formatMinutes(mins: number): string {
   if (mins < 60) return `${Math.round(mins)} min`;

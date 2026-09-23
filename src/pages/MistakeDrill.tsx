@@ -1,200 +1,302 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
-import { getErrorAnalysis, getModuleLabel, type ErrorEntry } from '../errorTracker';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
+import { getActiveMistakes, recordMistakeReview, CLEAR_AFTER } from '../progress';
+import { getAllMistakes, deleteMistakes } from '../db';
+import { moduleTitle, moduleIcon } from '../modules';
+import { isAnswerCorrect, displayAnswer } from '../lib/answer';
 import { shuffleArray } from '../utils';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
+import type { MistakeItem } from '../types';
+import { confirmDialog, toast } from '../kit';
+import { DrillTopBar, Feedback, NextButton, OptionList, ResultScreen, TextAnswer, useDrillSession } from '../components/drill';
+import { EmptyState, PageHeader } from '../components/ui';
+import { useKeyboard } from '../hooks/useKeyboard';
+import { czechPlural } from '../lib/dates';
 
-interface QuizItem {
-  error: ErrorEntry;
-  options: string[];
-  correctIndex: number;
-}
-
-function buildQuiz(errors: ErrorEntry[]): QuizItem[] {
-  const unique = new Map<string, ErrorEntry>();
-  for (const e of errors) {
-    const key = `${e.question}|${e.correctAnswer}`;
-    unique.set(key, e);
-  }
-
-  const items = shuffleArray([...unique.values()]).slice(0, 20);
-  const allAnswers = [...new Set(errors.map((e) => e.correctAnswer))];
-
-  return items.map((error) => {
-    const sameModuleWrongs = shuffleArray(
-      errors
-        .filter((e) => e.correctAnswer !== error.correctAnswer && e.module === error.module)
-        .map((e) => e.correctAnswer)
-    );
-    const crossModuleWrongs = shuffleArray(
-      allAnswers.filter((a) => a !== error.correctAnswer)
-    );
-
-    const wrongSet = new Set<string>();
-    for (const w of sameModuleWrongs) { if (wrongSet.size >= 3) break; wrongSet.add(w); }
-    for (const w of crossModuleWrongs) { if (wrongSet.size >= 3) break; wrongSet.add(w); }
-    if (error.userAnswer && error.userAnswer !== error.correctAnswer) {
-      wrongSet.add(error.userAnswer);
-    }
-
-    const wrongOptions = shuffleArray([...wrongSet]).slice(0, 3);
-    const allOptions = [error.correctAnswer, ...wrongOptions];
-    const deduped = [...new Set(allOptions)];
-    const shuffled = shuffleArray(deduped);
-    return {
-      error,
-      options: shuffled,
-      correctIndex: shuffled.indexOf(error.correctAnswer),
-    };
-  });
-}
+type Phase = 'overview' | 'drill' | 'result';
+const SESSION_SIZE = 15;
 
 export default function MistakeDrill() {
-  const navigate = useNavigate();
-  const [quiz, setQuiz] = useState<QuizItem[]>([]);
-  const [current, setCurrent] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [done, setDone] = useState(false);
-  const [noErrors, setNoErrors] = useState(false);
-  const [startTime] = useState(Date.now());
+  const [phase, setPhase] = useState<Phase>('overview');
+  const [all, setAll] = useState<MistakeItem[] | null>(null);
+  const [queue, setQueue] = useState<MistakeItem[]>([]);
+  const [idx, setIdx] = useState(0);
+  const session = useDrillSession('mistakes');
 
+  const reload = () => getAllMistakes().then(setAll).catch(() => setAll([]));
   useEffect(() => {
-    const analysis = getErrorAnalysis();
-    if (analysis.totalErrors < 3) {
-      setNoErrors(true);
-      return;
-    }
-    const allErrors = JSON.parse(localStorage.getItem('anglictina_errors') || '[]') as ErrorEntry[];
-    setQuiz(buildQuiz(allErrors));
+    void reload();
   }, []);
 
-  async function finish(finalScore: number) {
-    const stats = await getStats();
-    stats.totalExercisesDone += quiz.length;
-    stats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(stats);
-    await updateStreak();
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'mixed',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: quiz.length,
-      correctItems: finalScore,
-      tags: ['mistake_drill'],
-    });
-    setDone(true);
-    playComplete();
+  const now = Date.now();
+  const active = (all ?? []).filter((m) => !m.resolvedAt);
+  const due = active.filter((m) => m.dueAt <= now);
+  const resolved = (all ?? []).filter((m) => m.resolvedAt);
+
+  async function start(onlyDue = true) {
+    const pool = onlyDue ? due : active;
+    const picked = shuffleArray(pool.length ? pool : active).slice(0, SESSION_SIZE);
+    if (!picked.length) return;
+    // Shuffle MCQ options again so the position isn't memorised.
+    setQueue(picked.map((m) => (m.kind === 'mcq' && m.options ? { ...m, options: shuffleArray(m.options) } : m)));
+    setIdx(0);
+    session.start();
+    setPhase('drill');
   }
 
-  function handleSelect(idx: number) {
-    if (selected !== null) return;
-    setSelected(idx);
-    const correct = idx === quiz[current].correctIndex;
-    if (correct) { setScore((s) => s + 1); playCorrect(); }
-    else playIncorrect();
-
-    setTimeout(() => {
-      if (current + 1 >= quiz.length) {
-        finish(score + (correct ? 1 : 0));
-      } else {
-        setCurrent((c) => c + 1);
-        setSelected(null);
-      }
-    }, 1500);
+  async function finish() {
+    await session.finish();
+    setPhase('result');
+    void reload();
   }
 
-  if (noErrors) {
+  if (all === null) return <div className="page-container"><div className="skeleton h-40 w-full" /></div>;
+
+  if (phase === 'result') {
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">✅</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Žádné chyby k procvičení!</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-6">
-          Ještě nemáš dost zaznamenaných chyb. Vrať se po pár cvičeních.
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        back="/"
+        backLabel="Zpět na dnešní plán"
+        onRestart={due.length || active.length ? () => void start(due.length > 0) : undefined}
+        restartLabel="Další kolo"
+        title="Kolo oprav hotovo"
+      >
+        <p className="mt-3 text-center text-sm text-muted">
+          Chyba zmizí z fronty, když ji {CLEAR_AFTER}× po sobě odpovíš správně (mezi pokusy je den pauza).
         </p>
-        <button className="btn-primary" onClick={() => navigate('/')}>Domů</button>
+      </ResultScreen>
+    );
+  }
+
+  if (phase === 'drill') {
+    const item = queue[idx];
+    return (
+      <div className="page-container">
+        <DrillTopBar current={idx} total={queue.length} correct={session.correct} onExit={() => void finish()} title="Oprava chyb" />
+        <MistakeCard
+          key={item.key + idx}
+          item={item}
+          onAnswered={(correct, userAnswer) => {
+            session.answer({ prompt: item.prompt, answer: item.answer, userAnswer, correct, explanation: item.explanation, noTrack: true });
+            void recordMistakeReview(item.key, correct, userAnswer);
+          }}
+          onNext={() => (idx + 1 >= queue.length ? void finish() : setIdx(idx + 1))}
+          last={idx + 1 >= queue.length}
+        />
       </div>
     );
   }
 
-  if (quiz.length === 0) {
-    return (
-      <div className="page-container flex items-center justify-center min-h-[60vh]">
-        <p className="text-slate-400 animate-pulse">Připravuji cvičení z tvých chyb...</p>
-      </div>
-    );
-  }
-
-  if (done) {
-    const pct = quiz.length > 0 ? Math.round((score / quiz.length) * 100) : 0;
-    return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Opakování hotovo!</h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-1">
-          {score} / {quiz.length} správně ({pct}%)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80 ? 'Výborně! Chyby se učíš z nich.' : pct >= 50 ? 'Dobrá práce, pokračuj.' : 'Nevadí, opakování dělá mistra!'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
-          <button className="btn-primary" onClick={() => navigate('/review')}>Statistiky</button>
-        </div>
-      </div>
-    );
-  }
-
-  const item = quiz[current];
+  // Overview
+  const byModule = new Map<string, MistakeItem[]>();
+  for (const m of active) byModule.set(m.module, [...(byModule.get(m.module) ?? []), m]);
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-4">
-        <button className="btn-ghost text-sm" onClick={() => navigate('/')}>← Zpět</button>
-        <span className="text-sm text-slate-500 font-medium">{current + 1} / {quiz.length}</span>
-      </div>
+      <PageHeader
+        title="Opakování chyb"
+        subtitle="Úlohy, ve kterých ses spletl/a, se sem ukládají a vracejí, dokud je dvakrát po sobě nezvládneš."
+        back="/"
+        icon="🔁"
+      />
 
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div className="bg-red-500 h-full rounded-full transition-all duration-300" style={{ width: `${((current + 1) / quiz.length) * 100}%` }} />
-      </div>
+      {active.length === 0 ? (
+        <EmptyState
+          icon={resolved.length ? '🏆' : '🌱'}
+          title={resolved.length ? 'Všechny chyby opraveny!' : 'Zatím tu nic není'}
+          action={<Link to="/practice" className="btn-primary">Jít procvičovat</Link>}
+        >
+          {resolved.length
+            ? `Už jsi opravil/a ${resolved.length} ${czechPlural(resolved.length, 'chybu', 'chyby', 'chyb')}. Nové chyby se tu objeví samy.`
+            : 'Jakmile v nějakém cvičení odpovíš špatně, úloha se sem uloží k opakování.'}
+        </EmptyState>
+      ) : (
+        <>
+          <div className="card g92-card--accent mb-5 !p-5">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="text-3xl font-black tabular-nums text-fg">{due.length}</div>
+                <div className="text-sm text-muted">
+                  {czechPlural(due.length, 'chyba čeká', 'chyby čekají', 'chyb čeká')} na opakování
+                  {active.length > due.length && ` · ${active.length - due.length} naplánováno na další dny`}
+                  {resolved.length > 0 && ` · ${resolved.length} opraveno`}
+                </div>
+              </div>
+              {due.length > 0 ? (
+                <button type="button" className="btn-primary btn-lg" onClick={() => void start(true)}>
+                  Opakovat {Math.min(SESSION_SIZE, due.length)}
+                </button>
+              ) : (
+                <button type="button" className="btn-secondary" onClick={() => void start(false)}>
+                  Procvičit i naplánované
+                </button>
+              )}
+            </div>
+          </div>
 
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">Opakování chyby</span>
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs">
-            {getModuleLabel(item.error.module)}
-          </span>
+          <h2 className="section-title">Podle oblastí</h2>
+          <ul className="space-y-2">
+            {[...byModule.entries()]
+              .sort((a, b) => b[1].length - a[1].length)
+              .map(([mod, items]) => (
+                <li key={mod}>
+                  <details className="card !p-0">
+                    <summary className="flex cursor-pointer list-none items-center gap-3 p-3">
+                      <span className="tile-icon" aria-hidden="true">{moduleIcon(mod)}</span>
+                      <span className="flex-1 font-bold text-fg">{moduleTitle(mod)}</span>
+                      <span className="badge">{items.length}</span>
+                    </summary>
+                    <ul className="divide-y divide-border border-t border-border">
+                      {items.slice(0, 50).map((m) => (
+                        <li key={m.key} className="flex items-start gap-3 px-3 py-2 text-sm">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-fg" lang="en">{m.prompt}</div>
+                            <div className="text-xs">
+                              <span className="font-bold text-success" lang="en">{displayAnswer(m.answer)}</span>
+                              {m.wrongCount > 1 && <span className="ml-2 text-muted">{m.wrongCount}× chybně</span>}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-ghost btn-sm"
+                            aria-label="Odebrat z opakování"
+                            title="Odebrat z opakování"
+                            onClick={async () => {
+                              await deleteMistakes([m.key]);
+                              toast('Odebráno z opakování');
+                              void reload();
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </li>
+              ))}
+          </ul>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              className="btn-ghost btn-sm"
+              onClick={async () => {
+                const ok = await confirmDialog({
+                  title: 'Vymazat všechny chyby?',
+                  message: 'Seznam chyb k opakování se smaže. Statistiky cvičení zůstanou.',
+                  confirmLabel: 'Vymazat',
+                  danger: true,
+                });
+                if (ok) {
+                  await deleteMistakes((all ?? []).map((m) => m.key));
+                  void reload();
+                }
+              }}
+            >
+              Vymazat seznam chyb
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MistakeCard({
+  item,
+  onAnswered,
+  onNext,
+  last,
+}: {
+  item: MistakeItem;
+  onAnswered: (correct: boolean, userAnswer: string) => void;
+  onNext: () => void;
+  last: boolean;
+}) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<boolean | null>(null);
+  const [revealed, setRevealed] = useState(false);
+
+  const correctIndex = item.options ? item.options.findIndex((o) => o === item.answer) : -1;
+  const mcq = item.kind === 'mcq' && item.options && correctIndex >= 0;
+
+  function submit(correct: boolean, user: string) {
+    if (result !== null) return;
+    setResult(correct);
+    onAnswered(correct, user);
+  }
+
+  useKeyboard(
+    item.kind === 'reveal' && !revealed ? { ' ': () => setRevealed(true), Enter: () => setRevealed(true) } : {},
+    item.kind === 'reveal' && result === null,
+  );
+
+  return (
+    <div className="card !p-5">
+      <div className="mb-2 flex items-center gap-2 text-xs font-bold text-muted">
+        <span aria-hidden="true">{moduleIcon(item.module)}</span> {moduleTitle(item.module)}
+        {item.wrongCount > 1 && <span className="badge !bg-warning-soft !text-warning">{item.wrongCount}× chybně</span>}
+      </div>
+      <p className="mb-4 text-lg font-bold text-fg" lang="en">{item.prompt}</p>
+      {item.context && <p className="-mt-2 mb-4 text-sm text-muted">{item.context}</p>}
+
+      {mcq ? (
+        <OptionList
+          options={item.options!}
+          selected={selected}
+          correctIndex={correctIndex}
+          revealed={result !== null}
+          onSelect={(i) => {
+            setSelected(i);
+            submit(i === correctIndex, item.options![i]);
+          }}
+        />
+      ) : item.kind === 'text' ? (
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <TextAnswer
+              value={text}
+              onChange={setText}
+              onSubmit={() => submit(isAnswerCorrect(text, item.answer, item.accept), text.trim())}
+              disabled={result !== null}
+              status={result === null ? null : result ? 'correct' : 'wrong'}
+            />
+          </div>
+          {result === null && (
+            <button type="button" className="btn-primary" disabled={!text.trim()} onClick={() => submit(isAnswerCorrect(text, item.answer, item.accept), text.trim())}>
+              Ověřit
+            </button>
+          )}
         </div>
-
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1 leading-relaxed">
-          {item.error.question}
-        </h3>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
-          Minule jsi odpověděl/a: <span className="text-red-500 font-medium">{item.error.userAnswer}</span>
-        </p>
-
-        <div className="space-y-2">
-          {item.options.map((opt, idx) => {
-            let cls = 'w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm ';
-            if (selected === null) {
-              cls += 'border-slate-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-500 text-slate-700 dark:text-slate-200';
-            } else if (idx === item.correctIndex) {
-              cls += 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 font-medium';
-            } else if (idx === selected) {
-              cls += 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200';
-            } else {
-              cls += 'border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 opacity-60';
-            }
-            return (
-              <button key={idx} className={cls} onClick={() => handleSelect(idx)} disabled={selected !== null}>
-                {opt}
-              </button>
-            );
-          })}
+      ) : !revealed ? (
+        <button type="button" className="btn-secondary btn-lg w-full" onClick={() => setRevealed(true)}>
+          Zobrazit správnou odpověď
+        </button>
+      ) : (
+        <div>
+          <div className="feedback feedback--info">
+            <div className="text-sm text-muted">Správně je:</div>
+            <div className="text-lg font-black text-fg" lang="en">{displayAnswer(item.answer)}</div>
+            {item.lastWrong && <div className="mt-1 text-sm text-muted">Minule jsi odpověděl/a: <span className="line-through">{item.lastWrong}</span></div>}
+          </div>
+          {result === null && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" className="btn-secondary btn-lg" onClick={() => submit(false, '')}>Nevěděl/a jsem</button>
+              <button type="button" className="btn-primary btn-lg" onClick={() => submit(true, item.answer)}>Věděl/a jsem ✓</button>
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {result !== null && item.kind !== 'reveal' && (
+        <Feedback correct={result} answer={item.answer} explanation={item.explanation} />
+      )}
+      {result !== null && item.kind === 'reveal' && item.explanation && <p className="mt-3 text-sm text-muted">{item.explanation}</p>}
+      {result !== null && <NextButton onClick={onNext} last={last} />}
     </div>
   );
 }

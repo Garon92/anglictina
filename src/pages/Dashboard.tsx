@@ -1,377 +1,379 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getStats, getDueCards, updateStreak, getDrillSessions, getDrillStatsByType } from '../db';
-import { speak } from '../tts';
-import { WORD_OF_THE_DAY } from '../data/vocabulary';
-import { daysUntil, getMotivationalMessage, formatMinutes, todayKey } from '../utils';
-import { getErrorAnalysis } from '../errorTracker';
-import type { UserSettings, UserStats } from '../types';
-import { DEFAULT_STATS } from '../types';
-import DailyChallenge from '../components/DailyChallenge';
-import WeeklyMiniGraph from '../components/WeeklyMiniGraph';
-import { computeLevel } from './Review';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { useSettings } from '../App';
+import { getDrillSessions, getExamSessions, kvGet } from '../db';
+import { getMistakeSummary, getTodaySummary, type MistakeSummary, type TodaySummary } from '../progress';
+import { getDeckOverview, type DeckOverview } from '../vocabDeck';
+import { recommendModule, type Recommendation } from '../recommend';
+import { WORD_OF_THE_DAY, VOCABULARY } from '../data/vocabulary';
+import { speak } from '../tts';
+import { dayKey, daysUntil, lastDays, czechPlural, parseDayKey, DAY_NAMES_SHORT } from '../lib/dates';
 
-interface ActionItem {
-  to: string; icon: string; title: string; desc: string; color: string;
+import type { DrillSession, ExamSession } from '../types';
+import DailyChallenge from '../components/DailyChallenge';
+import { Ring, SpeakButton, ProgressBar } from '../components/ui';
+import { useSettings as useKitSettings } from '../lib/useKitSettings';
+import { greeting } from '../kit/cz';
+
+interface DashData {
+  today: TodaySummary;
+  deck: DeckOverview;
+  mistakes: MistakeSummary;
+  recommendation: Recommendation;
+  week: { day: string; minutes: number }[];
+  lastExam?: ExamSession;
+  dailyDone: boolean;
 }
 
-const CATEGORIES: { id: string; label: string; icon: string; items: ActionItem[] }[] = [
-  {
-    id: 'core', label: 'Základ', icon: '📚',
-    items: [
-      { to: '/vocab', icon: '📝', title: 'Slovíčka', desc: 'SRS kartičky', color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-      { to: '/grammar', icon: '✏️', title: 'Gramatika', desc: 'Cvičení', color: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-      { to: '/reading', icon: '📖', title: 'Čtení', desc: 'Texty s otázkami', color: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-      { to: '/listening', icon: '🎧', title: 'Poslech', desc: 'Poslechová cvičení', color: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
-    ],
-  },
-  {
-    id: 'grammar', label: 'Gramatická cvičení', icon: '✏️',
-    items: [
-      { to: '/conditionals', icon: '🔀', title: 'Podmínky', desc: 'If clauses 0–3', color: 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
-      { to: '/reported-speech', icon: '💬', title: 'Nepřímá řeč', desc: 'He said that...', color: 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
-      { to: '/passive', icon: '🔄', title: 'Trpný rod', desc: 'Active → Passive', color: 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
-      { to: '/articles', icon: '📐', title: 'Členy', desc: 'a/an/the', color: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
-      { to: '/prepositions', icon: '📌', title: 'Předložky', desc: 'in/on/at', color: 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
-      { to: '/word-order', icon: '🧱', title: 'Slovosled', desc: 'Pořadí slov', color: 'bg-lime-50 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300' },
-      { to: '/error-correction', icon: '❌', title: 'Oprav chybu', desc: 'Najdi a oprav', color: 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
-      { to: '/sentence-transform', icon: '🔧', title: 'Přeformulace', desc: 'Key word transform', color: 'bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300' },
-      { to: '/word-formation', icon: '🧩', title: 'Tvoření slov', desc: 'Předpony / přípony', color: 'bg-lime-50 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300' },
-    ],
-  },
-  {
-    id: 'vocab', label: 'Slovní zásoba', icon: '📝',
-    items: [
-      { to: '/irregular-verbs', icon: '🔄', title: 'Neprav. slovesa', desc: '100 nejčastějších', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
-      { to: '/confusables', icon: '🔀', title: 'Záměnná slova', desc: 'False friends', color: 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
-      { to: '/phrasal-verbs', icon: '🧩', title: 'Phrasal verbs', desc: 'Frázová slovesa', color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
-      { to: '/idioms', icon: '💎', title: 'Idiomy', desc: 'Ustálené fráze', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-      { to: '/translation', icon: '🔤', title: 'Překlad', desc: 'CZ → EN věty', color: 'bg-stone-50 text-stone-700 dark:bg-stone-900/30 dark:text-stone-300' },
-      { to: '/vocab-topics', icon: '📂', title: 'Témata', desc: '20 maturitních témat', color: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
-      { to: '/custom-words', icon: '📝', title: 'Vlastní slova', desc: 'Tvůj slovníček', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-      { to: '/czech-errors', icon: '🇨🇿', title: 'Chyby Čechů', desc: 'Typické české chyby', color: 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
-    ],
-  },
-  {
-    id: 'maturita', label: 'Příprava na maturitu', icon: '🎯',
-    items: [
-      { to: '/exam', icon: '🎯', title: 'Zkouška', desc: 'Simulace testu', color: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-      { to: '/conversation', icon: '💬', title: 'Konverzace', desc: '25 témat na ústní', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
-      { to: '/writing', icon: '✍️', title: 'Psaní', desc: 'Šablony a tipy', color: 'bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' },
-      { to: '/tenses', icon: '⏱️', title: 'Časy', desc: 'Přehled 10 časů', color: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-      { to: '/grammar-ref', icon: '📋', title: 'Gram. tabulky', desc: 'Pravidla a vzory', color: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
-      { to: '/cheatsheet', icon: '🖨️', title: 'Tahák', desc: 'Tisknutelný přehled', color: 'bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300' },
-    ],
-  },
-  {
-    id: 'games', label: 'Hry a výzvy', icon: '⚡',
-    items: [
-      { to: '/mixed-quiz', icon: '🎲', title: 'Mix kvíz', desc: 'Ze všech modulů', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' },
-      { to: '/speed', icon: '⚡', title: 'Rychlovka', desc: '20 otázek na čas', color: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-      { to: '/mistakes', icon: '🔁', title: 'Opakuj chyby', desc: 'Drill z tvých chyb', color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
-      { to: '/matching', icon: '🃏', title: 'Pexeso', desc: 'Spojuj slova', color: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300' },
-      { to: '/favorites-quiz', icon: '💛', title: 'Kvíz oblíbených', desc: 'Procvič uložená', color: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
-    ],
-  },
-  {
-    id: 'tools', label: 'Nástroje', icon: '🔧',
-    items: [
-      { to: '/search', icon: '🔍', title: 'Hledání', desc: 'Slovník', color: 'bg-slate-50 text-slate-700 dark:bg-slate-700 dark:text-slate-300' },
-      { to: '/favorites', icon: '⭐', title: 'Oblíbené', desc: 'Uložená slova', color: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
-      { to: '/study-plan', icon: '📅', title: 'Studijní plán', desc: 'Tvůj rozvrh', color: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
-      { to: '/diagnostic', icon: '🩺', title: 'Diagnostika', desc: 'Zjisti svou úroveň', color: 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
-      { to: '/review', icon: '📊', title: 'Statistiky', desc: 'Tvůj pokrok', color: 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
-      { to: '/settings', icon: '⚙️', title: 'Nastavení', desc: 'Přizpůsobení', color: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300' },
-    ],
-  },
-];
 
-const ROUTE_TO_DRILL: Record<string, string> = {
-  '/vocab': 'vocab', '/grammar': 'grammar', '/reading': 'reading', '/listening': 'listening',
-  '/conditionals': 'conditionals', '/reported-speech': 'reported_speech', '/passive': 'passive_voice',
-  '/articles': 'articles', '/prepositions': 'prepositions', '/word-order': 'word_order',
-  '/error-correction': 'error_correction', '/sentence-transform': 'sentence_transform',
-  '/word-formation': 'word_formation', '/irregular-verbs': 'vocab', '/confusables': 'confusables',
-  '/phrasal-verbs': 'phrasal_verbs', '/idioms': 'idioms', '/translation': 'translation',
-  '/mixed-quiz': 'mixed', '/speed': 'vocab', '/matching': 'vocab',
-  '/favorites-quiz': 'favorites_quiz', '/custom-words': 'custom_words',
-  '/czech-errors': 'czech_errors',
-  '/exam': 'exam', '/diagnostic': 'diagnostic',
-};
-
-function getSmartSuggestions(stats: UserStats, dueCount: number): ActionItem[] {
-  const suggestions: ActionItem[] = [];
-  const errors = getErrorAnalysis();
-
-  if (dueCount > 0) {
-    suggestions.push({ to: '/vocab', icon: '📝', title: 'Opakuj slovíčka', desc: `${dueCount} čeká`, color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' });
-  }
-
-  if (errors.totalErrors > 5) {
-    suggestions.push({ to: '/mistakes', icon: '🔁', title: 'Procvič chyby', desc: `${errors.totalErrors} chyb`, color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' });
-  }
-
-  if (stats.totalCardsLearned < 50) {
-    suggestions.push({ to: '/vocab', icon: '📚', title: 'Nauč se slovíčka', desc: 'Základ je slovní zásoba', color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' });
-  } else if (stats.totalExercisesDone < 20) {
-    suggestions.push({ to: '/grammar', icon: '✏️', title: 'Zkus gramatiku', desc: 'Procvič si pravidla', color: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' });
-  }
-
-  if (suggestions.length < 3) {
-    suggestions.push({ to: '/mixed-quiz', icon: '🎲', title: 'Mix kvíz', desc: 'Otestuj se ze všeho', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' });
-  }
-
-  return suggestions.slice(0, 3);
+function weekMinutes(sessions: DrillSession[]): { day: string; minutes: number }[] {
+  const days = lastDays(7);
+  return days.map((day) => ({
+    day,
+    minutes: sessions
+      .filter((s) => s.date === day && s.endedAt)
+      .reduce((sum, s) => sum + Math.max(0, (s.endedAt! - s.startedAt) / 60000), 0),
+  }));
 }
 
 export default function Dashboard() {
   const { settings } = useSettings();
-  const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
-  const [dueCount, setDueCount] = useState(0);
-  const [todayMinutes, setTodayMinutes] = useState(0);
-  const [openCats, setOpenCats] = useState<Set<string>>(new Set(['core']));
-  const [searchQ, setSearchQ] = useState('');
-  const [drillStats, setDrillStats] = useState<Record<string, { sessions: number; correct: number; total: number }>>({});
-  const wotd = WORD_OF_THE_DAY();
+  const kit = useKitSettings();
+  const [data, setData] = useState<DashData | null>(null);
 
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
-    const [s, due, sessions, dStats] = await Promise.all([
-      updateStreak(),
-      getDueCards(),
-      getDrillSessions(todayKey()),
-      getDrillStatsByType(),
+  const load = useCallback(async () => {
+    const weekStart = lastDays(7)[0];
+    const [today, deck, mistakes, sessions, exams, daily] = await Promise.all([
+      getTodaySummary(),
+      getDeckOverview(settings, 'vocab', VOCABULARY.length),
+      getMistakeSummary(),
+      getDrillSessions(),
+      getExamSessions(),
+      kvGet(`daily:${dayKey()}`),
     ]);
-    setStats(s);
-    setDueCount(due.length);
-    setDrillStats(dStats);
-    const mins = sessions.reduce((sum, ses) => {
-      if (!ses.endedAt) return sum;
-      return sum + (ses.endedAt - ses.startedAt) / 60000;
-    }, 0);
-    setTodayMinutes(mins);
-  }
-
-  const toggleCat = (id: string) => {
-    setOpenCats((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
+    const lastExam = exams.filter((e) => e.mode === 'full').sort((a, b) => b.startedAt - a.startedAt)[0];
+    setData({
+      today,
+      deck,
+      mistakes,
+      recommendation: recommendModule(sessions, mistakes.byModule),
+      week: weekMinutes(sessions.filter((s) => s.date >= weekStart)),
+      lastExam,
+      dailyDone: !!daily,
     });
-  };
+  }, [settings]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const examDays = daysUntil(settings.examDate);
-  const lv = computeLevel(stats);
-  const suggestions = getSmartSuggestions(stats, dueCount);
+  const wotd = WORD_OF_THE_DAY();
 
-  const filteredCats = searchQ.trim()
-    ? CATEGORIES.map((cat) => ({
-        ...cat,
-        items: cat.items.filter((it) =>
-          it.title.toLowerCase().includes(searchQ.toLowerCase()) ||
-          it.desc.toLowerCase().includes(searchQ.toLowerCase())
-        ),
-      })).filter((cat) => cat.items.length > 0)
-    : CATEGORIES;
+  if (!data) return <DashboardSkeleton />;
+
+  const { today, deck, mistakes, recommendation } = data;
+  const goal = Math.max(5, settings.minutesPerDay || 20);
+  const minutes = Math.round(today.minutes);
+  const recDone = today.modules.has(recommendation.module.id);
+
+  const tasks: PlanTask[] = [
+    {
+      id: 'review',
+      icon: '🗂️',
+      title: 'Opakování slovíček',
+      detail: deck.due > 0 ? `${deck.due} ${czechPlural(deck.due, 'kartička čeká', 'kartičky čekají', 'kartiček čeká')}` : deck.seen === 0 ? 'Zatím žádná naučená slovíčka' : 'Vše zopakováno',
+      done: deck.due === 0 && deck.seen > 0,
+      to: '/vocab',
+      cta: 'Opakovat',
+      hidden: deck.seen === 0,
+    },
+    {
+      id: 'new',
+      icon: '✨',
+      title: 'Nová slovíčka',
+      detail: `${Math.min(deck.newToday, deck.newLimit)} / ${deck.newLimit} dnes`,
+      done: deck.newToday >= deck.newLimit,
+      to: '/vocab?new=1',
+      cta: 'Naučit',
+      progress: deck.newLimit ? Math.min(1, deck.newToday / deck.newLimit) : 1,
+    },
+    {
+      id: 'mistakes',
+      icon: '🔁',
+      title: 'Oprava chyb',
+      detail: mistakes.due > 0 ? `${mistakes.due} ${czechPlural(mistakes.due, 'chyba', 'chyby', 'chyb')} k opakování` : mistakes.active > 0 ? 'Další opakování zítra' : 'Žádné chyby k opravě',
+      done: mistakes.due === 0,
+      to: '/mistakes',
+      cta: 'Opravit',
+      hidden: mistakes.active === 0 && mistakes.resolved === 0,
+    },
+    {
+      id: 'recommended',
+      icon: recommendation.module.icon,
+      title: recommendation.module.title,
+      detail: recommendation.reason,
+      done: recDone,
+      to: recommendation.module.path,
+      cta: 'Procvičit',
+      badge: 'Doporučeno',
+    },
+  ];
+  const visibleTasks = tasks.filter((t) => !t.hidden);
+  const doneCount = visibleTasks.filter((t) => t.done).length + (data.dailyDone ? 1 : 0);
+  const totalCount = visibleTasks.length + 1;
 
   return (
-    <div className="page-container">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="page-container page-container--wide">
+      {/* Greeting */}
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Angličtina</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{getMotivationalMessage(stats.streakDays)}</p>
+          <p className="text-sm font-bold text-muted">{formatToday()}</p>
+          <h1 className="text-3xl font-black tracking-tight text-fg">
+            {greeting(kit.playerName)}
+          </h1>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Link to="/review" className="bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1">
-            {lv.level.icon} {lv.xp}
-          </Link>
-          {stats.streakDays > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2.5 py-1 rounded-full text-xs font-bold">
-              <span className={stats.streakDays >= 3 ? 'animate-fire-pulse inline-block' : ''}>🔥</span> {stats.streakDays}
-            </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="badge !px-3 !py-1.5 !text-sm" title="Dny v řadě, kdy ses učil/a">
+            <span className={today.streak >= 3 ? 'animate-fire-pulse inline-block' : ''} aria-hidden="true">🔥</span>
+            {today.streak} {czechPlural(today.streak, 'den', 'dny', 'dní')} v řadě
+          </span>
+          {settings.showCountdown && examDays >= 0 && (
+            <Link to="/exam" className="badge !bg-accent-soft !px-3 !py-1.5 !text-sm !text-accent-text no-underline">
+              🎓 {examDays === 0 ? 'Maturita je dnes!' : `${examDays} ${czechPlural(examDays, 'den', 'dny', 'dní')} do maturity`}
+            </Link>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Exam countdown */}
-      {examDays > 0 && settings.showCountdown && (
-        <div className="card mb-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 !p-3 relative">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-primary-100 text-[10px] font-medium">Do maturity</div>
-              <div className="text-2xl font-bold">{examDays} dní</div>
-            </div>
-            <div className="text-right">
-              <div className="text-primary-100 text-[10px] font-medium">Cíl</div>
-              <div className="text-xl font-bold">{settings.goalScore}b</div>
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+        {/* Plan */}
+        <section className="card !p-5" aria-labelledby="plan-title">
+          <div className="mb-4 flex items-center gap-4">
+            <Ring value={minutes / goal} size={84} tone={minutes >= goal ? 'success' : 'accent'} label={`${minutes} z ${goal} minut`}>
+              <div>
+                <div className="text-xl font-black tabular-nums text-fg">{minutes}</div>
+                <div className="-mt-1 text-[0.65rem] font-bold text-muted">/ {goal} min</div>
+              </div>
+            </Ring>
+            <div className="min-w-0">
+              <h2 id="plan-title" className="text-xl font-black text-fg">Plán na dnešek</h2>
+              <p className="text-sm text-muted">
+                {doneCount >= totalCount
+                  ? 'Všechno splněno — skvělá práce! 🎉'
+                  : `Splněno ${doneCount} z ${totalCount} úkolů`}
+              </p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Today's progress — compact */}
-      <div className="card mb-3 !p-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Dnes</span>
-          <span className="text-xs text-slate-500">{formatMinutes(todayMinutes)} / {settings.minutesPerDay} min</span>
-        </div>
-        <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-primary-400 to-primary-600 h-full rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(100, (todayMinutes / settings.minutesPerDay) * 100)}%` }}
-          />
-        </div>
-        {dueCount > 0 && (
-          <Link to="/vocab" className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium block">
-            📚 {dueCount} slovíček k opakování →
-          </Link>
-        )}
-      </div>
-
-      {/* Smart suggestions */}
-      {suggestions.length > 0 && (
-        <div className="mb-3">
-          <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Doporučeno pro tebe</h2>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {suggestions.map((s) => (
-              <Link
-                key={s.to}
-                to={s.to}
-                className="card shrink-0 !p-3 flex items-center gap-2.5 min-w-[160px] hover:shadow-md transition-shadow"
-              >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${s.color}`}>{s.icon}</div>
-                <div>
-                  <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{s.title}</div>
-                  <div className="text-[10px] text-slate-400">{s.desc}</div>
-                </div>
-              </Link>
+          <ul className="space-y-2">
+            {visibleTasks.map((t) => (
+              <PlanRow key={t.id} task={t} />
             ))}
-          </div>
-        </div>
-      )}
+            <li className={`rounded-2xl border border-border p-3 ${data.dailyDone ? 'bg-surface-2' : ''}`}>
+              <DailyChallenge onDone={() => void load()} />
+            </li>
+          </ul>
+        </section>
 
-      {/* Word of the day — compact */}
-      <div className="card mb-3 !p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <span className="text-[10px] font-semibold text-primary-500 uppercase tracking-wide">Slovo dne</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-base font-bold text-slate-900 dark:text-white">{wotd.en}</span>
-              <span className="text-slate-400 text-xs">—</span>
-              <span className="text-sm text-slate-600 dark:text-slate-300">{wotd.cs}</span>
+        <div className="grid content-start gap-4">
+          {/* Exam readiness */}
+          <ExamCard lastExam={data.lastExam} goal={settings.goalScore} />
+
+          {/* Word of the day */}
+          <section className="card !p-5" aria-label="Slovo dne">
+            <div className="eyebrow mb-1">Slovo dne</div>
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-2xl font-black text-fg" lang="en">{wotd.en}</div>
+                <div className="text-accent-text font-bold">{wotd.cs}</div>
+                {wotd.example && (
+                  <p className="mt-2 text-sm text-muted">
+                    <span lang="en" className="italic">„{wotd.example}“</span>
+                    {wotd.exampleCs && <span className="block text-xs">{wotd.exampleCs}</span>}
+                  </p>
+                )}
+              </div>
+              <SpeakButton onClick={() => void speak(wotd.en, settings.ttsRate)} label={`Přehrát: ${wotd.en}`} />
             </div>
-            <p className="text-xs text-slate-400 italic mt-0.5 truncate">{wotd.example}</p>
-          </div>
-          <button className="text-primary-500 hover:text-primary-700 p-1.5 shrink-0" onClick={() => speak(wotd.en, settings.ttsRate)}>
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07z" />
-            </svg>
-          </button>
+          </section>
+
+          {/* Week */}
+          <WeekCard week={data.week} goal={goal} />
         </div>
       </div>
 
-      {/* Weekly activity graph */}
-      <WeeklyMiniGraph />
+      {/* Quick links */}
+      <section className="mt-6" aria-labelledby="quick-title">
+        <h2 id="quick-title" className="section-title">Rychlý start</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <QuickLink to="/vocab" icon="🗂️" title="Slovíčka" />
+          <QuickLink to="/grammar" icon="✏️" title="Gramatika" />
+          <QuickLink to="/reading" icon="📖" title="Čtení" />
+          <QuickLink to="/listening" icon="🎧" title="Poslech" />
+        </div>
+        <p className="mt-3 text-center text-sm">
+          <Link to="/practice" className="font-bold">Všechna cvičení →</Link>
+        </p>
+      </section>
+    </div>
+  );
+}
 
-      {/* Daily challenge */}
-      <DailyChallenge />
+function formatToday(): string {
+  const s = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
-      {/* Search modules */}
-      <div className="relative mb-3">
-        <input
-          type="text"
-          className="input text-sm pl-9 !py-2"
-          placeholder="Hledej modul..."
-          value={searchQ}
-          onChange={(e) => setSearchQ(e.target.value)}
-        />
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        {searchQ && (
-          <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs" onClick={() => setSearchQ('')}>✕</button>
-        )}
+interface PlanTask {
+  id: string;
+  icon: string;
+  title: string;
+  detail: string;
+  done: boolean;
+  to: string;
+  cta: string;
+  hidden?: boolean;
+  badge?: string;
+  progress?: number;
+}
+
+function PlanRow({ task }: { task: PlanTask }) {
+  return (
+    <li>
+      <Link
+        to={task.to}
+        className={`card-link flex items-center gap-3 rounded-2xl border border-border p-3 no-underline ${task.done ? 'bg-surface-2' : 'bg-surface'}`}
+      >
+        <span className={`tile-icon ${task.done ? '!bg-success-soft' : ''}`} aria-hidden="true">
+          {task.done ? '✓' : task.icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className={`font-bold ${task.done ? 'text-muted line-through decoration-2' : 'text-fg'}`}>{task.title}</span>
+            {task.badge && !task.done && <span className="badge !bg-accent-soft !text-accent-text !text-[0.65rem]">{task.badge}</span>}
+          </span>
+          <span className="block truncate text-xs text-muted">{task.detail}</span>
+          {task.progress !== undefined && !task.done && <ProgressBar value={task.progress} className="mt-1.5 !h-1.5" label={task.title} />}
+        </span>
+        {!task.done && <span className="btn-soft btn-sm shrink-0">{task.cta}</span>}
+      </Link>
+    </li>
+  );
+}
+
+function ExamCard({ lastExam, goal }: { lastExam?: ExamSession; goal: number }) {
+  const score = lastExam?.scoreTotal ?? null;
+  return (
+    <section className="card g92-card--accent !p-5" aria-label="Připravenost na maturitu">
+      <div className="flex items-center justify-between gap-2">
+        <div className="eyebrow">Maturita nanečisto</div>
+        <Link to="/exam" className="text-sm font-bold">Testy →</Link>
       </div>
+      {score === null ? (
+        <>
+          <p className="mt-2 font-bold text-fg">Vyzkoušej si cvičný didaktický test</p>
+          <p className="text-sm text-muted">Poslech, čtení a jazyková kompetence jako u opravdové maturity. Hranice úspěchu je 44 bodů.</p>
+          <Link to="/exam" className="btn-primary mt-3">Vybrat test</Link>
+        </>
+      ) : (
+        <>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className={`text-4xl font-black tabular-nums ${score >= 44 ? 'text-success' : 'text-danger'}`}>{score}</span>
+            <span className="text-muted">/ 100 bodů</span>
+            <span className={`badge ml-auto ${score >= 44 ? '!bg-success-soft !text-success' : '!bg-danger-soft !text-danger'}`}>
+              {score >= 44 ? 'Prospěl/a' : 'Pod hranicí'}
+            </span>
+          </div>
+          <ScoreScale score={score} goal={goal} />
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+            <SkillPct label="Poslech" value={lastExam!.scoreBySkill.listening} />
+            <SkillPct label="Čtení" value={lastExam!.scoreBySkill.reading} />
+            <SkillPct label="Jazyk" value={lastExam!.scoreBySkill.language} />
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
-      {/* Categorized modules */}
-      <div className="space-y-2 mb-4">
-        {filteredCats.map((cat) => {
-          const isOpen = openCats.has(cat.id) || searchQ.trim() !== '';
+export function ScoreScale({ score, goal }: { score: number; goal?: number }) {
+  return (
+    <div className="relative mt-3 h-3 rounded-full bg-surface-3" aria-hidden="true">
+      <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${score}%`, background: score >= 44 ? 'var(--g92-success)' : 'var(--g92-danger)' }} />
+      <div className="absolute -top-1 h-5 w-0.5 bg-fg" style={{ left: '44%' }} title="Hranice úspěšnosti 44 %" />
+      {goal && goal !== 44 && <div className="absolute -top-1 h-5 w-0.5 bg-accent" style={{ left: `${goal}%` }} title={`Tvůj cíl ${goal} bodů`} />}
+      <div className="absolute top-4 -translate-x-1/2 text-[0.6rem] font-bold text-muted" style={{ left: '44%' }}>44</div>
+    </div>
+  );
+}
+
+function SkillPct({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl bg-surface p-2">
+      <div className="font-black tabular-nums text-fg">{Math.round(value)} %</div>
+      <div className="text-muted">{label}</div>
+    </div>
+  );
+}
+
+function WeekCard({ week, goal }: { week: { day: string; minutes: number }[]; goal: number }) {
+  const max = Math.max(goal, ...week.map((d) => d.minutes), 1);
+  const total = Math.round(week.reduce((s, d) => s + d.minutes, 0));
+  const today = dayKey();
+  return (
+    <section className="card !p-5" aria-label="Aktivita za posledních 7 dní">
+      <div className="mb-3 flex items-baseline justify-between">
+        <div className="eyebrow">Posledních 7 dní</div>
+        <div className="text-sm font-bold text-muted">{total} min</div>
+      </div>
+      <div className="relative flex h-24 items-end gap-2">
+        <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-border-strong" style={{ bottom: `${(goal / max) * 100}%` }} title={`Denní cíl ${goal} min`} />
+        {week.map((d) => {
+          const h = d.minutes > 0 ? Math.max(8, (d.minutes / max) * 100) : 4;
+          const dow = DAY_NAMES_SHORT[parseDayKey(d.day).getDay()];
           return (
-            <div key={cat.id} className="card overflow-hidden !p-0">
-              <button
-                className="w-full flex items-center justify-between px-4 py-3 text-left"
-                onClick={() => toggleCat(cat.id)}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{cat.icon}</span>
-                  <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{cat.label}</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-full">{cat.items.length}</span>
-                  {(() => {
-                    const active = cat.items.filter((it) => {
-                      const dt = ROUTE_TO_DRILL[it.to];
-                      return dt && drillStats[dt] && drillStats[dt].sessions > 0;
-                    }).length;
-                    return active > 0 ? (
-                      <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">✓ {active}</span>
-                    ) : null;
-                  })()}
-                </div>
-                <svg className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {isOpen && (
-                <div className="px-3 pb-3 grid grid-cols-2 gap-2">
-                  {cat.items.map((item) => {
-                    const drillType = ROUTE_TO_DRILL[item.to];
-                    const ds = drillType ? drillStats[drillType] : undefined;
-                    return (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors relative"
-                      >
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 ${item.color}`}>
-                          {item.icon}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium text-slate-800 dark:text-slate-200 text-xs">{item.title}</div>
-                          <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{item.desc}</div>
-                        </div>
-                        {ds && ds.sessions > 0 && (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <div className={`w-2 h-2 rounded-full ${ds.total > 0 && ds.correct / ds.total >= 0.7 ? 'bg-green-400' : 'bg-amber-400'}`} />
-                          </div>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+            <div key={d.day} className="flex flex-1 flex-col items-center justify-end gap-1" style={{ height: '100%' }}>
+              <div
+                className="w-full max-w-9 rounded-md"
+                style={{
+                  height: `${h}%`,
+                  background: d.minutes >= goal ? 'var(--g92-success)' : d.minutes > 0 ? 'var(--accent)' : 'var(--g92-surface-3)',
+                }}
+                title={`${dow}: ${Math.round(d.minutes)} min`}
+              />
+              <span className={`text-[0.65rem] font-bold ${d.day === today ? 'text-accent-text' : 'text-muted'}`}>{dow}</span>
             </div>
           );
         })}
       </div>
+    </section>
+  );
+}
 
-      {/* Stats overview */}
-      <div className="grid grid-cols-3 gap-2">
-        <StatCard label="Naučeno slov" value={stats.totalCardsLearned} />
-        <StatCard label="Cvičení" value={stats.totalExercisesDone} />
-        <StatCard label="Minut" value={Math.round(stats.totalStudyMinutes)} />
+function QuickLink({ to, icon, title }: { to: string; icon: string; title: string }) {
+  return (
+    <Link to={to} className="card card-link flex flex-col items-center gap-1.5 !py-4 text-center no-underline">
+      <span className="text-2xl" aria-hidden="true">{icon}</span>
+      <span className="text-sm font-bold text-fg">{title}</span>
+    </Link>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="page-container page-container--wide" aria-busy="true">
+      <div className="skeleton mb-2 h-4 w-40" />
+      <div className="skeleton mb-6 h-9 w-64" />
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+        <div className="card space-y-3 !p-5">
+          {[0, 1, 2, 3].map((i) => <div key={i} className="skeleton h-14 w-full" />)}
+        </div>
+        <div className="space-y-4">
+          <div className="card !p-5"><div className="skeleton h-24 w-full" /></div>
+          <div className="card !p-5"><div className="skeleton h-20 w-full" /></div>
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="card text-center !p-2.5">
-      <div className="text-lg font-bold text-slate-900 dark:text-white">{value}</div>
-      <div className="text-[10px] text-slate-400 dark:text-slate-500">{label}</div>
-    </div>
-  );
-}

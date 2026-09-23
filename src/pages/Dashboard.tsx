@@ -253,14 +253,22 @@ function PlanRow({ task }: { task: PlanTask }) {
           {task.done ? '✓' : task.icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className={`font-bold ${task.done ? 'text-muted line-through decoration-2' : 'text-fg'}`}>{task.title}</span>
-            {task.badge && !task.done && <span className="badge !bg-accent-soft !text-accent-text !text-[0.65rem]">{task.badge}</span>}
+          <span className="flex flex-wrap items-center gap-x-2">
+            <span className={`font-bold leading-tight ${task.done ? 'text-muted line-through decoration-2' : 'text-fg'}`}>{task.title}</span>
+            {task.badge && !task.done && <span className="badge hidden !bg-accent-soft !text-accent-text !text-[0.65rem] sm:inline-flex">{task.badge}</span>}
           </span>
-          <span className="block truncate text-xs text-muted">{task.detail}</span>
+          <span className="block truncate text-xs text-muted">
+            {task.badge && !task.done && <span className="font-bold text-accent-text sm:hidden">{task.badge} · </span>}
+            {task.detail}
+          </span>
           {task.progress !== undefined && !task.done && <ProgressBar value={task.progress} className="mt-1.5 !h-1.5" label={task.title} />}
         </span>
-        {!task.done && <span className="btn-soft btn-sm shrink-0">{task.cta}</span>}
+        {!task.done && <span className="btn-soft btn-sm hidden shrink-0 sm:inline-flex">{task.cta}</span>}
+        {!task.done && (
+          <svg className="shrink-0 text-subtle sm:hidden" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        )}
       </Link>
     </li>
   );

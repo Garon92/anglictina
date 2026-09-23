@@ -18,8 +18,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_01_q1',
         type: 'mcq',
         question: 'What time does the narrator get up?',
-        options: ['At six o\'clock', 'At half past six', 'At seven o\'clock', 'At quarter to seven'],
-        answerIndex: 1,
+        options: ['At half past five', 'At six o\'clock', 'At quarter past six', 'At half past six'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_01_q2',
@@ -62,15 +62,15 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_02_q1',
         type: 'mcq',
         question: 'Where is the school canteen?',
-        options: ['On the ground floor', 'On the first floor', 'On the second floor', 'In another building'],
+        options: ['On the second floor', 'On the first floor', 'On the ground floor', 'In another building'],
         answerIndex: 1,
       },
       {
         id: 'read_extra2_02_q2',
         type: 'truefalse',
-        question: 'The narrator chooses the fish.',
+        question: 'The narrator doesn\'t like fish.',
         options: ['True', 'False'],
-        answerIndex: 1,
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_02_q3',
@@ -106,8 +106,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_03_q1',
         type: 'mcq',
         question: 'How often does Marek play football?',
-        options: ['Once a week', 'Twice a week', 'Three times a week', 'Every day'],
-        answerIndex: 2,
+        options: ['Once a week', 'Twice a week', 'Only at weekends', 'Three times a week'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_03_q2',
@@ -142,7 +142,7 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
     text:
       'Today is Monday and the weather is bad. It is raining and the sky is grey. ' +
       'The temperature is only eight degrees. I need my jacket and an umbrella. ' +
-      'Yesterday was much better. It was sunny and warm. We played outside after school. ' +
+      'Yesterday was much better. It was sunny and warm. We played outside all afternoon. ' +
       'The weather forecast says tomorrow will be cloudy but dry. ' +
       'I hope the weekend will be nice because I want to go cycling with my friends.',
     questions: [
@@ -150,8 +150,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_04_q1',
         type: 'mcq',
         question: 'What is the weather like today?',
-        options: ['Sunny and warm', 'Rainy and grey', 'Snowy and cold', 'Cloudy but dry'],
-        answerIndex: 1,
+        options: ['Sunny and warm', 'Snowy and cold', 'Rainy and grey', 'Cloudy but dry'],
+        answerIndex: 2,
       },
       {
         id: 'read_extra2_04_q2',
@@ -164,8 +164,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_04_q3',
         type: 'mcq',
         question: 'What does the narrator want to do at the weekend?',
-        options: ['Play football', 'Go swimming', 'Go cycling', 'Stay at home'],
-        answerIndex: 2,
+        options: ['Play football', 'Go cycling', 'Go swimming', 'Stay at home'],
+        answerIndex: 1,
       },
       {
         id: 'read_extra2_04_q4',
@@ -193,9 +193,9 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       {
         id: 'read_extra2_05_q1',
         type: 'mcq',
-        question: 'When did the narrator get the phone?',
-        options: ['At Christmas', 'For a birthday', 'As a school prize', 'For no reason'],
-        answerIndex: 1,
+        question: 'When did the narrator get the new phone?',
+        options: ['For their birthday', 'At Christmas', 'At the end of the school year', 'At Easter'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_05_q2',
@@ -207,9 +207,9 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       {
         id: 'read_extra2_05_q3',
         type: 'tfns',
-        question: 'The phone was expensive.',
+        question: 'The narrator\'s parents think the narrator uses the phone too much.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 2,
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_05_q4',
@@ -238,9 +238,9 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       {
         id: 'read_extra2_06_q1',
         type: 'mcq',
-        question: 'Which social media does Tereza use the most?',
-        options: ['Facebook and Twitter', 'Instagram and TikTok', 'YouTube and Snapchat', 'WhatsApp and Telegram'],
-        answerIndex: 1,
+        question: 'Which social media platforms does Tereza use most?',
+        options: ['Facebook and Twitter', 'WhatsApp and Telegram', 'YouTube and Snapchat', 'Instagram and TikTok'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_06_q2',
@@ -289,8 +289,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_07_q1',
         type: 'mcq',
         question: 'How did the class travel to Prague?',
-        options: ['By bus', 'By train', 'By car', 'By plane'],
-        answerIndex: 1,
+        options: ['By bus', 'By car', 'By train', 'By plane'],
+        answerIndex: 2,
       },
       {
         id: 'read_extra2_07_q2',
@@ -303,15 +303,15 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_07_q3',
         type: 'mcq',
         question: 'What did the narrator like the most at the museum?',
-        options: ['Old trains', 'Old cars and aeroplanes', 'Computers', 'Space rockets'],
-        answerIndex: 1,
+        options: ['Old trains', 'Space rockets', 'Computers', 'Old cars and aeroplanes'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_07_q4',
         type: 'tfns',
-        question: 'The narrator bought a souvenir in Prague.',
+        question: 'The class had lunch near the Old Town Square.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 2,
+        answerIndex: 0,
       },
     ],
   },
@@ -326,16 +326,16 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       'My name is David and I want to improve my English. Besides school lessons, I use several apps and websites to practise. ' +
       'Every morning, I spend ten minutes on a vocabulary app. It shows me English words and I have to remember the Czech translation. ' +
       'I also watch English videos on YouTube with subtitles. This helps me understand spoken English better. ' +
-      'On weekends, I read short articles in English about topics I like, such as gaming and technology. ' +
+      'At weekends, I read short articles in English about topics I like, such as gaming and technology. ' +
       'My English teacher says that reading is very important for learning new words. ' +
-      'Since I started practising online, my marks at school have improved. I got an A on my last English test.',
+      'Since I started practising online, my marks at school have improved. In my last English test, I got a one, which is the best mark.',
     questions: [
       {
         id: 'read_extra2_08_q1',
         type: 'mcq',
         question: 'How long does David spend on the vocabulary app each morning?',
-        options: ['Five minutes', 'Ten minutes', 'Fifteen minutes', 'Twenty minutes'],
-        answerIndex: 1,
+        options: ['Ten minutes', 'Fifteen minutes', 'Twenty minutes', 'Thirty minutes'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_08_q2',
@@ -354,9 +354,9 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       {
         id: 'read_extra2_08_q4',
         type: 'mcq',
-        question: 'What grade did David get on his last English test?',
-        options: ['A B', 'A C', 'An A', 'A D'],
-        answerIndex: 2,
+        question: 'What mark did David get in his last English test?',
+        options: ['A two', 'A one', 'A three', 'A four'],
+        answerIndex: 1,
       },
     ],
   },
@@ -379,8 +379,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_09_q1',
         type: 'mcq',
         question: 'Where is the biggest Christmas market in Brno?',
-        options: ['Zelný trh', 'Náměstí Svobody', 'Moravské náměstí', 'Šilingrovo náměstí'],
-        answerIndex: 1,
+        options: ['Náměstí Svobody', 'Zelný trh', 'Moravské náměstí', 'Šilingrovo náměstí'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_09_q2',
@@ -393,15 +393,15 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_09_q3',
         type: 'mcq',
         question: 'What did the narrator listen to at the market last year?',
-        options: ['A rock band', 'A choir singing Christmas carols', 'A jazz concert', 'A DJ playing music'],
-        answerIndex: 1,
+        options: ['A rock band playing Christmas songs', 'A jazz concert in a church', 'A choir singing Christmas carols', 'A DJ playing music'],
+        answerIndex: 2,
       },
       {
         id: 'read_extra2_09_q4',
         type: 'tfns',
-        question: 'The narrator bought a present for someone at the market.',
+        question: 'The Christmas markets in Brno are quiet at weekends.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 2,
+        answerIndex: 1,
       },
     ],
   },
@@ -415,7 +415,7 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
     text:
       'Every Sunday, I visit my grandmother and we cook together. She lives in a small town near Ostrava. ' +
       'Last Sunday, we made svíčková, which is a traditional Czech dish. It is beef with a creamy vegetable sauce and dumplings. ' +
-      'First, we prepared the vegetables: carrots, celery, and onions. Then we cooked the meat slowly for two hours. ' +
+      'First, we prepared the vegetables: carrots, celeriac, and onions. Then we cooked the meat slowly for two hours. ' +
       'While we waited, my grandmother told me stories about her childhood. ' +
       'When the svíčková was ready, the whole house smelled amazing. We ate together with my grandfather. ' +
       'He said it was the best meal of the week. I want to learn all my grandmother\'s recipes before I go to university.',
@@ -424,8 +424,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_10_q1',
         type: 'mcq',
         question: 'Where does the narrator\'s grandmother live?',
-        options: ['In Brno', 'In Prague', 'Near Ostrava', 'In Olomouc'],
-        answerIndex: 2,
+        options: ['Near Ostrava', 'In Prague', 'In Brno', 'In Olomouc'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_10_q2',
@@ -437,16 +437,16 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       {
         id: 'read_extra2_10_q3',
         type: 'tfns',
-        question: 'The narrator\'s grandmother has written a cookbook.',
+        question: 'The narrator\'s grandfather cooked the svíčková.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 2,
+        answerIndex: 1,
       },
       {
         id: 'read_extra2_10_q4',
         type: 'mcq',
         question: 'How long did the meat cook?',
-        options: ['One hour', 'Ninety minutes', 'Two hours', 'Three hours'],
-        answerIndex: 2,
+        options: ['Half an hour', 'One hour', 'Ninety minutes', 'Two hours'],
+        answerIndex: 3,
       },
     ],
   },
@@ -469,8 +469,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_11_q1',
         type: 'mcq',
         question: 'What was Monday\'s activity about?',
-        options: ['Healthy food', 'The importance of sleep', 'Sports', 'Washing hands'],
-        answerIndex: 1,
+        options: ['Healthy food', 'Sports', 'The importance of sleep', 'Washing hands'],
+        answerIndex: 2,
       },
       {
         id: 'read_extra2_11_q2',
@@ -483,15 +483,15 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_11_q3',
         type: 'mcq',
         question: 'What did the narrator write about on Friday?',
-        options: ['Healthy food', 'Exercise', 'Sleep', 'Washing hands'],
-        answerIndex: 2,
+        options: ['Healthy food', 'Exercise', 'Washing hands', 'Sleep'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_11_q4',
         type: 'tfns',
-        question: 'The programme will happen again next year.',
+        question: 'The narrator often goes to bed late because of playing games.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 2,
+        answerIndex: 0,
       },
     ],
   },
@@ -503,7 +503,7 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
     level: 'A2',
     topic: 'nature',
     text:
-      'Last autumn, my family went on a trip to the Šumava mountains in South Bohemia. We stayed in a small cottage near Železná Ruda. ' +
+      'Last autumn, my family went on a trip to the Šumava mountains in the south-west of the Czech Republic. We stayed in a small cottage near Železná Ruda. ' +
       'On Saturday morning, we went for a long walk through the forest. The trees were red, orange, and yellow. It was very beautiful. ' +
       'We walked along a path next to a small river. My dad showed me different types of trees and mushrooms. ' +
       'We saw a deer in the distance. I tried to take a photo, but it ran away too quickly. ' +
@@ -514,7 +514,7 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_12_q1',
         type: 'mcq',
         question: 'Where did the family stay?',
-        options: ['In a hotel', 'In a cottage near Železná Ruda', 'In a campsite', 'At a friend\'s house'],
+        options: ['In a hotel in Železná Ruda', 'In a cottage near Železná Ruda', 'In a campsite by a river', 'At a friend\'s house in the mountains'],
         answerIndex: 1,
       },
       {
@@ -560,8 +560,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_13_q1',
         type: 'mcq',
         question: 'How many teams were in the tournament?',
-        options: ['Eight', 'Ten', 'Twelve', 'Sixteen'],
-        answerIndex: 2,
+        options: ['Twelve', 'Fourteen', 'Sixteen', 'Twenty'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_13_q2',
@@ -574,15 +574,15 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_13_q3',
         type: 'mcq',
         question: 'Who scored two goals in the semi-final?',
-        options: ['The narrator', 'The goalkeeper', 'Filip', 'The coach'],
-        answerIndex: 2,
+        options: ['The narrator', 'The goalkeeper', 'The coach', 'Filip'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_13_q4',
         type: 'tfns',
-        question: 'The team will get new football shirts next year.',
+        question: 'The narrator\'s team lost the semi-final.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 2,
+        answerIndex: 1,
       },
     ],
   },
@@ -592,10 +592,10 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
     id: 'read_extra2_14',
     title: 'Online Shopping: Is It Always a Good Deal?',
     level: 'B1',
-    topic: 'media',
+    topic: 'shopping',
     text:
-      'Online shopping has become incredibly popular among Czech teenagers in recent years. According to a recent survey, over seventy percent of young people aged thirteen to eighteen have bought something online in the past six months. ' +
-      'The advantages are obvious: you can compare prices from different shops, read customer reviews, and have products delivered straight to your door. Many online shops also offer discounts that you cannot find in regular stores. ' +
+      'Online shopping has become incredibly popular among Czech teenagers in recent years. According to a recent survey, over seventy per cent of young people aged thirteen to eighteen have bought something online in the past six months. ' +
+      'The advantages are obvious: you can compare prices from different shops, read customer reviews, and have products delivered straight to your door. Many online shops also offer discounts that you cannot find in regular shops. ' +
       'However, there are also some disadvantages. When you buy clothes online, you cannot try them on, and the size or colour might be different from what you expected. ' +
       'Returning products can be complicated and time-consuming. There is also the risk of scams, especially on unknown websites. ' +
       'Experts recommend that teenagers should always check whether a website is trustworthy before making a purchase. It is also wise to use a prepaid card rather than a regular bank card for extra security. ' +
@@ -605,13 +605,13 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_14_q1',
         type: 'mcq',
         question: 'According to the survey, what percentage of young people have shopped online recently?',
-        options: ['About fifty percent', 'Over sixty percent', 'Over seventy percent', 'Nearly ninety percent'],
-        answerIndex: 2,
+        options: ['Over seventy per cent', 'Over eighty per cent', 'Nearly ninety per cent', 'Almost everyone'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_14_q2',
         type: 'tfns',
-        question: 'Most Czech teenagers prefer shopping online to shopping in stores.',
+        question: 'Most Czech teenagers prefer shopping online to going to shops.',
         options: ['True', 'False', 'Not stated'],
         answerIndex: 2,
       },
@@ -628,11 +628,11 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         question: 'Which of these is mentioned as a disadvantage of online shopping?',
         options: [
           'Products are always more expensive',
-          'You cannot read reviews',
           'Clothes might not fit properly',
+          'You cannot read reviews',
           'Delivery is always slow',
         ],
-        answerIndex: 2,
+        answerIndex: 1,
       },
     ],
   },
@@ -677,12 +677,12 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         type: 'mcq',
         question: 'Why is attending a festival described as a first experience of independence for teenagers?',
         options: [
-          'Because they travel abroad alone',
           'Because they camp with friends and manage their own money',
-          'Because they perform on stage',
+          'Because they travel abroad alone for the first time',
+          'Because they perform on stage in front of other people',
           'Because they organise the events themselves',
         ],
-        answerIndex: 1,
+        answerIndex: 0,
       },
     ],
   },
@@ -694,19 +694,19 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
     level: 'B1',
     topic: 'travel',
     text:
-      'When I was sixteen, I travelled abroad without my parents for the first time. My friend Ondra and I went to Vienna by bus. The journey took about four hours from Brno. ' +
+      'When I was sixteen, I travelled abroad without my parents for the first time. My friend Ondra and I went to Vienna by bus. The journey from Brno took about two hours. ' +
       'We had planned our trip carefully. We booked a cheap hostel near the city centre and made a list of places we wanted to see. ' +
-      'Vienna is a stunning city with beautiful architecture and impressive museums. We visited the Schönbrunn Palace, walked through the historic centre, and ate Wiener Schnitzel at a traditional restaurant. ' +
+      'Vienna is a stunning city with beautiful architecture and impressive museums. We visited Schönbrunn Palace, walked through the historic centre, and ate Wiener Schnitzel at a traditional restaurant. ' +
       'The most challenging part was communicating in English. Although many Austrians speak excellent English, ordering food and asking for directions still made us nervous. ' +
       'On the second day, we got lost trying to find the Natural History Museum. A friendly local helped us and even walked part of the way with us. ' +
-      'The trip taught me that travelling independently builds confidence and problem-solving skills. I came home feeling more mature and already started planning my next trip.',
+      'The trip taught me that travelling independently builds confidence and problem-solving skills. I came home feeling more mature and immediately started planning my next trip.',
     questions: [
       {
         id: 'read_extra2_16_q1',
         type: 'mcq',
         question: 'How did the narrator and Ondra travel to Vienna?',
-        options: ['By train', 'By bus', 'By plane', 'By car'],
-        answerIndex: 1,
+        options: ['By train', 'By car', 'By plane', 'By bus'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_16_q2',
@@ -748,15 +748,15 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       'Earning your own money gives you a sense of independence and teaches you the value of hard work. However, balancing a job with school can be quite challenging. ' +
       'My classmate Petra works as a waitress in a café every Saturday and Sunday. She earns enough to pay for her hobbies and save a little each month. ' +
       'On the other hand, she admits that she sometimes feels tired on Monday mornings and has less time for homework and friends. ' +
-      'School counsellors advise that students should not work more than ten hours a week during the school year. Working too many hours can lead to stress, poor grades, and even health problems. ' +
+      'School counsellors advise that students should not work more than ten hours a week during the school year. Working too many hours can lead to stress, poor marks, and even health problems. ' +
       'The key is to find the right balance. A part-time job can be a valuable experience, but education should always remain the top priority for teenagers.',
     questions: [
       {
         id: 'read_extra2_17_q1',
         type: 'mcq',
         question: 'When do many Czech teenagers start looking for part-time jobs?',
-        options: ['At fourteen', 'At fifteen', 'At sixteen', 'At eighteen'],
-        answerIndex: 2,
+        options: ['At thirteen', 'At fourteen', 'At fifteen', 'At sixteen'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra2_17_q2',
@@ -776,8 +776,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_17_q4',
         type: 'mcq',
         question: 'How many hours per week do school counsellors recommend as a maximum?',
-        options: ['Five hours', 'Eight hours', 'Ten hours', 'Fifteen hours'],
-        answerIndex: 2,
+        options: ['Ten hours', 'Twelve hours', 'Fifteen hours', 'Twenty hours'],
+        answerIndex: 0,
       },
     ],
   },
@@ -811,28 +811,28 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       {
         id: 'read_extra2_18_q2',
         type: 'truefalse',
-        question: 'Greenhouse gases trap heat in the atmosphere.',
+        question: 'According to the text, floods and heatwaves are less frequent than twenty years ago.',
         options: ['True', 'False'],
-        answerIndex: 0,
+        answerIndex: 1,
       },
       {
         id: 'read_extra2_18_q3',
         type: 'tfns',
-        question: 'The Czech government has banned the use of coal completely.',
+        question: 'Many Czech schools now teach students about sustainable living.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 2,
+        answerIndex: 0,
       },
       {
         id: 'read_extra2_18_q4',
         type: 'mcq',
         question: 'What do student groups organise to help the environment?',
         options: [
-          'Protests outside government buildings',
           'Tree-planting events and clean-up days',
+          'Protests outside government buildings',
           'Online petitions only',
           'Fundraising concerts',
         ],
-        answerIndex: 1,
+        answerIndex: 0,
       },
     ],
   },
@@ -845,10 +845,10 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
     topic: 'health',
     text:
       'Mental health is just as important as physical health, yet many teenagers feel uncomfortable talking about it. A recent study showed that nearly one in four Czech secondary school students has experienced symptoms of anxiety or depression. ' +
-      'The most common causes of stress among teenagers include school pressure, social media comparisons, and conflicts with friends or family. The transition from základní škola to střední škola can also be a particularly stressful period. ' +
+      'The most common causes of stress among teenagers include school pressure, social media comparisons, and conflicts with friends or family. The move from primary school to secondary school can also be a particularly stressful period. ' +
       'Psychologists recommend several strategies for maintaining good mental health. Regular physical activity, such as walking, cycling, or team sports, can significantly reduce stress. ' +
       'It is also important to have hobbies that allow you to relax and express yourself, whether that is drawing, playing music, or writing. ' +
-      'Most importantly, teenagers should not be afraid to ask for help. Every school in the Czech Republic has a school psychologist or counsellor who students can talk to confidentially. ' +
+      'Most importantly, teenagers should not be afraid to ask for help. Many Czech schools have a school psychologist or counsellor who students can talk to confidentially. ' +
       'Talking to a trusted adult — a parent, a teacher, or a coach — is often the first step towards feeling better.',
     questions: [
       {
@@ -861,7 +861,7 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
       {
         id: 'read_extra2_19_q2',
         type: 'truefalse',
-        question: 'Regular physical activity can help reduce stress.',
+        question: 'Hobbies such as drawing, playing music or writing are recommended as a way to relax.',
         options: ['True', 'False'],
         answerIndex: 0,
       },
@@ -877,12 +877,12 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         type: 'mcq',
         question: 'Which of these is NOT mentioned as a cause of stress for teenagers?',
         options: [
-          'School pressure',
-          'Social media comparisons',
           'Financial problems',
+          'Social media comparisons',
+          'School pressure',
           'Conflicts with friends or family',
         ],
-        answerIndex: 2,
+        answerIndex: 0,
       },
     ],
   },
@@ -894,7 +894,7 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
     level: 'B1',
     topic: 'nature',
     text:
-      'Central Europe is home to a wide variety of wildlife, but many species are under threat due to habitat loss, pollution, and climate change. In the Czech Republic, animals such as the European lynx, the grey wolf, and the European otter are considered endangered or vulnerable. ' +
+      'Central Europe is home to a wide variety of wildlife, but many species are under threat due to habitat loss, pollution, and climate change. In the Czech Republic, animals such as the Eurasian lynx, the grey wolf, and the European otter are considered endangered or vulnerable. ' +
       'Conservation organisations work to protect these animals and their habitats. For example, the Šumava National Park has a successful programme to monitor and protect the lynx population. Thanks to camera traps and tracking technology, researchers can count individual lynx and study their behaviour. ' +
       'Wolves have recently returned to parts of the Czech Republic after being absent for over a century. While some farmers are concerned about the safety of their livestock, environmentalists argue that wolves play a vital role in maintaining the balance of ecosystems. ' +
       'Young people can contribute to wildlife conservation in many ways. Volunteering at a nature reserve, reducing waste, and learning about local species are all meaningful actions. ' +
@@ -904,8 +904,8 @@ export const READING_TEXTS_EXTRA2: ReadingText[] = [
         id: 'read_extra2_20_q1',
         type: 'mcq',
         question: 'Which animal has recently returned to the Czech Republic?',
-        options: ['The European lynx', 'The brown bear', 'The grey wolf', 'The golden eagle'],
-        answerIndex: 2,
+        options: ['The Eurasian lynx', 'The grey wolf', 'The brown bear', 'The golden eagle'],
+        answerIndex: 1,
       },
       {
         id: 'read_extra2_20_q2',

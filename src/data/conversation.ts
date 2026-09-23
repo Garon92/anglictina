@@ -20,7 +20,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     icon: '👨‍👩‍👧‍👦',
     level: 'A2',
     introduction:
-      'Téma rodiny patří mezi nejčastější u maturity. Měli byste umět popsat svou rodinu, vztahy mezi členy a rodinné tradice. Zkušební komisař se často ptá na roli rodiny v životě mladých lidí.',
+      'Téma rodiny patří mezi nejčastější u maturity. Měli byste umět popsat svou rodinu, vztahy mezi členy a rodinné tradice. Zkoušející se často ptá na roli rodiny v životě mladých lidí.',
     keyVocabulary: [
       { en: 'relatives', cs: 'příbuzní' },
       { en: 'siblings', cs: 'sourozenci' },
@@ -29,10 +29,10 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'mother-in-law', cs: 'tchyně' },
       { en: 'upbringing', cs: 'výchova' },
       { en: 'household', cs: 'domácnost' },
-      { en: 'generation gap', cs: 'generační rozdíl' },
+      { en: 'generation gap', cs: 'generační propast' },
       { en: 'single-parent family', cs: 'neúplná rodina' },
       { en: 'extended family', cs: 'širší rodina' },
-      { en: 'nuclear family', cs: 'základní rodina' },
+      { en: 'nuclear family', cs: 'nukleární rodina (rodiče a děti)' },
       { en: 'bond', cs: 'pouto' },
       { en: 'divorce', cs: 'rozvod' },
       { en: 'trust', cs: 'důvěra' },
@@ -43,7 +43,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     ],
     usefulPhrases: [
       { en: 'I come from a family of four.', cs: 'Pocházím ze čtyřčlenné rodiny.' },
-      { en: 'My parents have been married for twenty years.', cs: 'Moji rodiče jsou svoji dvacet let.' },
+      { en: 'My parents have been married for twenty years.', cs: 'Moji rodiče jsou manželé už dvacet let.' },
       { en: 'I get along well with my older brother.', cs: 'Dobře vycházím se svým starším bratrem.' },
       { en: 'We usually spend weekends together.', cs: 'Víkendy obvykle trávíme spolu.' },
       { en: 'Family plays an important role in my life.', cs: 'Rodina hraje v mém životě důležitou roli.' },
@@ -51,7 +51,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'My grandparents live in the countryside.', cs: 'Moji prarodiče žijí na venkově.' },
       { en: 'I was raised by my mother.', cs: 'Vychovala mě maminka.' },
       { en: 'I look up to my father.', cs: 'Vzhlížím ke svému otci.' },
-      { en: 'We celebrate birthdays and name days together.', cs: 'Společně slavíme narozeniny a svátky.' },
+      { en: 'We celebrate birthdays and name days together.', cs: 'Společně slavíme narozeniny a jmeniny.' },
       { en: 'Nowadays many couples get divorced.', cs: 'V dnešní době se mnoho párů rozvádí.' },
       { en: 'I think communication is the key to good relationships.', cs: 'Myslím, že komunikace je klíč k dobrým vztahům.' },
     ],
@@ -70,7 +70,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Začněte popisem vlastní rodiny (kolik členů, kde bydlí). Pak popište vztahy a společné aktivity. Na závěr řekněte, co pro vás rodina znamená a jak se rodiny v dnešní době mění.',
     sampleAnswer:
-      'I come from a family of four — my parents, my younger sister and me. My father works as an engineer and my mother is a teacher. We live in a flat in Brno. I get along very well with my sister even though we sometimes argue about small things. We usually spend evenings together watching TV or talking. At weekends we often visit our grandparents who live in a small village. I think family is extremely important because they support you no matter what. In the future I would like to have my own family with two children. I believe that good communication and mutual respect are the keys to a happy family life.',
+      'I come from a family of four — my parents, my younger sister and me. My father works as an engineer and my mother is a teacher. We live in a flat in Brno. I get along very well with my sister even though we sometimes argue about small things. We usually spend evenings together watching TV or talking. At weekends we often visit our grandparents, who live in a small village. I think family is extremely important because they support you no matter what. In the future I would like to have my own family with two children. I believe that good communication and mutual respect are the keys to a happy family life.',
   },
   {
     id: 'conv_02',
@@ -82,7 +82,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'U tohoto tématu byste měli popsat, kde a jak bydlíte, jaké jsou výhody a nevýhody různých typů bydlení. Zkoušející se také ptá na ideální bydlení a rozdíl mezi městem a venkovem.',
     keyVocabulary: [
       { en: 'detached house', cs: 'rodinný dům' },
-      { en: 'block of flats', cs: 'panelák' },
+      { en: 'block of flats', cs: 'bytový dům / panelák' },
       { en: 'terraced house', cs: 'řadový dům' },
       { en: 'cottage', cs: 'chata / chalupa' },
       { en: 'rent', cs: 'nájem / pronajímat' },
@@ -104,11 +104,11 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'I live in a block of flats on the third floor.', cs: 'Bydlím v paneláku ve třetím patře.' },
       { en: 'Our flat has three rooms, a kitchen and a bathroom.', cs: 'Náš byt má tři pokoje, kuchyň a koupelnu.' },
       { en: 'I share a room with my brother.', cs: 'Sdílím pokoj s bratrem.' },
-      { en: 'I would prefer to live in a house with a garden.', cs: 'Raději bych bydlel v domě se zahradou.' },
+      { en: 'I would prefer to live in a house with a garden.', cs: 'Raději bych bydlel/a v domě se zahradou.' },
       { en: 'The main advantage of city living is public transport.', cs: 'Hlavní výhodou bydlení ve městě je MHD.' },
       { en: 'Living in the countryside is quieter but less convenient.', cs: 'Bydlení na venkově je klidnější, ale méně pohodlné.' },
       { en: 'We moved to a new flat two years ago.', cs: 'Přestěhovali jsme se do nového bytu před dvěma lety.' },
-      { en: 'My room is my private space where I can relax.', cs: 'Můj pokoj je mé soukromí, kde si odpočinu.' },
+      { en: 'My room is my private space where I can relax.', cs: 'Můj pokoj je můj soukromý prostor, kde si můžu odpočinout.' },
       { en: 'Many young people cannot afford their own housing.', cs: 'Mnoho mladých si nemůže dovolit vlastní bydlení.' },
       { en: 'I dream of having a modern flat in the city centre.', cs: 'Sním o moderním bytě v centru města.' },
     ],
@@ -127,7 +127,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Popište své současné bydlení (typ, poloha, velikost). Pak porovnejte město vs. venkov. Nakonec mluvte o svém ideálním bydlení a o situaci mladých lidí na trhu s bydlením.',
     sampleAnswer:
-      'I live with my family in a three-room flat in a block of flats in Prague. Our flat is on the fifth floor and we have a nice view of the park. My favourite room is my bedroom where I have my desk, computer and bookshelf. I like living in a city because everything is nearby — shops, schools and public transport. However, sometimes it is too noisy. In the future I would like to live in a small house with a garden somewhere on the outskirts of a city. Unfortunately, housing prices in the Czech Republic are very high, so many young people have to rent. I think the government should do more to help young families find affordable homes.',
+      'I live with my family in a three-room flat in a block of flats in Prague. Our flat is on the fifth floor and we have a nice view of the park. My favourite room is my bedroom, where I have my desk, computer and bookshelf. I like living in a city because everything is nearby — shops, schools and public transport. However, sometimes it is too noisy. In the future I would like to live in a small house with a garden somewhere on the outskirts of a city. Unfortunately, housing prices in the Czech Republic are very high, so many young people have to rent. I think the government should do more to help young families find affordable homes.',
   },
   {
     id: 'conv_03',
@@ -157,7 +157,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     ],
     usefulPhrases: [
       { en: 'I usually wake up at six thirty.', cs: 'Obvykle se budím v půl sedmé.' },
-      { en: 'After breakfast I catch the bus to school.', cs: 'Po snídani chytím autobus do školy.' },
+      { en: 'After breakfast I catch the bus to school.', cs: 'Po snídani jedu autobusem do školy.' },
       { en: 'School starts at eight o\'clock.', cs: 'Škola začíná v osm hodin.' },
       { en: 'I have lunch in the school canteen.', cs: 'Obědvám ve školní jídelně.' },
       { en: 'In the afternoon I do my homework and then relax.', cs: 'Odpoledne dělám úkoly a pak relaxuji.' },
@@ -183,7 +183,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Popište svůj typický všední den chronologicky (ráno, škola, odpoledne, večer). Pak porovnejte s víkendem. Zakončete úvahou o time managementu a životní rovnováze.',
     sampleAnswer:
-      'On a typical weekday my alarm goes off at six thirty. I take a quick shower, get dressed and have breakfast, usually cereal with milk. I leave home at seven fifteen and take the bus to school. Lessons start at eight and finish around half past one. After school I have lunch in the canteen and then I either go to my English course or head home. In the afternoon I do my homework and practise guitar. In the evening I usually watch something on Netflix or chat with friends online. I go to bed around eleven. At weekends I sleep in until nine or ten. I spend Saturdays with friends and Sundays are for family. I wish I had more free time during the week.',
+      'On a typical weekday my alarm goes off at six thirty. I take a quick shower, get dressed and have breakfast, usually cereal with milk. I leave home at seven fifteen and take the bus to school. Lessons start at eight and finish around half past one. After school I have lunch in the canteen and then I either go to my English course or head home. In the afternoon I do my homework and practise the guitar. In the evening I usually watch something on Netflix or chat with friends online. I go to bed around eleven. At weekends I sleep in until nine or ten. I spend Saturdays with friends and Sundays are for family. I wish I had more free time during the week.',
   },
   {
     id: 'conv_04',
@@ -195,17 +195,17 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Téma jídla zahrnuje stravovací návyky, českou kuchyni, zdravé stravování a porovnání s kuchyněmi jiných zemí. Měli byste umět popsat své oblíbené jídlo a hovořit o stravování ve škole.',
     keyVocabulary: [
       { en: 'cuisine', cs: 'kuchyně (styl vaření)' },
-      { en: 'course (starter, main, dessert)', cs: 'chod (předkrm, hlavní, dezert)' },
+      { en: 'course (starter, main course, dessert)', cs: 'chod (předkrm, hlavní chod, dezert)' },
       { en: 'ingredients', cs: 'ingredience / suroviny' },
       { en: 'recipe', cs: 'recept' },
       { en: 'canteen', cs: 'jídelna' },
       { en: 'fast food', cs: 'rychlé občerstvení' },
       { en: 'balanced diet', cs: 'vyvážená strava' },
-      { en: 'organic food', cs: 'bio potraviny' },
+      { en: 'organic food', cs: 'biopotraviny' },
       { en: 'vegetarian', cs: 'vegetarián' },
       { en: 'vegan', cs: 'vegan' },
       { en: 'allergy', cs: 'alergie' },
-      { en: 'overweight', cs: 'nadváha' },
+      { en: 'overweight', cs: 's nadváhou (be overweight = mít nadváhu)' },
       { en: 'obesity', cs: 'obezita' },
       { en: 'portion', cs: 'porce' },
       { en: 'takeaway', cs: 'jídlo s sebou' },
@@ -224,7 +224,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'My mother is an excellent cook.', cs: 'Moje maminka výborně vaří.' },
       { en: 'I can cook simple meals like pasta or omelette.', cs: 'Umím uvařit jednoduchá jídla jako těstoviny nebo omeletu.' },
       { en: 'Water is the healthiest drink.', cs: 'Voda je nejzdravější nápoj.' },
-      { en: 'I have a sweet tooth.', cs: 'Jsem mlsoun/ka.' },
+      { en: 'I have a sweet tooth.', cs: 'Mám rád/a sladké. / Jsem mlsný/á.' },
     ],
     sampleQuestions: [
       'What is your favourite food and can you describe it?',
@@ -241,7 +241,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Začněte svými stravovacími návyky (snídaně, oběd, večeře). Popište českou kuchyni a porovnejte ji s jinou. Zakončete úvahou o zdravém stravování a moderních trendech (veganství, bio).',
     sampleAnswer:
-      'I usually have three meals a day. For breakfast I eat toast with butter and jam and drink tea. I have lunch at the school canteen where the food is quite good and affordable. For dinner my mum usually cooks something warm, like chicken with rice or soup. My favourite Czech dish is svíčková — beef in cream sauce with dumplings. I also love Italian food, especially pizza and pasta. I try to eat fruit and vegetables every day, but I have to admit I sometimes eat too many sweets. I think it is important to have a balanced diet and drink enough water. I can cook basic meals and I enjoy baking cakes. In the future I would like to learn more recipes.',
+      'I usually have three meals a day. For breakfast I eat toast with butter and jam and drink tea. I have lunch at the school canteen, where the food is quite good and affordable. For dinner my mum usually cooks something warm, like chicken with rice or soup. My favourite Czech dish is svíčková — beef in cream sauce with dumplings. I also love Italian food, especially pizza and pasta. I try to eat fruit and vegetables every day, but I have to admit I sometimes eat too many sweets. I think it is important to have a balanced diet and drink enough water. I can cook basic meals and I enjoy baking cakes. In the future I would like to learn more recipes.',
   },
   {
     id: 'conv_05',
@@ -283,7 +283,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     ],
     sampleQuestions: [
       'How often do you go shopping?',
-      'Do you prefer shopping online or in a store? Why?',
+      'Do you prefer shopping online or in a shop? Why?',
       'What is your favourite shop or shopping centre?',
       'Do you think advertising influences our shopping habits?',
       'Have you ever complained about a product? What happened?',
@@ -305,7 +305,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     icon: '🎓',
     level: 'B1',
     introduction:
-      'Téma školy je velmi důležité, protože maturitu skládáte právě ve škole. Měli byste umět popsat český vzdělávací systém, svou školu a porovnat ji s jinými zeměmi. Řekněte i svůj názor na vzdělávání.',
+      'Téma školy máte nejblíž — mluvíte o tom, co každý den zažíváte. Měli byste umět popsat český vzdělávací systém, svou školu a porovnat ji s jinými zeměmi. Řekněte i svůj názor na vzdělávání.',
     keyVocabulary: [
       { en: 'primary school', cs: 'základní škola' },
       { en: 'secondary school', cs: 'střední škola' },
@@ -317,10 +317,10 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'optional', cs: 'nepovinný / volitelný' },
       { en: 'grade / mark', cs: 'známka' },
       { en: 'exam', cs: 'zkouška' },
-      { en: 'graduation (maturita)', cs: 'maturita' },
+      { en: 'school-leaving exam', cs: 'maturita (maturitní zkouška)' },
       { en: 'tuition fee', cs: 'školné' },
       { en: 'scholarship', cs: 'stipendium' },
-      { en: 'headmaster', cs: 'ředitel' },
+      { en: 'headmaster / headteacher', cs: 'ředitel/ka školy' },
       { en: 'subject', cs: 'předmět' },
       { en: 'gap year', cs: 'rok pauzy před VŠ' },
       { en: 'diploma', cs: 'diplom' },
@@ -329,14 +329,14 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     usefulPhrases: [
       { en: 'I attend a grammar school in Brno.', cs: 'Navštěvuji gymnázium v Brně.' },
       { en: 'My favourite subjects are English and History.', cs: 'Mé oblíbené předměty jsou angličtina a dějepis.' },
-      { en: 'In the Czech Republic education is compulsory until the age of fifteen.', cs: 'V ČR je vzdělávání povinné do patnácti let.' },
+      { en: 'In the Czech Republic school attendance is compulsory for nine years.', cs: 'V ČR trvá povinná školní docházka devět let.' },
       { en: 'The school year starts on the first of September.', cs: 'Školní rok začíná prvního září.' },
       { en: 'I think our education system focuses too much on memorising.', cs: 'Myslím, že náš vzdělávací systém se příliš soustředí na memorování.' },
-      { en: 'After graduation I plan to study at university.', cs: 'Po maturitě plánuji studovat na vysoké škole.' },
+      { en: 'After secondary school I plan to study at university.', cs: 'Po střední škole plánuji studovat na vysoké škole.' },
       { en: 'Public universities in the Czech Republic are free of charge.', cs: 'Veřejné vysoké školy v ČR jsou zdarma.' },
       { en: 'School uniforms are not common in the Czech Republic.', cs: 'Školní uniformy nejsou v ČR běžné.' },
       { en: 'I wish we had more practical lessons.', cs: 'Přál/a bych si, abychom měli více praktických hodin.' },
-      { en: 'I have been studying at this school for four years.', cs: 'Na této škole studuji čtyři roky.' },
+      { en: 'I have been studying at this school for four years.', cs: 'Na této škole studuji už čtyři roky.' },
       { en: 'The maturita exam consists of a written and an oral part.', cs: 'Maturitní zkouška se skládá z písemné a ústní části.' },
     ],
     sampleQuestions: [
@@ -354,7 +354,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Popište český vzdělávací systém (ZŠ, SŠ, VŠ). Řekněte o své škole a oblíbených předmětech. Porovnejte s jiným systémem (UK, USA). Na závěr přidejte svůj názor na to, co by se mělo zlepšit.',
     sampleAnswer:
-      'I am a fourth-year student at a grammar school in Olomouc. We study general subjects like maths, Czech, English, science and history. My favourite subject is English because I enjoy communicating in a foreign language. The Czech education system starts with nine years of primary school, then students choose between grammar schools, vocational schools or technical schools. After four years they take the maturita exam. I think our system is quite good, but it should focus more on critical thinking and practical skills rather than memorising facts. After graduation I would like to study economics at university. Public universities in the Czech Republic are free, which is a great advantage compared to countries like the UK or the USA.',
+      'I am a fourth-year student at a grammar school in Olomouc. We study general subjects like maths, Czech, English, science and history. My favourite subject is English because I enjoy communicating in a foreign language. The Czech education system starts with nine years of primary school, then students choose between grammar schools, vocational schools or technical schools. Most four-year secondary courses end with the maturita exam. I think our system is quite good, but it should focus more on critical thinking and practical skills rather than memorising facts. After the maturita I would like to study economics at university. Public universities in the Czech Republic are free, which is a great advantage compared to countries like the UK or the USA.',
   },
   {
     id: 'conv_07',
@@ -368,8 +368,8 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'employer', cs: 'zaměstnavatel' },
       { en: 'employee', cs: 'zaměstnanec' },
       { en: 'salary / wage', cs: 'plat / mzda' },
-      { en: 'part-time job', cs: 'částečný úvazek' },
-      { en: 'full-time job', cs: 'plný úvazek' },
+      { en: 'part-time job', cs: 'práce na částečný úvazek / brigáda' },
+      { en: 'full-time job', cs: 'práce na plný úvazek' },
       { en: 'apply for a job', cs: 'ucházet se o práci' },
       { en: 'CV / résumé', cs: 'životopis' },
       { en: 'job interview', cs: 'pracovní pohovor' },
@@ -410,7 +410,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Mluvte o své brigádě nebo pracovní zkušenosti. Popište svou vysněnou práci a důvody. Diskutujte o situaci na trhu práce (nezaměstnanost, home office, AI). Na závěr řekněte, co je pro vás v práci nejdůležitější.',
     sampleAnswer:
-      'After I finish school I would like to study IT at university and then become a software developer. I am interested in technology and I enjoy solving problems. Currently I have a part-time job at a local bookshop where I work at weekends. It has taught me a lot about responsibility and dealing with customers. I think the most important things about a job are that you enjoy it and that it gives you a good work-life balance. Money is important too, of course, but it should not be the only motivation. The job market is changing quickly because of technology and artificial intelligence. I believe that people who keep learning new skills will always find good opportunities.',
+      'After I finish school I would like to study IT at university and then become a software developer. I am interested in technology and I enjoy solving problems. Currently I have a part-time job at a local bookshop, where I work at weekends. It has taught me a lot about responsibility and dealing with customers. I think the most important things about a job are that you enjoy it and that it gives you a good work-life balance. Money is important too, of course, but it should not be the only motivation. The job market is changing quickly because of technology and artificial intelligence. I believe that people who keep learning new skills will always find good opportunities.',
   },
   {
     id: 'conv_08',
@@ -440,8 +440,8 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     ],
     usefulPhrases: [
       { en: 'In my free time I enjoy playing the guitar.', cs: 'Ve volném čase rád/a hraji na kytaru.' },
-      { en: 'I am keen on photography.', cs: 'Mám rád/a fotografování.' },
-      { en: 'I have been doing this hobby since I was ten.', cs: 'Tomuto koníčku se věnuji od deseti let.' },
+      { en: 'I am keen on photography.', cs: 'Baví mě fotografování.' },
+      { en: 'I took up this hobby when I was ten.', cs: 'S tímto koníčkem jsem začal/a v deseti letech.' },
       { en: 'I spend too much time on social media.', cs: 'Trávím příliš času na sociálních sítích.' },
       { en: 'I prefer outdoor activities to sitting at home.', cs: 'Dávám přednost venkovním aktivitám před sezením doma.' },
       { en: 'Reading helps me relax after a long day.', cs: 'Čtení mi pomáhá relaxovat po náročném dni.' },
@@ -463,7 +463,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Are there any hobbies that can become a career?',
     ],
     structureHintCs:
-      'Popište své hlavní koníčky a vysvětlete, proč vás baví. Porovnejte aktivní a pasivní trávení volného času. Zmíňte vliv technologií na volný čas a řekněte, co byste chtěli zkusit nového.',
+      'Popište své hlavní koníčky a vysvětlete, proč vás baví. Porovnejte aktivní a pasivní trávení volného času. Zmiňte vliv technologií na volný čas a řekněte, co byste chtěli zkusit nového.',
     sampleAnswer:
       'I have several hobbies that I enjoy in my free time. My biggest passion is playing the guitar — I have been playing for about five years and I am in a small band with my friends. I also love reading, especially fantasy novels and science fiction. When the weather is nice, I like going for bike rides or hiking in the mountains near my town. I think it is important to have a balance between active and passive hobbies. Unfortunately, I sometimes spend too much time scrolling through social media, which I am trying to change. I believe hobbies are very important because they help us relax, develop new skills and meet interesting people. In the future I would like to learn to paint.',
   },
@@ -497,7 +497,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     ],
     usefulPhrases: [
       { en: 'I have been playing football since I was six.', cs: 'Hraji fotbal od šesti let.' },
-      { en: 'Sport is a great way to stay healthy and meet people.', cs: 'Sport je skvělý způsob, jak zůstat zdravý a poznat lidi.' },
+      { en: 'Sport is a great way to stay healthy and meet people.', cs: 'Sport je skvělý způsob, jak zůstat zdravý/á a poznat nové lidi.' },
       { en: 'The most popular sports in the Czech Republic are ice hockey and football.', cs: 'Nejpopulárnější sporty v ČR jsou hokej a fotbal.' },
       { en: 'I work out at the gym three times a week.', cs: 'Chodím do posilovny třikrát týdně.' },
       { en: 'I prefer watching sports to playing them.', cs: 'Raději se na sport dívám, než ho dělám.' },
@@ -520,7 +520,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'What problems exist in modern professional sport?',
     ],
     structureHintCs:
-      'Popište, jaký sport děláte (jak často, kde, s kým). Zmíňte oblíbené sporty v ČR. Diskutujte výhody sportu pro zdraví. Na závěr řekněte svůj názor na profesionální sport (platy, doping, olympiáda).',
+      'Popište, jaký sport děláte (jak často, kde, s kým). Zmiňte oblíbené sporty v ČR. Mluvte o přínosech sportu pro zdraví. Na závěr řekněte svůj názor na profesionální sport (platy, doping, olympiáda).',
     sampleAnswer:
       'I am quite active and I try to do sport at least three times a week. My main sport is basketball — I play in a local team and we train every Tuesday and Thursday. I also enjoy running and swimming in summer. I think sport is extremely important because it keeps you fit, reduces stress and teaches you discipline and teamwork. The most popular sports in the Czech Republic are ice hockey and football. Czechs are very proud of their hockey players. I like watching the Olympic Games on TV because it is exciting to see the best athletes compete. However, I think doping is a big problem that needs to be solved. In my opinion, fair play should always come first.',
   },
@@ -576,7 +576,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Do you think travelling is important for young people?',
     ],
     structureHintCs:
-      'Popište svou poslední dovolenou nebo nejlepší cestovatelský zážitek. Porovnejte druhy dopravy a typy dovolených. Zmíňte vliv turismu na prostředí. Na závěr řekněte, kam byste chtěli cestovat.',
+      'Popište svou poslední dovolenou nebo nejlepší cestovatelský zážitek. Porovnejte druhy dopravy a typy dovolených. Zmiňte vliv turismu na prostředí. Na závěr řekněte, kam byste chtěli cestovat.',
     sampleAnswer:
       'I love travelling and I try to go somewhere new every year. Last summer my family and I drove to Croatia and spent a week by the sea. We stayed in a small apartment near the beach. I enjoyed swimming, snorkelling and trying local seafood. My dream is to visit New Zealand one day because of its beautiful nature. I prefer active holidays where I can explore new places, try local food and learn about different cultures. I usually travel by car or train within Europe, but for longer distances I take a plane. I think travelling is very important because it helps you learn about the world and become more open-minded. However, we should also think about the environmental impact of flying.',
   },
@@ -635,7 +635,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Popište, co děláte pro své zdraví (sport, strava, spánek). Vysvětlete, jak funguje české zdravotnictví. Porovnejte s jinou zemí (USA/UK). Na závěr mluvte o prevenci a duševním zdraví.',
     sampleAnswer:
-      'I try to live a healthy lifestyle. I exercise regularly, eat plenty of fruit and vegetables, and I try to get enough sleep. When I feel ill, I usually go to my GP who examines me and gives me a prescription if needed. In the Czech Republic healthcare is covered by health insurance, so most services are free. I think this is a great advantage compared to countries like the USA where medical bills can be extremely high. However, waiting times in Czech hospitals can sometimes be very long. I believe that prevention is the most important thing — eating well, staying active and taking care of your mental health. Stress and lack of sleep are big problems among students, especially during exams.',
+      'I try to live a healthy lifestyle. I exercise regularly, eat plenty of fruit and vegetables, and I try to get enough sleep. When I feel ill, I usually go to my GP, who examines me and gives me a prescription if needed. In the Czech Republic healthcare is covered by health insurance, so most services are free. I think this is a great advantage compared to countries like the USA, where medical bills can be extremely high. However, waiting times in Czech hospitals can sometimes be very long. I believe that prevention is the most important thing — eating well, staying active and taking care of your mental health. Stress and lack of sleep are big problems among students, especially during exams.',
   },
   {
     id: 'conv_12',
@@ -664,10 +664,10 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'overcast', cs: 'zataženo' },
     ],
     usefulPhrases: [
-      { en: 'The Czech Republic has a temperate continental climate.', cs: 'ČR má mírné kontinentální klima.' },
+      { en: 'The Czech Republic has a temperate climate with four distinct seasons.', cs: 'ČR má mírné podnebí se čtyřmi výraznými ročními obdobími.' },
       { en: 'My favourite season is autumn because of the beautiful colours.', cs: 'Mé oblíbené roční období je podzim kvůli krásným barvám.' },
       { en: 'Summers in the Czech Republic can be quite hot.', cs: 'Léta v ČR mohou být dost horká.' },
-      { en: 'Winters are getting milder due to climate change.', cs: 'Zimy jsou mírnější kvůli klimatickým změnám.' },
+      { en: 'Winters are getting milder due to climate change.', cs: 'Zimy jsou kvůli změně klimatu stále mírnější.' },
       { en: 'I love snowy days in winter.', cs: 'Miluji zasněžené zimní dny.' },
       { en: 'Spring is the time when nature wakes up.', cs: 'Jaro je doba, kdy se příroda probouzí.' },
       { en: 'The weather affects my mood a lot.', cs: 'Počasí hodně ovlivňuje moji náladu.' },
@@ -688,7 +688,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'What can we do to fight global warming?',
     ],
     structureHintCs:
-      'Popište klima v ČR a jednotlivá roční období. Řekněte, co v každém období děláte. Zmíňte klimatické změny a jejich vliv. Na závěr řekněte, jaké roční období máte nejraději a proč.',
+      'Popište klima v ČR a jednotlivá roční období. Řekněte, co v každém období děláte. Zmiňte klimatické změny a jejich vliv. Na závěr řekněte, jaké roční období máte nejraději a proč.',
     sampleAnswer:
       'The Czech Republic has four distinct seasons. Spring usually starts in March — the days get longer and warmer, flowers start blooming and birds return. Summer can be quite hot, with temperatures sometimes reaching over 35 degrees. It is the time for swimming, hiking and holidays. Autumn is beautiful because of the colourful leaves, and it is also harvest time. Winter brings cold temperatures, snow and frost. I personally love spring because everything comes alive and the weather is pleasant. I think climate change is a serious problem — we have had more floods, droughts and heatwaves in recent years. Everyone should try to reduce their carbon footprint by using public transport and saving energy.',
   },
@@ -699,7 +699,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     icon: '🌍',
     level: 'B1',
     introduction:
-      'Životní prostředí je aktuální téma. Měli byste znát problémy jako znečištění, odlesňování, recyklace a obnovitelné zdroje energie. Diskutujte o tom, co může každý udělat pro přírodu.',
+      'Životní prostředí je aktuální téma. Měli byste umět mluvit o problémech, jako je znečištění nebo odlesňování, i o řešeních, jako je recyklace a obnovitelné zdroje energie. Diskutujte o tom, co může každý udělat pro přírodu.',
     keyVocabulary: [
       { en: 'pollution', cs: 'znečištění' },
       { en: 'waste / rubbish', cs: 'odpad / smetí' },
@@ -728,7 +728,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'We need to invest more in renewable energy.', cs: 'Musíme více investovat do obnovitelných zdrojů energie.' },
       { en: 'Everyone can make a difference by changing small habits.', cs: 'Každý může pomoci změnou malých návyků.' },
       { en: 'Deforestation is destroying the homes of many animals.', cs: 'Odlesňování ničí domovy mnoha zvířat.' },
-      { en: 'I sort waste at home into different bins.', cs: 'Doma třídím odpad do různých kontejnerů.' },
+      { en: 'I sort waste at home into different bins.', cs: 'Doma třídím odpad do různých košů.' },
       { en: 'Climate change is the biggest challenge of our generation.', cs: 'Klimatická změna je největší výzva naší generace.' },
     ],
     sampleQuestions: [
@@ -800,7 +800,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Should children be allowed to use smartphones?',
     ],
     structureHintCs:
-      'Popište, jaké technologie používáte denně. Zmíňte výhody (přístup k informacím, komunikace). Pak diskutujte rizika (závislost, soukromí, kyberšikana). Na závěr řekněte, jak vidíte budoucnost technologií.',
+      'Popište, jaké technologie používáte denně. Zmiňte výhody (přístup k informacím, komunikace). Pak mluvte o rizicích (závislost, soukromí, kyberšikana). Na závěr řekněte, jak vidíte budoucnost technologií.',
     sampleAnswer:
       'Technology plays a huge role in my daily life. I use my smartphone for everything — communication, studying, entertainment and even navigation. The internet has made it easy to find information and connect with people around the world. However, there are also risks. Many people are addicted to social media and spend hours scrolling instead of doing something productive. Cyberbullying and privacy issues are growing problems too. I think artificial intelligence is the most exciting technology of our time — it can help in medicine, science and education. But we need to be careful about how it is used. I believe that in the future technology will solve many problems, but we must always use it responsibly.',
   },
@@ -855,7 +855,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Should there be limits on freedom of speech on the internet?',
     ],
     structureHintCs:
-      'Popište, jaká média sledujete (TV, internet, sociální sítě). Porovnejte tradiční a nová média. Diskutujte problém fake news a mediální gramotnost. Na závěr řekněte, jaký vliv mají média na mládež.',
+      'Popište, jaká média sledujete (TV, internet, sociální sítě). Porovnejte tradiční a nová média. Mluvte o problému fake news a o mediální gramotnosti. Na závěr řekněte, jaký vliv mají média na mládež.',
     sampleAnswer:
       'I get most of my news from the internet and social media. I rarely read printed newspapers or watch TV news — I prefer to choose what I read online. I follow several news websites and I also listen to podcasts about technology and current events. I think social media has completely changed communication. It is great for staying in touch with friends, but it also spreads fake news very quickly. I believe that media literacy should be taught at school so that young people learn how to verify information and think critically. Traditional media like newspapers are losing popularity, but they still play an important role in serious journalism. Freedom of the press is essential, but with freedom comes responsibility.',
   },
@@ -910,9 +910,9 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'What is the difference between high culture and pop culture?',
     ],
     structureHintCs:
-      'Popište, jaký máte vztah ke kultuře (divadlo, knihy, galerie). Zmíňte významné české umělce (Čapek, Dvořák, Mucha). Porovnejte vysokou a populární kulturu. Na závěr řekněte, proč je kultura důležitá.',
+      'Popište, jaký máte vztah ke kultuře (divadlo, knihy, galerie). Zmiňte významné české umělce (Čapek, Dvořák, Mucha). Porovnejte vysokou a populární kulturu. Na závěr řekněte, proč je kultura důležitá.',
     sampleAnswer:
-      'Culture is an important part of my life. I enjoy reading books, going to the cinema and visiting museums. The Czech Republic has a very rich cultural history — we have famous writers like Karel Čapek and Franz Kafka, composers like Antonín Dvořák and Bedřich Smetana, and artists like Alfons Mucha. Prague itself is like an open-air museum with its Gothic, Baroque and Art Nouveau architecture. I go to the cinema about once a month and I try to visit an exhibition or gallery when I travel. I think it is important to support culture because it helps us understand the world and connects people. I prefer modern art because it often makes you think, but I can also appreciate classical masterpieces.',
+      'Culture is an important part of my life. I enjoy reading books, going to the cinema and visiting museums. The Czech Republic has a very rich cultural history — we have famous writers like Karel Čapek and the Prague-born Franz Kafka, composers like Antonín Dvořák and Bedřich Smetana, and artists like Alfons Mucha. Prague itself is like an open-air museum with its Gothic, Baroque and Art Nouveau architecture. I go to the cinema about once a month and I try to visit an exhibition or gallery when I travel. I think it is important to support culture because it helps us understand the world and connects people. I prefer modern art because it often makes you think, but I can also appreciate classical masterpieces.',
   },
   {
     id: 'conv_17',
@@ -921,7 +921,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     icon: '🎄',
     level: 'A2',
     introduction:
-      'Toto téma se zaměřuje na české svátky a tradice, jako Vánoce, Velikonoce, a jejich porovnání se zvyky v anglicky mluvících zemích. Měli byste znát specifické české tradice.',
+      'Toto téma se zaměřuje na české svátky a tradice (Vánoce, Velikonoce) a na jejich porovnání se zvyky v anglicky mluvících zemích. Měli byste znát specifické české tradice.',
     keyVocabulary: [
       { en: 'Christmas Eve', cs: 'Štědrý večer' },
       { en: 'Easter', cs: 'Velikonoce' },
@@ -944,7 +944,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'Christmas is the most important holiday in the Czech Republic.', cs: 'Vánoce jsou nejdůležitějším svátkem v ČR.' },
       { en: 'We celebrate Christmas Eve on the 24th of December.', cs: 'Štědrý večer slavíme 24. prosince.' },
       { en: 'The traditional Czech Christmas dinner is carp and potato salad.', cs: 'Tradiční česká vánoční večeře je kapr s bramborovým salátem.' },
-      { en: 'In the Czech Republic presents are brought by baby Jesus.', cs: 'V ČR nosí dárky Ježíšek.' },
+      { en: 'In the Czech Republic presents are brought by Baby Jesus.', cs: 'V ČR nosí dárky Ježíšek.' },
       { en: 'Easter in the Czech Republic is different from Easter in England.', cs: 'Velikonoce v ČR se liší od Velikonoc v Anglii.' },
       { en: 'On Easter Monday boys whip girls with a pomlázka.', cs: 'Na Velikonoční pondělí chlapci šlehají dívky pomlázkou.' },
       { en: 'Halloween is not a traditional Czech holiday.', cs: 'Halloween není tradiční český svátek.' },
@@ -967,7 +967,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Popište hlavní české svátky (Vánoce, Velikonoce, Silvestr). Vysvětlete typické tradice (kapr, pomlázka, Ježíšek). Porovnejte s anglosaským světem (Santa, Thanksgiving). Řekněte, co tradice znamenají pro vás.',
     sampleAnswer:
-      'The most important Czech holiday is Christmas. We celebrate Christmas Eve on December 24th. The traditional dinner is fried carp with potato salad. After dinner we open presents which are brought by baby Jesus — not Santa Claus like in the UK or the USA. We also have interesting traditions like cutting an apple in half to predict the future. Czech Easter is quite unique too — on Easter Monday boys go from house to house and gently whip girls with a decorated willow stick called pomlázka. The girls give them painted eggs and sweets in return. I also enjoy New Year\'s Eve when people have parties and watch fireworks at midnight. I think traditions are important because they bring families together and keep our cultural identity alive.',
+      'The most important Czech holiday is Christmas. We celebrate Christmas Eve on 24th December. The traditional dinner is fried carp with potato salad. After dinner we open presents, which are brought by Baby Jesus — not Santa Claus like in the UK or the USA. We also have interesting traditions like cutting an apple in half to predict the future. Czech Easter is quite unique too — on Easter Monday boys go from house to house and gently whip girls with a decorated willow stick called pomlázka. The girls give them painted eggs and sweets in return. I also enjoy New Year\'s Eve, when people have parties and watch fireworks at midnight. I think traditions are important because they bring families together and keep our cultural identity alive.',
   },
   {
     id: 'conv_18',
@@ -991,7 +991,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'UNESCO site', cs: 'památka UNESCO' },
       { en: 'spa town', cs: 'lázeňské město' },
       { en: 'castle', cs: 'hrad / zámek' },
-      { en: 'Velvet Revolution', cs: 'Sametová revoluce' },
+      { en: 'Velvet Revolution', cs: 'sametová revoluce' },
       { en: 'European Union', cs: 'Evropská unie' },
       { en: 'currency (Czech crown)', cs: 'měna (česká koruna)' },
       { en: 'cultural heritage', cs: 'kulturní dědictví' },
@@ -1000,7 +1000,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'The Czech Republic is a landlocked country in Central Europe.', cs: 'ČR je vnitrozemský stát ve střední Evropě.' },
       { en: 'It borders Germany, Austria, Slovakia and Poland.', cs: 'Sousedí s Německem, Rakouskem, Slovenskem a Polskem.' },
       { en: 'Prague is the capital and the largest city.', cs: 'Praha je hlavní a největší město.' },
-      { en: 'The Czech Republic has about 10.5 million inhabitants.', cs: 'ČR má asi 10,5 milionu obyvatel.' },
+      { en: 'The Czech Republic has almost eleven million inhabitants.', cs: 'ČR má téměř jedenáct milionů obyvatel.' },
       { en: 'The country became independent in 1993 after the split of Czechoslovakia.', cs: 'Země se stala nezávislou v roce 1993 po rozdělení Československa.' },
       { en: 'Czech beer is famous worldwide.', cs: 'České pivo je světově proslulé.' },
       { en: 'The Czech Republic has many beautiful castles and chateaux.', cs: 'ČR má mnoho krásných hradů a zámků.' },
@@ -1021,9 +1021,9 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Would you recommend the Czech Republic to a foreign visitor?',
     ],
     structureHintCs:
-      'Začněte základními fakty (poloha, rozloha, obyvatelstvo, hlavní město). Pak zmíňte stručně historii (Československo, Sametová revoluce). Popište zajímavá místa a slavné osobnosti. Na závěr řekněte, na co jste jako Čech/Češka hrdý/á.',
+      'Začněte základními fakty (poloha, rozloha, obyvatelstvo, hlavní město). Pak stručně zmiňte historii (Československo, sametová revoluce). Popište zajímavá místa a slavné osobnosti. Na závěr řekněte, na co jste jako Čech/Češka hrdý/á.',
     sampleAnswer:
-      'The Czech Republic is a small landlocked country in Central Europe. It borders Germany, Poland, Slovakia and Austria. The capital city is Prague, which is one of the most beautiful cities in Europe with its famous Charles Bridge, Prague Castle and Old Town Square. The country has about 10.5 million people and our currency is the Czech crown. The Czech Republic became independent in 1993 after the peaceful split of Czechoslovakia. Before that, the Velvet Revolution in 1989 ended over forty years of communist rule. Our country is famous for its beer, castles, and cultural heritage. We have many UNESCO World Heritage Sites. I am proud of famous Czechs like writer Karel Čapek and former president Václav Havel who fought for democracy and freedom.',
+      'The Czech Republic is a small landlocked country in Central Europe. It borders Germany, Poland, Slovakia and Austria. The capital city is Prague, which is one of the most beautiful cities in Europe with its famous Charles Bridge, Prague Castle and Old Town Square. The country has almost eleven million people and our currency is the Czech crown. The Czech Republic became independent in 1993 after the peaceful split of Czechoslovakia. Before that, the Velvet Revolution in 1989 ended over forty years of communist rule. Our country is famous for its beer, castles, and cultural heritage. We have many UNESCO World Heritage Sites. I am proud of famous Czechs like the writer Karel Čapek and the former president Václav Havel, who fought for democracy and freedom.',
   },
   {
     id: 'conv_19',
@@ -1048,15 +1048,15 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'landmark', cs: 'památka / dominanta' },
       { en: 'anthem', cs: 'hymna' },
       { en: 'colony', cs: 'kolonie' },
-      { en: 'commonwealth', cs: 'společenství národů' },
+      { en: 'the Commonwealth', cs: 'Commonwealth (Společenství národů)' },
       { en: 'maple leaf', cs: 'javorový list' },
     ],
     usefulPhrases: [
       { en: 'The UK consists of England, Scotland, Wales and Northern Ireland.', cs: 'Spojené království se skládá z Anglie, Skotska, Walesu a Severního Irska.' },
-      { en: 'The USA is the third largest country in the world.', cs: 'USA je třetí největší zemí na světě.' },
+      { en: 'The USA is one of the largest countries in the world.', cs: 'USA jsou jednou z největších zemí světa.' },
       { en: 'London is one of the most visited cities in the world.', cs: 'Londýn je jedno z nejnavštěvovanějších měst světa.' },
-      { en: 'English is spoken as a first language in many countries.', cs: 'Angličtina se mluví jako první jazyk v mnoha zemích.' },
-      { en: 'The USA has 50 states and the capital is Washington D.C.', cs: 'USA má 50 států a hlavní město je Washington D.C.' },
+      { en: 'English is spoken as a first language in many countries.', cs: 'Angličtinou se jako mateřským jazykem mluví v mnoha zemích.' },
+      { en: 'The USA has fifty states and the capital is Washington, D.C.', cs: 'USA mají padesát států a hlavním městem je Washington, D.C.' },
       { en: 'Australia is both a continent and a country.', cs: 'Austrálie je zároveň kontinent i země.' },
       { en: 'Canada is known for its beautiful nature and friendly people.', cs: 'Kanada je známá krásnou přírodou a přátelskými lidmi.' },
       { en: 'I would love to visit New York one day.', cs: 'Jednou bych rád/a navštívil/a New York.' },
@@ -1076,7 +1076,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Can you compare the UK and the Czech Republic?',
     ],
     structureHintCs:
-      'Vyberte si dvě až tři země a popište je (poloha, hlavní město, zajímavosti). Porovnejte britskou a americkou angličtinu. Řekněte, kterou zemi byste chtěli navštívit a proč. Na závěr zmíňte, proč je angličtina důležitá.',
+      'Vyberte si dvě až tři země a popište je (poloha, hlavní město, zajímavosti). Porovnejte britskou a americkou angličtinu. Řekněte, kterou zemi byste chtěli navštívit a proč. Na závěr zmiňte, proč je angličtina důležitá.',
     sampleAnswer:
       'English is spoken in many countries around the world. The most important English-speaking countries are the United Kingdom, the United States, Canada, Australia and New Zealand. The UK is made up of four parts — England, Scotland, Wales and Northern Ireland. London is the capital and it is famous for landmarks like Big Ben, the Tower of London and Buckingham Palace. The UK is a constitutional monarchy. The USA is a much larger country with 50 states. It is known for Hollywood, Silicon Valley, and cities like New York and Los Angeles. I would love to visit the USA because of its diversity and national parks. I think English is incredibly important as a global language — it is used in business, science, technology and travel.',
   },
@@ -1089,7 +1089,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     introduction:
       'Připravte si popis svého města nebo regionu. Měli byste umět mluvit o poloze, historii, zajímavostech, kulturním životě a o tom, co se vám na vašem městě líbí a nelíbí.',
     keyVocabulary: [
-      { en: 'located', cs: 'nacházet se' },
+      { en: 'be located', cs: 'nacházet se' },
       { en: 'inhabitants / population', cs: 'obyvatelé / populace' },
       { en: 'district', cs: 'čtvrť / okres' },
       { en: 'town hall', cs: 'radnice' },
@@ -1114,7 +1114,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'I like my town because it is quiet and safe.', cs: 'Líbí se mi moje město, protože je klidné a bezpečné.' },
       { en: 'The main problem is the lack of job opportunities.', cs: 'Hlavním problémem je nedostatek pracovních příležitostí.' },
       { en: 'My region is famous for its wine production.', cs: 'Můj kraj je známý produkcí vína.' },
-      { en: 'I would like to move to a bigger city after graduation.', cs: 'Po maturitě bych se chtěl/a přestěhovat do většího města.' },
+      { en: 'I would like to move to a bigger city after I finish school.', cs: 'Po maturitě bych se chtěl/a přestěhovat do většího města.' },
       { en: 'There is not much to do for young people here.', cs: 'Pro mladé tu není moc co dělat.' },
       { en: 'My town has a rich history dating back to the Middle Ages.', cs: 'Moje město má bohatou historii sahající do středověku.' },
     ],
@@ -1133,7 +1133,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     structureHintCs:
       'Začněte základními údaji (poloha, velikost, počet obyvatel). Popište zajímavá místa a historii. Řekněte, co se vám líbí a co ne. Na závěr řekněte, jestli tam chcete zůstat nebo se přestěhovat.',
     sampleAnswer:
-      'I live in Olomouc, a beautiful city in the Moravia region. It has about one hundred thousand inhabitants and it is the sixth largest city in the Czech Republic. Olomouc has a rich history — the Holy Trinity Column in the main square is a UNESCO World Heritage Site. The city has a lovely old town with baroque architecture, many churches and a large university. I like living here because it is big enough to have everything I need — shops, cinemas, restaurants and good public transport — but it is also calm and safe. The main disadvantage is that there are fewer job opportunities compared to Prague. In my free time I like walking along the river or visiting the local parks. I would recommend Olomouc to any visitor.',
+      'I live in Olomouc, a beautiful city in central Moravia. It has about one hundred thousand inhabitants and it is the sixth largest city in the Czech Republic. Olomouc has a rich history — the Holy Trinity Column in the main square is a UNESCO World Heritage Site. The city has a lovely old town with Baroque architecture, many churches and a large university. I like living here because it is big enough to have everything I need — shops, cinemas, restaurants and good public transport — but it is also calm and safe. The main disadvantage is that there are fewer job opportunities compared to Prague. In my free time I like walking along the river or visiting the local parks. I would recommend Olomouc to any visitor.',
   },
   {
     id: 'conv_21',
@@ -1171,7 +1171,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'School uniforms have both advantages and disadvantages.', cs: 'Školní uniformy mají výhody i nevýhody.' },
       { en: 'Fast fashion is bad for the environment.', cs: 'Rychlá móda škodí životnímu prostředí.' },
       { en: 'I sometimes buy clothes from second-hand shops.', cs: 'Někdy si kupuji oblečení v second-handech.' },
-      { en: 'People should be accepted for who they are, not how they look.', cs: 'Lidé by měli být přijímáni za to, jací jsou, ne jak vypadají.' },
+      { en: 'People should be accepted for who they are, not for how they look.', cs: 'Lidé by měli být přijímáni za to, jací jsou, ne jak vypadají.' },
     ],
     sampleQuestions: [
       'How would you describe your style?',
@@ -1186,7 +1186,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'What is sustainable fashion and why does it matter?',
     ],
     structureHintCs:
-      'Popište svůj osobní styl oblékání. Řekněte, jestli sledujete módní trendy. Diskutujte o vlivu médií na vnímání krásy. Na závěr zmíňte problém fast fashion a udržitelné módy.',
+      'Popište svůj osobní styl oblékání. Řekněte, jestli sledujete módní trendy. Diskutujte o vlivu médií na vnímání krásy. Na závěr zmiňte problém fast fashion a téma udržitelné módy.',
     sampleAnswer:
       'I would describe my style as casual and comfortable. I usually wear jeans, a T-shirt and trainers. I do not follow fashion trends closely, but I like to look neat and presentable. I think fashion is a form of self-expression, but it should not define who you are. Unfortunately, social media and celebrities set unrealistic beauty standards that can make young people feel insecure about their appearance. I believe that inner beauty and personality matter much more than looks. I also think we should pay attention to sustainable fashion — fast fashion produces a lot of waste and harms the environment. Buying second-hand clothes or choosing quality over quantity are simple ways to be more responsible. In my opinion, everyone should dress in whatever makes them feel confident.',
   },
@@ -1197,10 +1197,10 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
     icon: '🤝',
     level: 'A2',
     introduction:
-      'Téma přátelství je velmi osobní. Měli byste umět mluvit o svých přátelích, o tom, co tvoří dobré přátelství, a porovnat přátelství s rodinnými vztahy. Zmíňte i vliv sociálních sítí na přátelství.',
+      'Téma přátelství je velmi osobní. Měli byste umět mluvit o svých přátelích, o tom, co tvoří dobré přátelství, a porovnat přátelství s rodinnými vztahy. Zmiňte i vliv sociálních sítí na přátelství.',
     keyVocabulary: [
       { en: 'best friend', cs: 'nejlepší přítel/přítelkyně' },
-      { en: 'acquaintance', cs: 'známý' },
+      { en: 'acquaintance', cs: 'známý / známá' },
       { en: 'loyal', cs: 'věrný / loajální' },
       { en: 'honest', cs: 'upřímný' },
       { en: 'trustworthy', cs: 'důvěryhodný' },
@@ -1211,7 +1211,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'forgive', cs: 'odpustit' },
       { en: 'have in common', cs: 'mít společného' },
       { en: 'sense of humour', cs: 'smysl pro humor' },
-      { en: 'socialize', cs: 'společensky se stýkat' },
+      { en: 'socialise', cs: 'stýkat se s lidmi' },
       { en: 'loneliness', cs: 'osamělost' },
       { en: 'peer pressure', cs: 'tlak vrstevníků' },
       { en: 'childhood friend', cs: 'přítel z dětství' },
@@ -1241,7 +1241,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Is it easy or difficult for you to make new friends?',
     ],
     structureHintCs:
-      'Popište svého nejlepšího přítele (jak jste se poznali, co máte společného). Vysvětlete, co je důležité pro dobré přátelství. Zmíňte rozdíl mezi online a reálnými přáteli. Na závěr řekněte, co přátelství znamená pro vás.',
+      'Popište svého nejlepšího přítele (jak jste se poznali, co máte společného). Vysvětlete, co je důležité pro dobré přátelství. Zmiňte rozdíl mezi online a reálnými přáteli. Na závěr řekněte, co přátelství znamená pro vás.',
     sampleAnswer:
       'My best friend is Tomáš. We have known each other since we were six years old. We met on the first day of primary school and we have been friends ever since. We have a lot in common — we both love football, video games and the same type of music. What I appreciate most about Tomáš is that he is honest, reliable and always makes me laugh. I think the most important qualities in a friend are loyalty, trust and a good sense of humour. Of course, friends sometimes disagree, but a true friendship can survive small conflicts. I believe real friendships are different from online connections — you can have hundreds of followers on social media, but only a few people who truly know you and care about you.',
   },
@@ -1277,7 +1277,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'I prefer watching films with subtitles rather than dubbed.', cs: 'Raději sleduji filmy s titulky než dabované.' },
       { en: 'Music helps me relax and concentrate.', cs: 'Hudba mi pomáhá relaxovat a soustředit se.' },
       { en: 'I went to an amazing concert last month.', cs: 'Minulý měsíc jsem byl/a na úžasném koncertě.' },
-      { en: 'Czech cinema has produced many excellent films.', cs: 'Český film vytvořil mnoho vynikajících snímků.' },
+      { en: 'Czech cinema has produced many excellent films.', cs: 'Česká kinematografie dala vzniknout mnoha vynikajícím filmům.' },
       { en: 'I watch films on Netflix almost every evening.', cs: 'Filmy na Netflixu sleduji skoro každý večer.' },
       { en: 'Live music has a completely different atmosphere.', cs: 'Živá hudba má úplně jinou atmosféru.' },
       { en: 'I play the guitar in a band.', cs: 'Hraji na kytaru v kapele.' },
@@ -1296,9 +1296,9 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'What is the last film you saw and did you like it?',
     ],
     structureHintCs:
-      'Popište své hudební preference (žánry, interpreti, jak často posloucháte). Pak mluvte o filmech (oblíbený žánr, film). Porovnejte kino a streaming, živý koncert a poslech. Na závěr zmíňte českou hudbu/film.',
+      'Popište své hudební preference (žánry, interpreti, jak často posloucháte). Pak mluvte o filmech (oblíbený žánr, film). Porovnejte kino a streaming, živý koncert a poslech. Na závěr zmiňte českou hudbu/film.',
     sampleAnswer:
-      'Music and film are a big part of my life. I listen to music every day — mostly rock and indie, but I also enjoy pop and electronic music. My favourite band is Imagine Dragons. I play the guitar and I hope to form a band with my friends. As for films, I love science fiction and thrillers. My favourite film is Interstellar because of its amazing story and music. I usually watch films on Netflix, but I also enjoy going to the cinema with friends. I prefer watching films in English with Czech subtitles because it helps me improve my English. Czech cinema also has a lot to offer — I recommend the films by Jan Svěrák, especially Kolya which won an Oscar. I think streaming platforms have completely changed how we consume entertainment.',
+      'Music and film are a big part of my life. I listen to music every day — mostly rock and indie, but I also enjoy pop and electronic music. My favourite band is Imagine Dragons. I play the guitar and I hope to form a band with my friends. As for films, I love science fiction and thrillers. My favourite film is Interstellar because of its amazing story and music. I usually watch films on Netflix, but I also enjoy going to the cinema with friends. I prefer watching films in English with Czech subtitles because it helps me improve my English. Czech cinema also has a lot to offer — I recommend the films of Jan Svěrák, especially Kolya, which won an Oscar. I think streaming platforms have completely changed how we consume entertainment.',
   },
   {
     id: 'conv_24',
@@ -1352,7 +1352,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'What problems do young people in the Czech Republic face?',
     ],
     structureHintCs:
-      'Vyjmenujte hlavní globální problémy (chudoba, války, klima, rasismus). Vyberte jeden a rozveďte ho podrobněji. Diskutujte příčiny a možná řešení. Na závěr řekněte, co může udělat každý jednotlivec.',
+      'Vyjmenujte hlavní globální problémy (chudoba, války, klima, rasismus). Vyberte jeden a rozveďte ho podrobněji. Rozeberte příčiny a možná řešení. Na závěr řekněte, co může udělat každý jednotlivec.',
     sampleAnswer:
       'There are many serious problems in the world today. I think the biggest ones are climate change, poverty and armed conflicts. Millions of people live in extreme poverty without access to clean water, food or education. Wars in different parts of the world force people to become refugees. Racism and discrimination are still present in many societies. In the Czech Republic, issues like drug abuse, cyberbullying and corruption are also concerning. I believe that education is the key to solving many of these problems. When people are educated, they are more tolerant, more aware and more able to improve their lives. Everyone can contribute by being kind, volunteering, supporting charities, and speaking up against injustice. We cannot solve everything, but every small action counts.',
   },
@@ -1383,13 +1383,13 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       { en: 'bucket list', cs: 'seznam přání / věcí k zažití' },
     ],
     usefulPhrases: [
-      { en: 'After graduation I plan to study at university.', cs: 'Po maturitě plánuji studovat na vysoké škole.' },
+      { en: 'After the maturita I plan to study at university.', cs: 'Po maturitě plánuji studovat na vysoké škole.' },
       { en: 'My biggest dream is to travel around the world.', cs: 'Můj největší sen je cestovat kolem světa.' },
       { en: 'I would like to find a job that I really enjoy.', cs: 'Rád/a bych našel/našla práci, která mě bude bavit.' },
-      { en: 'In five years I see myself working in IT.', cs: 'Za pět let se vidím v práci v IT.' },
+      { en: 'In five years I see myself working in IT.', cs: 'Za pět let se vidím, jak pracuji v IT.' },
       { en: 'I want to be financially independent.', cs: 'Chci být finančně nezávislý/á.' },
       { en: 'I am considering taking a gap year.', cs: 'Uvažuji o tom, že si vezmu rok pauzy.' },
-      { en: 'I hope to have my own flat by the time I am thirty.', cs: 'Doufám, že budu mít vlastní byt do svých třiceti let.' },
+      { en: 'I hope to have my own flat by the time I am thirty.', cs: 'Doufám, že do třiceti budu mít vlastní byt.' },
       { en: 'I am not sure yet what I want to do.', cs: 'Zatím si nejsem jistý/á, co chci dělat.' },
       { en: 'I think it is important to set goals and work towards them.', cs: 'Myslím, že je důležité si stanovit cíle a pracovat na nich.' },
       { en: 'The future is uncertain but I am optimistic.', cs: 'Budoucnost je nejistá, ale jsem optimista.' },
@@ -1408,7 +1408,7 @@ export const CONVERSATION_TOPICS: ConversationTopic[] = [
       'Do you think young people today have more opportunities than their parents?',
     ],
     structureHintCs:
-      'Řekněte, co chcete dělat hned po maturitě (VŠ, práce, gap year). Popište své dlouhodobé cíle (kariéra, rodina, cestování). Zmíňte případné obavy o budoucnost. Na závěr řekněte, co je pro vás v životě nejdůležitější.',
+      'Řekněte, co chcete dělat hned po maturitě (VŠ, práce, gap year). Popište své dlouhodobé cíle (kariéra, rodina, cestování). Zmiňte případné obavy o budoucnost. Na závěr řekněte, co je pro vás v životě nejdůležitější.',
     sampleAnswer:
       'After the maturita exam I plan to study computer science at university, hopefully in Brno or Prague. I am very interested in programming and I would like to work as a software developer in the future. Before university I am thinking about taking a gap year to travel and gain some work experience. My long-term goals are to find a job that I love, become financially independent and eventually start a family. I would also like to live abroad for a year or two — maybe in the UK or Germany — to improve my languages and experience a different culture. Of course, the future is unpredictable and plans can change. But I try to stay optimistic and work hard every day. I believe that if you set clear goals and never give up, you can achieve anything.',
   },

@@ -10,18 +10,18 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
     structureCs:
       'Struktura neformálního emailu:\n' +
       '1. Oslovení – neformální pozdrav (Hi, Hey, Dear + jméno)\n' +
-      '2. Úvod – důvod psaní, reagování na předchozí zprávu\n' +
+      '2. Úvod – důvod psaní, reakce na předchozí zprávu\n' +
       '3. Hlavní část – 1–2 odstavce s informacemi, otázkami\n' +
       '4. Závěr – rozloučení, přání, plány na další kontakt\n' +
       '5. Podpis – jen křestní jméno\n' +
-      'Délka: 100–150 slov. Používej zkrácené tvary (I\'m, don\'t) a neformální jazyk.',
+      'Délka: cca 100–150 slov (vždy dodrž rozsah uvedený v zadání). Používej zkrácené tvary (I\'m, don\'t) a neformální jazyk.',
     usefulPhrases: [
       { en: 'Hi / Hey [name],', cs: 'Ahoj [jméno],' },
       { en: 'Thanks for your email.', cs: 'Díky za tvůj email.' },
       { en: 'How are you doing?', cs: 'Jak se máš?' },
       { en: 'I\'m writing to tell you about…', cs: 'Píšu ti, abych ti řekl/a o…' },
       { en: 'Guess what!', cs: 'Hádej co!' },
-      { en: 'By the way,…', cs: 'Mimochodem,…' },
+      { en: 'By the way,…', cs: 'Mimochodem…' },
       { en: 'Let me know what you think.', cs: 'Dej mi vědět, co si myslíš.' },
       { en: 'I can\'t wait to hear from you.', cs: 'Nemůžu se dočkat tvé odpovědi.' },
       { en: 'Write back soon!', cs: 'Brzy napiš!' },
@@ -32,9 +32,9 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       'Thanks for your last email! I\'m so happy to hear you passed your exams.\n\n' +
       'I wanted to tell you about my weekend. On Saturday, I went to a music festival with my friends. ' +
       'The weather was amazing and we danced all day. My favourite band played in the evening and it was incredible! ' +
-      'On Sunday, I was really tired so I just stayed home and watched Netflix.\n\n' +
+      'On Sunday, I was really tired, so I just stayed at home and watched Netflix.\n\n' +
       'What about you? Did you do anything fun? By the way, do you want to come to my birthday party next month? ' +
-      'It\'s going to be on March 15th at my place. Let me know!\n\n' +
+      'It\'s going to be on 15th July at my place. Let me know!\n\n' +
       'Write back soon!\n' +
       'Anna',
   },
@@ -45,12 +45,12 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
     level: 'B1',
     structureCs:
       'Struktura formálního emailu:\n' +
-      '1. Oslovení – formální (Dear Mr/Mrs/Ms + příjmení, nebo Dear Sir/Madam)\n' +
+      '1. Oslovení – formální (Dear Mr/Mrs/Ms + příjmení nebo Dear Sir/Madam)\n' +
       '2. Úvod – jasně uveď důvod psaní (I am writing to…)\n' +
       '3. Hlavní část – 1–2 odstavce s podrobnostmi, žádostí nebo dotazem\n' +
       '4. Závěr – zdvořilá žádost o odpověď, poděkování\n' +
-      '5. Podpis – celé jméno, formální rozloučení\n' +
-      'Délka: 120–180 slov. Nepoužívej zkrácené tvary (piš I am, do not místo I\'m, don\'t).',
+      '5. Rozloučení a podpis – Yours sincerely (když znáš jméno adresáta) / Yours faithfully (po Dear Sir/Madam) + celé jméno\n' +
+      'Délka: cca 120–180 slov (vždy dodrž rozsah uvedený v zadání). Nepoužívej zkrácené tvary (piš I am, do not místo I\'m, don\'t).',
     usefulPhrases: [
       { en: 'Dear Mr/Mrs [surname],', cs: 'Vážený pane / Vážená paní [příjmení],' },
       { en: 'I am writing to enquire about…', cs: 'Píšu, abych se informoval/a o…' },
@@ -60,8 +60,8 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       { en: 'I would be grateful if you could…', cs: 'Byl/a bych vděčný/á, kdybyste mohl/a…' },
       { en: 'I am looking forward to your reply.', cs: 'Těším se na vaši odpověď.' },
       { en: 'Thank you in advance for your help.', cs: 'Předem děkuji za vaši pomoc.' },
-      { en: 'Yours sincerely,', cs: 'S pozdravem,' },
-      { en: 'Yours faithfully,', cs: 'S úctou,' },
+      { en: 'Yours sincerely,', cs: 'S pozdravem (když adresáta oslovuješ jménem, např. Dear Mrs Johnson)' },
+      { en: 'Yours faithfully,', cs: 'S pozdravem (když jméno neznáš a začínáš Dear Sir/Madam)' },
     ],
     example:
       'Dear Mrs Johnson,\n\n' +
@@ -87,13 +87,13 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '3. Hlavní část – popiš problém podrobně, uveď konkrétní fakta\n' +
       '4. Požadavek – jasně řekni, co očekáváš (vrácení peněz, výměna, omluva)\n' +
       '5. Závěr – zdvořilý, ale důrazný tón\n' +
-      'Délka: 120–180 slov. Buď zdvořilý, ale jasný. Nepoužívej zkrácené tvary.',
+      'Délka: cca 120–180 slov (vždy dodrž rozsah uvedený v zadání). Buď zdvořilý/á, ale jasný/á. Nepoužívej zkrácené tvary. Dear Sir/Madam → Yours faithfully, Dear Mr/Ms + příjmení → Yours sincerely.',
     usefulPhrases: [
       { en: 'I am writing to complain about…', cs: 'Píšu, abych si stěžoval/a na…' },
       { en: 'I am writing to express my dissatisfaction with…', cs: 'Píšu, abych vyjádřil/a svou nespokojenost s…' },
       { en: 'I purchased/ordered… on [date].', cs: 'Zakoupil/a / Objednal/a jsem… dne [datum].' },
-      { en: 'Unfortunately, the product was…', cs: 'Bohužel, produkt byl…' },
-      { en: 'This is not what I expected.', cs: 'Toto jsem neočekával/a.' },
+      { en: 'Unfortunately, the product was…', cs: 'Produkt byl bohužel…' },
+      { en: 'This is not what I expected.', cs: 'To jsem nečekal/a.' },
       { en: 'I would like to request a full refund.', cs: 'Rád/a bych požádal/a o plné vrácení peněz.' },
       { en: 'I would appreciate it if you could resolve this matter.', cs: 'Ocenil/a bych, kdybyste tuto záležitost vyřešili.' },
       { en: 'I expect to hear from you within…', cs: 'Očekávám vaši odpověď do…' },
@@ -103,10 +103,10 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
     example:
       'Dear Sir or Madam,\n\n' +
       'I am writing to complain about a pair of headphones I ordered from your online shop on 5th January. ' +
-      'The order number is #4821.\n\n' +
+      'The order number is 4821.\n\n' +
       'When I received the package, I noticed that the headphones were damaged. The left earpiece does not ' +
-      'work at all, and there is a visible crack on the headband. Furthermore, the colour I received was black, ' +
-      'but I ordered white ones. This is not what I expected from your company.\n\n' +
+      'work at all, and there is a visible crack on the headband. Furthermore, the headphones I received were black, ' +
+      'but I had ordered white ones. This is not what I expected from your company.\n\n' +
       'I would like to request either a replacement or a full refund. I have attached photos of the damaged ' +
       'product for your reference. I would appreciate it if you could resolve this matter as soon as possible.\n\n' +
       'I look forward to your prompt response.\n\n' +
@@ -125,7 +125,7 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '3. Hlavní část – uveď podrobnosti: datum, čas, místo, co dělat, co vzít s sebou\n' +
       '4. Závěr – požádej o odpověď, vyjádři nadšení\n' +
       '5. Podpis – křestní jméno\n' +
-      'Délka: 100–150 slov. Piš přátelsky a nadšeně.',
+      'Délka: cca 100–150 slov (vždy dodrž rozsah uvedený v zadání). Piš přátelsky a nadšeně.',
     usefulPhrases: [
       { en: 'I\'m writing to invite you to…', cs: 'Píšu ti, abych tě pozval/a na…' },
       { en: 'Would you like to come to…?', cs: 'Chtěl/a bys přijít na…?' },
@@ -133,16 +133,16 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       { en: 'It\'s going to be on [date] at [time].', cs: 'Bude to [datum] v [čas].' },
       { en: 'The party will be at my place / at…', cs: 'Párty bude u mě / v…' },
       { en: 'There will be music, food, and games.', cs: 'Bude tam hudba, jídlo a hry.' },
-      { en: 'You don\'t need to bring anything.', cs: 'Nemusíš nic nosit.' },
+      { en: 'You don\'t need to bring anything.', cs: 'Nemusíš nic přinášet.' },
       { en: 'It would be great if you could come!', cs: 'Bylo by super, kdybys mohl/a přijít!' },
-      { en: 'Let me know if you can make it.', cs: 'Dej mi vědět, jestli můžeš.' },
+      { en: 'Let me know if you can make it.', cs: 'Dej mi vědět, jestli dorazíš.' },
       { en: 'Hope to see you there!', cs: 'Doufám, že se tam uvidíme!' },
     ],
     example:
       'Hey Sarah,\n\n' +
       'How are you? I\'m writing to invite you to my birthday party! I\'m turning 17 and I want to celebrate ' +
       'with all my closest friends.\n\n' +
-      'The party is going to be on Saturday, April 10th at 6 PM. It will be at my house. We\'re going to have ' +
+      'The party is going to be on Saturday 10th April at 6 pm. It will be at my house. We\'re going to have ' +
       'a barbecue in the garden, and my brother is going to be the DJ. There will be lots of food, drinks, and ' +
       'games. You don\'t need to bring anything, just yourself!\n\n' +
       'My address is 15 Oak Street – you can take bus number 7 and get off at the park. It\'s a five-minute walk ' +
@@ -163,7 +163,7 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '3. Hlavní část – vysvětli, proč si toho vážíš, jak ti to pomohlo\n' +
       '4. Závěr – znovu poděkuj, nabídni pomoc do budoucna\n' +
       '5. Podpis\n' +
-      'Délka: 100–150 slov. Buď upřímný/á a konkrétní.',
+      'Délka: cca 100–150 slov (vždy dodrž rozsah uvedený v zadání). Buď upřímný/á a konkrétní. Učiteli nebo cizímu člověku piš spíše formálně (Dear Mrs…).',
     usefulPhrases: [
       { en: 'I\'m writing to thank you for…', cs: 'Píšu, abych ti/vám poděkoval/a za…' },
       { en: 'Thank you so much for…', cs: 'Moc děkuji za…' },
@@ -177,13 +177,13 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       { en: 'You\'re the best!', cs: 'Jsi nejlepší!' },
     ],
     example:
-      'Hi Mrs Taylor,\n\n' +
+      'Dear Mrs Taylor,\n\n' +
       'I\'m writing to thank you for helping me with my university application. I really appreciate all the time ' +
       'you spent reading my personal statement and giving me feedback.\n\n' +
       'Your suggestions were incredibly helpful. You helped me make my essay much stronger, and I feel much more ' +
       'confident about my application now. I also want to thank you for the recommendation letter you wrote for ' +
       'me. It was very kind of you.\n\n' +
-      'I just found out that I got accepted to my first-choice university! I couldn\'t have done it without your ' +
+      'I have just found out that I have been accepted to my first-choice university! I couldn\'t have done it without your ' +
       'support. It really meant a lot to me.\n\n' +
       'Thank you again for everything. I hope I can make you proud!\n\n' +
       'Best wishes,\n' +
@@ -200,13 +200,13 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       'Struktura formálního dopisu:\n' +
       '1. Adresa odesílatele – vpravo nahoře\n' +
       '2. Adresa příjemce – vlevo pod adresou odesílatele\n' +
-      '3. Datum – pod adresou příjemce\n' +
+      '3. Datum – pod adresou odesílatele nebo nad oslovením\n' +
       '4. Oslovení – Dear Mr/Mrs/Ms [příjmení] nebo Dear Sir/Madam\n' +
       '5. Úvod – důvod psaní\n' +
       '6. Hlavní část – 2–3 odstavce s podrobnostmi\n' +
       '7. Závěr – shrnutí, zdvořilá žádost\n' +
       '8. Podpis – Yours sincerely/faithfully + celé jméno\n' +
-      'Délka: 150–200 slov. Formální jazyk, žádné zkrácené tvary.',
+      'Délka: cca 150–200 slov (vždy dodrž rozsah uvedený v zadání). Formální jazyk, žádné zkrácené tvary. České adresy nepřekládej (Lipová 23, Praha).',
     usefulPhrases: [
       { en: 'I am writing with regard to…', cs: 'Píšu ohledně…' },
       { en: 'I am writing to apply for the position of…', cs: 'Píšu, abych se přihlásil/a na pozici…' },
@@ -217,12 +217,13 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       { en: 'I would be available for an interview at your convenience.', cs: 'Jsem k dispozici na pohovor dle vašich možností.' },
       { en: 'Please do not hesitate to contact me.', cs: 'Neváhejte mě kontaktovat.' },
       { en: 'I enclose my CV for your consideration.', cs: 'Přikládám svůj životopis k posouzení.' },
-      { en: 'Yours sincerely,', cs: 'S pozdravem,' },
+      { en: 'Yours sincerely,', cs: 'S pozdravem (adresáta oslovuješ jménem)' },
     ],
     example:
       'Jan Novák\n' +
-      '23 Lipová Street\n' +
-      'Prague, 110 00\n\n' +
+      'Lipová 23\n' +
+      '110 00 Praha 1\n' +
+      'Czech Republic\n\n' +
       'Mr David Brown\n' +
       'Camp Director\n' +
       'Green Valley Summer Camp\n' +
@@ -252,9 +253,9 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '3. Hlavní část – co děláš, co jsi viděl/a, jaké je počasí, jídlo\n' +
       '4. Závěr – pozdravy, přání, kdy se vrátíš\n' +
       '5. Podpis – křestní jméno\n' +
-      'Délka: 80–120 slov. Krátké věty, přítomný a minulý čas, neformální jazyk.',
+      'Délka: cca 80–120 slov (vždy dodrž rozsah uvedený v zadání). Krátké věty, přítomný a minulý čas, neformální jazyk.',
     usefulPhrases: [
-      { en: 'Greetings from [place]!', cs: 'Pozdravy z [místo]!' },
+      { en: 'Greetings from [place]!', cs: 'Pozdrav z [místa]!' },
       { en: 'I\'m having a great time here!', cs: 'Skvěle si to tu užívám!' },
       { en: 'The weather is beautiful / hot / sunny.', cs: 'Počasí je krásné / horké / slunečné.' },
       { en: 'Yesterday we visited…', cs: 'Včera jsme navštívili…' },
@@ -263,13 +264,13 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       { en: 'We\'re staying at a lovely hotel near the beach.', cs: 'Bydlíme v krásném hotelu u pláže.' },
       { en: 'Tomorrow we\'re going to…', cs: 'Zítra se chystáme na…' },
       { en: 'See you when I get back!', cs: 'Uvidíme se, až se vrátím!' },
-      { en: 'Lots of love,', cs: 'S láskou,' },
+      { en: 'Lots of love,', cs: 'S láskou / Líbá tě…' },
     ],
     example:
       'Dear Grandma,\n\n' +
       'Greetings from Barcelona! I\'m having an amazing time here with Mum and Dad. The weather is really hot ' +
       'and sunny – about 35 degrees every day!\n\n' +
-      'Yesterday we visited the Sagrada Familia church. It was absolutely beautiful! We also walked along ' +
+      'Yesterday we visited the Sagrada Família church. It was absolutely beautiful! We also walked along ' +
       'Las Ramblas and tried some delicious Spanish tapas. Today we\'re relaxing on the beach. The sea is so ' +
       'warm and blue.\n\n' +
       'Tomorrow we\'re going to visit a big aquarium and then have dinner at a restaurant by the harbour. ' +
@@ -284,14 +285,14 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
     titleCs: 'Dopis zahraničnímu kamarádovi (pen pal)',
     level: 'A2',
     structureCs:
-      'Struktura dopisu pen palovi:\n' +
+      'Struktura dopisu zahraničnímu kamarádovi:\n' +
       '1. Oslovení – přátelské (Dear/Hi + jméno)\n' +
       '2. Úvod – představ se nebo reaguj na předchozí dopis\n' +
       '3. Hlavní část – 2–3 odstavce: napiš o sobě, své rodině, škole, koníčcích, městě\n' +
       '4. Otázky – polož 2–3 otázky kamarádovi\n' +
       '5. Závěr – rozluč se, vyjádři přání psát si dál\n' +
       '6. Podpis – křestní jméno\n' +
-      'Délka: 120–160 slov. Neformální, přátelský tón.',
+      'Délka: cca 120–160 slov (vždy dodrž rozsah uvedený v zadání). Neformální, přátelský tón.',
     usefulPhrases: [
       { en: 'I\'d like to tell you a bit about myself.', cs: 'Rád/a bych ti o sobě něco řekl/a.' },
       { en: 'I live in… with my family.', cs: 'Bydlím v… s rodinou.' },
@@ -312,7 +313,7 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       'favourite subjects are English and PE.\n\n' +
       'In my free time, I love playing football and video games. I also play the guitar in a small band with ' +
       'my friends. We practise every weekend in my garage. I also like reading comic books and watching sci-fi ' +
-      'movies.\n\n' +
+      'films.\n\n' +
       'What about you? What do you like doing after school? What\'s your town like? I\'d love to hear more about ' +
       'life in Canada!\n\n' +
       'I hope we can meet one day. Write back soon!\n\n' +
@@ -333,18 +334,18 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '3. Odstavec 3 – druhý argument + příklad\n' +
       '4. Odstavec 4 – protiargument a tvá reakce na něj\n' +
       '5. Závěr – shrň svůj názor jinými slovy\n' +
-      'Délka: 150–200 slov. Používej spojovací výrazy (firstly, moreover, however, in conclusion).',
+      'Délka: cca 150–200 slov (vždy dodrž rozsah uvedený v zadání). Používej spojovací výrazy (firstly, moreover, however, in conclusion).',
     usefulPhrases: [
-      { en: 'In my opinion,…', cs: 'Podle mého názoru,…' },
+      { en: 'In my opinion,…', cs: 'Podle mého názoru…' },
       { en: 'I strongly believe that…', cs: 'Pevně věřím, že…' },
-      { en: 'Firstly, / Secondly, / Finally,', cs: 'Za prvé, / Za druhé, / Nakonec,' },
-      { en: 'For example, / For instance,', cs: 'Například,' },
-      { en: 'Moreover, / Furthermore,', cs: 'Navíc, / Kromě toho,' },
-      { en: 'On the other hand,', cs: 'Na druhou stranu,' },
+      { en: 'Firstly, / Secondly, / Finally,', cs: 'Za prvé… / Za druhé… / Nakonec…' },
+      { en: 'For example, / For instance,', cs: 'Například…' },
+      { en: 'Moreover, / Furthermore,', cs: 'Navíc… / Kromě toho…' },
+      { en: 'On the other hand,', cs: 'Na druhou stranu…' },
       { en: 'Some people may argue that…', cs: 'Někteří lidé mohou namítat, že…' },
       { en: 'However, I disagree because…', cs: 'Nicméně nesouhlasím, protože…' },
       { en: 'All things considered,', cs: 'Když zvážíme všechny okolnosti,' },
-      { en: 'In conclusion, I believe that…', cs: 'Závěrem věřím, že…' },
+      { en: 'In conclusion, I believe that…', cs: 'Na závěr bych řekl/a, že…' },
       { en: 'To sum up,', cs: 'Abych to shrnul/a,' },
     ],
     example:
@@ -371,22 +372,22 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '2. Odstavec 2 – výhody (2–3 body s příklady)\n' +
       '3. Odstavec 3 – nevýhody (2–3 body s příklady)\n' +
       '4. Závěr – shrň obě strany a můžeš vyjádřit svůj názor\n' +
-      'Délka: 150–200 slov. Objektivní tón v hlavní části, používej spojovací výrazy.',
+      'Délka: cca 150–200 slov (vždy dodrž rozsah uvedený v zadání). Objektivní tón v hlavní části, používej spojovací výrazy.',
     usefulPhrases: [
-      { en: 'There are both advantages and disadvantages of…', cs: 'Existují výhody i nevýhody…' },
+      { en: 'There are both advantages and disadvantages to…', cs: 'Existují výhody i nevýhody…' },
       { en: 'One of the main advantages is that…', cs: 'Jednou z hlavních výhod je, že…' },
       { en: 'Another benefit is…', cs: 'Další výhodou je…' },
-      { en: 'On the positive side,', cs: 'Z pozitivní stránky,' },
+      { en: 'On the positive side,', cs: 'Pozitivní je, že…' },
       { en: 'However, there are also drawbacks.', cs: 'Nicméně existují i nevýhody.' },
       { en: 'One of the main disadvantages is…', cs: 'Jednou z hlavních nevýhod je…' },
       { en: 'Another downside is that…', cs: 'Další nevýhodou je, že…' },
-      { en: 'In addition,', cs: 'Navíc,' },
+      { en: 'In addition,', cs: 'Navíc…' },
       { en: 'Taking everything into account,', cs: 'Když vezmeme vše v úvahu,' },
       { en: 'On balance, I think…', cs: 'Celkově si myslím, že…' },
     ],
     example:
       'Nowadays, more and more students are studying online instead of going to a traditional school. There are ' +
-      'both advantages and disadvantages of this approach.\n\n' +
+      'both advantages and disadvantages to this approach.\n\n' +
       'One of the main advantages of online learning is flexibility. Students can study at their own pace and ' +
       'choose when to watch lectures. Another benefit is that it saves time because there is no need to commute ' +
       'to school. In addition, students can access materials from anywhere in the world.\n\n' +
@@ -399,31 +400,33 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
   {
     id: 'wrt_11',
     type: 'essay',
-    titleCs: 'Popis místa (Description of a place)',
+    titleCs: 'Článek o zajímavém místě (Article)',
     level: 'B1',
     structureCs:
-      'Struktura eseje – popis místa:\n' +
-      '1. Úvod – řekni, jaké místo popisuješ a proč je důležité/zajímavé\n' +
-      '2. Odstavec 2 – obecný popis (poloha, velikost, charakter)\n' +
-      '3. Odstavec 3 – podrobnosti (co tam můžeš vidět/dělat, atmosféra)\n' +
-      '4. Závěr – tvůj osobní vztah k místu, doporučení\n' +
-      'Délka: 150–200 slov. Používej přídavná jména a příslovce pro živý popis.',
+      'Struktura článku (např. do školního časopisu nebo na web):\n' +
+      '1. Nadpis – krátký a poutavý\n' +
+      '2. Úvod – zaujmi čtenáře (otázkou, zajímavostí) a řekni, o jakém místě píšeš\n' +
+      '3. Odstavec 2 – obecný popis (poloha, velikost, charakter)\n' +
+      '4. Odstavec 3 – podrobnosti (co tam můžeš vidět a dělat, atmosféra)\n' +
+      '5. Závěr – tvůj osobní vztah k místu, doporučení čtenářům\n' +
+      'Délka: cca 150–200 slov (vždy dodrž rozsah uvedený v zadání). Oslovuj čtenáře (you), používej přídavná jména a příslovce pro živý popis.',
     usefulPhrases: [
-      { en: 'I would like to describe…', cs: 'Rád/a bych popsal/a…' },
+      { en: 'Have you ever wanted to…?', cs: 'Chtěli jste někdy…?' },
       { en: 'It is located in / near…', cs: 'Nachází se v / blízko…' },
       { en: 'It is a small / large / modern / historic…', cs: 'Je to malé / velké / moderní / historické…' },
       { en: 'The atmosphere is…', cs: 'Atmosféra je…' },
       { en: 'What I like most about this place is…', cs: 'Co se mi na tomto místě líbí nejvíc, je…' },
       { en: 'You can see / visit / enjoy…', cs: 'Můžete vidět / navštívit / užít si…' },
-      { en: 'It is famous for…', cs: 'Je známé pro…' },
+      { en: 'It is famous for…', cs: 'Je známé svým/svou/svými…' },
       { en: 'The best time to visit is…', cs: 'Nejlepší čas k návštěvě je…' },
       { en: 'I would highly recommend visiting…', cs: 'Vřele bych doporučil/a navštívit…' },
       { en: 'It is a place I will never forget.', cs: 'Je to místo, na které nikdy nezapomenu.' },
     ],
     example:
-      'One of my favourite places in the Czech Republic is the old town of Český Krumlov. It is a small, ' +
-      'beautiful town in South Bohemia, located on the banks of the Vltava River.\n\n' +
-      'The town is famous for its stunning medieval architecture. The most impressive sight is the large castle ' +
+      'Český Krumlov: A Fairy-Tale Town\n\n' +
+      'Have you ever wanted to travel back in time? Then you should visit Český Krumlov, one of my favourite ' +
+      'places in the Czech Republic. It is a small, beautiful town in South Bohemia, located on the banks of the Vltava River.\n\n' +
+      'The town is famous for its stunning historic architecture. The most impressive sight is the large castle, ' +
       'which overlooks the entire town. The narrow cobblestone streets are full of colourful houses, cosy cafés, ' +
       'and little souvenir shops. In summer, you can see tourists from all over the world walking around and ' +
       'taking photos.\n\n' +
@@ -444,16 +447,16 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '2. Rozvinutí – popiš, co se stalo (události v chronologickém pořadí)\n' +
       '3. Vyvrcholení – nejnapínavější / nejdůležitější moment\n' +
       '4. Závěr – jak příběh skončil, co ses naučil/a, jaký to mělo dopad\n' +
-      'Délka: 150–200 slov. Používej minulé časy (past simple, past continuous). Přidej přímou řeč a detaily.',
+      'Délka: cca 150–200 slov (vždy dodrž rozsah uvedený v zadání). Používej minulé časy (past simple, past continuous, případně past perfect). Přidej přímou řeč a detaily.',
     usefulPhrases: [
       { en: 'It all started when…', cs: 'Všechno to začalo, když…' },
-      { en: 'One day, / Last summer, / A few years ago,', cs: 'Jednoho dne, / Minulé léto, / Před pár lety,' },
+      { en: 'One day, / Last summer, / A few years ago,', cs: 'Jednoho dne… / Loni v létě… / Před pár lety…' },
       { en: 'I was walking / sitting / studying when…', cs: 'Šel/šla jsem / Seděl/a jsem / Studoval/a jsem, když…' },
-      { en: 'Suddenly, / All of a sudden,', cs: 'Najednou,' },
-      { en: 'At first, / Then, / After that,', cs: 'Nejdříve, / Potom, / Poté,' },
+      { en: 'Suddenly, / All of a sudden,', cs: 'Najednou…' },
+      { en: 'At first, / Then, / After that,', cs: 'Nejdříve… / Potom… / Poté…' },
       { en: 'I couldn\'t believe my eyes!', cs: 'Nemohl/a jsem uvěřit svým očím!' },
-      { en: 'I felt nervous / excited / scared.', cs: 'Cítil/a jsem se nervózně / nadšeně / vyděšeně.' },
-      { en: 'In the end,', cs: 'Nakonec,' },
+      { en: 'I felt nervous / excited / scared.', cs: 'Byl/a jsem nervózní / nadšený/á / vyděšený/á.' },
+      { en: 'In the end,', cs: 'Nakonec…' },
       { en: 'It was an experience I will never forget.', cs: 'Byl to zážitek, na který nikdy nezapomenu.' },
       { en: 'I learned that…', cs: 'Naučil/a jsem se, že…' },
     ],
@@ -462,7 +465,7 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       'I was really excited.\n\n' +
       'On the second day, we were visiting the British Museum when I got separated from the group. At first, ' +
       'I wasn\'t worried – I thought I would find them easily. But after twenty minutes of walking around, I ' +
-      'realized I was completely lost. I felt nervous because my phone battery was dead and I couldn\'t call anyone.\n\n' +
+      'realised I was completely lost. I felt nervous because my phone battery was dead and I couldn\'t call anyone.\n\n' +
       'Suddenly, I heard someone calling my name. It was my classmate Tomáš! He had noticed I was missing and ' +
       'came to look for me. "There you are!" he said. "Everyone is waiting outside." I was so relieved!\n\n' +
       'In the end, everything turned out fine. Our teacher wasn\'t angry, and we even laughed about it later. ' +
@@ -480,18 +483,18 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '2. Odstavec 2 – argumenty PRO (2–3 argumenty s vysvětlením)\n' +
       '3. Odstavec 3 – argumenty PROTI (2–3 argumenty s vysvětlením)\n' +
       '4. Závěr – shrň oba pohledy, vyjádři svůj závěrečný názor\n' +
-      'Délka: 150–200 slov. Podobné jako výhody/nevýhody, ale zaměř se na konkrétní argumenty a protiargumenty.',
+      'Délka: cca 150–200 slov (vždy dodrž rozsah uvedený v zadání). Podobné jako výhody a nevýhody, ale zaměř se na konkrétní argumenty a protiargumenty.',
     usefulPhrases: [
-      { en: 'This is a topic that many people feel strongly about.', cs: 'Toto je téma, ke kterému mají mnozí silný názor.' },
+      { en: 'This is a topic that many people feel strongly about.', cs: 'Je to téma, na které má mnoho lidí vyhraněný názor.' },
       { en: 'There are strong arguments on both sides.', cs: 'Na obou stranách existují silné argumenty.' },
       { en: 'Those in favour of… argue that…', cs: 'Ti, kteří jsou pro…, tvrdí, že…' },
       { en: 'Supporters claim that…', cs: 'Zastánci tvrdí, že…' },
-      { en: 'On the other hand, opponents believe that…', cs: 'Na druhou stranu, odpůrci věří, že…' },
+      { en: 'On the other hand, opponents believe that…', cs: 'Na druhou stranu odpůrci zastávají názor, že…' },
       { en: 'Critics point out that…', cs: 'Kritici poukazují na to, že…' },
       { en: 'While it is true that…, we must also consider…', cs: 'I když je pravda, že…, musíme také zvážit…' },
-      { en: 'Having considered both sides,', cs: 'Po zvážení obou stran,' },
+      { en: 'Having considered both sides,', cs: 'Po zvážení obou stran…' },
       { en: 'It seems to me that…', cs: 'Zdá se mi, že…' },
-      { en: 'Weighing up the pros and cons,', cs: 'Po zvážení pro a proti,' },
+      { en: 'Weighing up the pros and cons,', cs: 'Po zvážení všech pro a proti…' },
     ],
     example:
       'School uniforms are a topic that many students and parents feel strongly about. There are strong arguments ' +
@@ -520,11 +523,11 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '2. Vzhled – věk, výška, postava, vlasy, oči, typické oblečení\n' +
       '3. Povaha – vlastnosti, chování, co tě na něm/ní baví\n' +
       '4. Závěr – proč je tato osoba pro tebe důležitá\n' +
-      'Délka: 100–150 slov. Používej přídavná jména, přítomný čas.',
+      'Délka: cca 100–150 slov (vždy dodrž rozsah uvedený v zadání). Používej přídavná jména, přítomný čas.',
     usefulPhrases: [
       { en: 'I would like to describe…', cs: 'Rád/a bych popsal/a…' },
       { en: 'He/She is … years old.', cs: 'Je mu/jí … let.' },
-      { en: 'He/She is tall / short / medium height.', cs: 'Je vysoký/á / malý/á / střední postavy.' },
+      { en: 'He/She is tall / short / of medium height.', cs: 'Je vysoký/á / malý/á / střední postavy.' },
       { en: 'He/She has long / short / curly hair.', cs: 'Má dlouhé / krátké / kudrnaté vlasy.' },
       { en: 'He/She usually wears…', cs: 'Obvykle nosí…' },
       { en: 'He/She is friendly / kind / funny / creative.', cs: 'Je přátelský/á / milý/á / vtipný/á / kreativní.' },
@@ -554,7 +557,7 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '2. Obecný popis – velikost, typ, první dojem\n' +
       '3. Podrobnosti – co tam najdeš, co tam můžeš dělat, atmosféra, smysly (co vidíš, slyšíš, cítíš)\n' +
       '4. Závěr – tvůj vztah k místu, proč ho doporučuješ\n' +
-      'Délka: 120–180 slov. Používej přídavná jména, příslovce, smyslové detaily.',
+      'Délka: cca 120–180 slov (vždy dodrž rozsah uvedený v zadání). Používej přídavná jména, příslovce, smyslové detaily.',
     usefulPhrases: [
       { en: 'The place I want to describe is…', cs: 'Místo, které chci popsat, je…' },
       { en: 'It is situated in the centre / on the outskirts of…', cs: 'Nachází se v centru / na okraji…' },
@@ -591,13 +594,13 @@ export const WRITING_TEMPLATES: WritingTemplate[] = [
       '2. Popis – co se dělo, kdo tam byl, jak to vypadalo\n' +
       '3. Tvé pocity – jak ses cítil/a, co se ti líbilo nejvíc\n' +
       '4. Závěr – celkový dojem, doporučení\n' +
-      'Délka: 100–150 slov. Používej minulý čas, přídavná jména pro pocity a dojmy.',
+      'Délka: cca 120–160 slov (vždy dodrž rozsah uvedený v zadání). Používej minulý čas, přídavná jména pro pocity a dojmy.',
     usefulPhrases: [
-      { en: 'I want to tell you about…', cs: 'Chci ti říct o…' },
+      { en: 'I want to tell you about…', cs: 'Chci ti vyprávět o…' },
       { en: 'It took place on [date] at [place].', cs: 'Konalo se to [datum] v [místo].' },
       { en: 'I went there with my friends / family.', cs: 'Šel/šla jsem tam s kamarády / rodinou.' },
       { en: 'There were lots of people.', cs: 'Bylo tam hodně lidí.' },
-      { en: 'The best part was…', cs: 'Nejlepší část byla…' },
+      { en: 'The best part was…', cs: 'Nejlepší bylo…' },
       { en: 'I really enjoyed…', cs: 'Opravdu se mi líbilo…' },
       { en: 'The atmosphere was amazing / fantastic.', cs: 'Atmosféra byla úžasná / fantastická.' },
       { en: 'I felt really happy / excited.', cs: 'Cítil/a jsem se opravdu šťastně / nadšeně.' },

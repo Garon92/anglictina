@@ -56,7 +56,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('ps07', 'present_simple', 'A1',
     '___ she ___ (speak) French?',
-    'Does ... speak',
+    'Does ... speak|Does she speak',
     'Otázku v přítomném čase prostém u he/she/it tvoříme: Does + podmět + základní tvar slovesa?',
     ['present_simple', 'question']),
 
@@ -70,7 +70,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
   cloze('ps09', 'present_simple', 'A1',
     'The shop ___ (close) at 8 pm.',
     'closes',
-    'Pro vyjádření pravidelného děje nebo jízdního řádu používáme přítomný čas prostý.',
+    'Pro pravidelné děje, rozvrhy a otevírací doby používáme přítomný čas prostý. The shop (= it) → closes.',
     ['present_simple', '3rd_person']),
 
   cloze('ps10', 'present_simple', 'A1',
@@ -80,8 +80,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['present_simple', 'facts']),
 
   translate('ps11', 'present_simple', 'A1',
-    'Přelož: "Hraji fotbal každou sobotu."',
-    'I play football every Saturday.',
+    'Hraji fotbal každou sobotu.',
+    'I play football every Saturday.|I play football on Saturdays.|Every Saturday I play football.',
     'Pro pravidelné činnosti používáme přítomný čas prostý.',
     ['present_simple', 'translate']),
 
@@ -140,27 +140,27 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('pc05', 'present_continuous', 'A2',
     '___ you ___ (wait) for the bus?',
-    'Are ... waiting',
+    'Are ... waiting|Are you waiting',
     'Otázku v průběhovém čase tvoříme: Am/Is/Are + podmět + sloveso s -ing?',
     ['present_continuous', 'question']),
 
   translate('pc06', 'present_continuous', 'A1',
-    'Přelož: "Co právě děláš?"',
-    'What are you doing?',
+    'Co právě děláš?',
+    'What are you doing?|What are you doing now?|What are you doing right now?|What are you doing at the moment?',
     'Otázka v přítomném průběhovém čase: What + are + you + doing?',
     ['present_continuous', 'translate']),
 
   cloze('pc07', 'present_continuous', 'A2',
     'We ___ (have) a party next Saturday.',
-    'are having',
-    'Průběhový čas lze použít i pro plánované budoucí děje.',
+    'are having|are going to have',
+    'Průběhový čas lze použít i pro domluvené budoucí akce (lze i „are going to have").',
     ['present_continuous', 'future_plan']),
 
   mcq('pc08', 'present_continuous', 'A2',
-    'He ___ to music in his room.',
+    'Where\'s Tom? – He ___ to music in his room.',
     ['listens', 'is listening', 'listen'],
     'is listening',
-    'Pokud mluvíme o ději probíhajícím právě teď, použijeme průběhový čas.',
+    'Ptáme se, kde je Tom teď → děj probíhající právě teď → průběhový čas (is listening).',
     ['present_continuous', 'affirmative']),
 
   cloze('pc09', 'present_continuous', 'A2',
@@ -170,7 +170,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['present_continuous', 'spelling']),
 
   mcq('pc10', 'present_continuous', 'A2',
-    'Why ___ you ___ so loud?',
+    'Please be quiet! Why ___ you ___ so loudly right now?',
     ['are ... talking', 'do ... talk', 'does ... talk'],
     'are ... talking',
     'Pro děj probíhající v tomto momentě použijeme průběhový čas: are you talking.',
@@ -203,25 +203,25 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['past_simple', 'irregular']),
 
   cloze('pst05', 'past_simple', 'A2',
-    'He ___ (drink) three cups of coffee this morning.',
+    'He ___ (drink) three cups of coffee yesterday morning.',
     'drank',
     'Drink je nepravidelné sloveso: drink → drank → drunk.',
     ['past_simple', 'irregular']),
 
   cloze('pst06', 'past_simple', 'A2',
-    'She ___ (take) the bus to school.',
+    'She ___ (take) the bus to school yesterday because it was raining.',
     'took',
     'Take je nepravidelné sloveso: take → took → taken.',
     ['past_simple', 'irregular']),
 
   cloze('pst07', 'past_simple', 'A2',
-    'He ___ (give) me a nice present.',
+    'He ___ (give) me a nice present for my last birthday.',
     'gave',
     'Give je nepravidelné sloveso: give → gave → given.',
     ['past_simple', 'irregular']),
 
   cloze('pst08', 'past_simple', 'A2',
-    'She ___ (make) a delicious cake.',
+    'Last Sunday she ___ (make) a delicious cake.',
     'made',
     'Make je nepravidelné sloveso: make → made → made.',
     ['past_simple', 'irregular']),
@@ -234,7 +234,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['past_simple', 'irregular']),
 
   cloze('pst10', 'past_simple', 'A2',
-    'They ___ (have) a great time at the concert.',
+    'They ___ (have) a great time at the concert last night.',
     'had',
     'Have je nepravidelné sloveso: have → had → had.',
     ['past_simple', 'irregular']),
@@ -243,7 +243,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     'She ___ me about the problem.',
     ['said', 'told', 'spoke'],
     'told',
-    'Tell + osoba (told me). Say se používá bez přímého předmětu (said that...).',
+    'Tell + osoba (told me about…). Say se s osobou jako předmětem nepojí (said that…, said to me).',
     ['past_simple', 'irregular']),
 
   cloze('pst12', 'past_simple', 'A1',
@@ -260,14 +260,14 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['past_simple', 'question']),
 
   cloze('pst14', 'past_simple', 'A2',
-    'I ___ (find) a wallet on the street.',
+    'Yesterday I ___ (find) a wallet on the street.',
     'found',
     'Find je nepravidelné sloveso: find → found → found.',
     ['past_simple', 'irregular']),
 
   translate('pst15', 'past_simple', 'A2',
-    'Přelož: "Myslel jsem, že to byl dobrý film."',
-    'I thought it was a good film.',
+    'Myslel jsem, že to byl dobrý film.',
+    'I thought it was a good film.|I thought it was a good movie.|I thought that it was a good film.',
     'Think je nepravidelné sloveso: think → thought → thought.',
     ['past_simple', 'translate']),
 
@@ -312,8 +312,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['past_continuous', 'question']),
 
   translate('ptc07', 'past_continuous', 'A2',
-    'Přelož: "Šel jsem domů, když začalo pršet."',
-    'I was walking home when it started to rain.',
+    'Šel jsem domů, když začalo pršet.',
+    'I was walking home when it started to rain.|I was walking home when it started raining.|I was walking home when it began to rain.|I was going home when it started to rain.|I was going home when it started raining.',
     'Průběhový děj (was walking) přerušený jednorázovým dějem (started).',
     ['past_continuous', 'translate']),
 
@@ -333,20 +333,20 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('pp02', 'present_perfect', 'A2',
     'She ___ never ___ (be) to Japan.',
-    'has ... been',
+    'has ... been|has never been',
     'Never se staví mezi have/has a minulé příčestí: has never been.',
     ['present_perfect', 'never']),
 
   mcq('pp03', 'present_perfect', 'A2',
     'Have you ___ tried sushi?',
-    ['ever', 'never', 'yet'],
+    ['ever', 'yet', 'ago'],
     'ever',
-    '"Ever" používáme v otázkách ve významu "někdy, vůbec": Have you ever...?',
+    '"Ever" používáme v otázkách ve významu "někdy, vůbec": Have you ever...? "Yet" stojí na konci věty, "ago" patří k minulému času.',
     ['present_perfect', 'ever']),
 
   cloze('pp04', 'present_perfect', 'B1',
     'I ___ (live) here since 2015.',
-    'have lived',
+    'have lived|have been living',
     '"Since" + konkrétní bod v čase. Předpřítomný čas vyjadřuje děj, který začal v minulosti a trvá dosud.',
     ['present_perfect', 'since']),
 
@@ -377,8 +377,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['present_perfect', 'since_for']),
 
   translate('pp09', 'present_perfect', 'A2',
-    'Přelož: "Už jsi někdy viděl tohle místo?"',
-    'Have you ever seen this place?',
+    'Už jsi někdy viděl tohle místo?',
+    'Have you ever seen this place?|Have you ever seen this place before?',
     'Otázka na zkušenost: Have you ever + minulé příčestí?',
     ['present_perfect', 'translate']),
 
@@ -390,9 +390,9 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   mcq('pp11', 'present_perfect', 'B1',
     'She ___ her keys. She can\'t find them.',
-    ['has lost', 'lost', 'is losing'],
+    ['has lost', 'had lost', 'is losing'],
     'has lost',
-    'Předpřítomný čas vyjadřuje minulý děj s důsledkem v přítomnosti (klíče stále nemá).',
+    'Předpřítomný čas vyjadřuje minulý děj s důsledkem v přítomnosti (klíče stále nemá). Předminulý čas (had lost) sem nepatří – chybí jiný minulý děj.',
     ['present_perfect', 'result']),
 
   cloze('pp12', 'present_perfect', 'B1',
@@ -405,8 +405,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('fut01', 'future', 'A2',
     'I think it ___ (rain) tomorrow.',
-    'will rain',
-    '"Will" používáme pro předpovědi a domněnky o budoucnosti.',
+    'will rain|is going to rain',
+    '"Will" používáme pro předpovědi a domněnky o budoucnosti (typicky po "I think"). Přijatelné je i "is going to rain".',
     ['future', 'will', 'prediction']),
 
   cloze('fut02', 'future', 'A2',
@@ -431,13 +431,13 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('fut05', 'future', 'A2',
     'We ___ (not / go) to the beach if it rains.',
-    'won\'t go',
+    'won\'t go|are not going to go',
     'Zápor s "will": won\'t (= will not) + základní tvar slovesa.',
     ['future', 'will', 'negative']),
 
   translate('fut06', 'future', 'A2',
-    'Přelož: "Zítra budu pracovat z domova."',
-    'I will work from home tomorrow.',
+    'Zítra budu pracovat z domova.',
+    'I will work from home tomorrow.|Tomorrow I will work from home.|I will be working from home tomorrow.|I am working from home tomorrow.|I am going to work from home tomorrow.',
     'Budoucí čas s "will": I will + základní tvar slovesa.',
     ['future', 'will', 'translate']),
 
@@ -456,8 +456,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('fut09', 'future', 'A2',
     'I ___ (be) 18 next month.',
-    'will be',
-    'Pro budoucí fakta a jistoty: will + be.',
+    'will be|am going to be',
+    'Pro budoucí fakta a jistoty: will + be (lze i "I\'m going to be 18").',
     ['future', 'will', 'fact']),
 
   mcq('fut10', 'future', 'A2',
@@ -477,14 +477,14 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['modals', 'must']),
 
   mcq('mod02', 'modals', 'A2',
-    '___ I open the window? It\'s hot in here.',
+    '___ I open the window, please? It\'s hot in here.',
     ['Can', 'Must', 'Should'],
     'Can',
     '"Can I...?" používáme pro žádost o svolení.',
     ['modals', 'can']),
 
   cloze('mod03', 'modals', 'A2',
-    'You ___ see a doctor. You look very ill.',
+    'You ___ see a doctor. You look very ill. (= měl bys)',
     'should',
     '"Should" vyjadřuje radu nebo doporučení.',
     ['modals', 'should']),
@@ -498,19 +498,19 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('mod05', 'modals', 'B1',
     'It ___ rain later, so take an umbrella.',
-    'might',
-    '"Might" vyjadřuje menší pravděpodobnost – možná se něco stane.',
+    'might|may|could',
+    '"Might" (také "may", "could") vyjadřuje možnost – možná se něco stane.',
     ['modals', 'might']),
 
   mcq('mod06', 'modals', 'A2',
-    'You ___ eat so much sugar. It\'s bad for you.',
+    'I think you ___ eat so much sugar. It\'s bad for you.',
     ['shouldn\'t', 'mustn\'t', 'can\'t'],
     'shouldn\'t',
-    '"Shouldn\'t" = neměl bys (rada). "Mustn\'t" = nesmíš (zákaz).',
+    '"I think you shouldn\'t…" = myslím, že bys neměl (rada). "Mustn\'t" = nesmíš (zákaz) – po "I think" jako rada nesedí.',
     ['modals', 'should']),
 
   translate('mod07', 'modals', 'A2',
-    'Přelož: "Umíš plavat?"',
+    'Umíš plavat?',
     'Can you swim?',
     '"Can" vyjadřuje schopnost. Otázka: Can + podmět + sloveso?',
     ['modals', 'can', 'translate']),
@@ -524,8 +524,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('mod09', 'modals', 'A2',
     'You ___ wear a uniform at this school. It\'s the rule.',
-    'must',
-    '"Must" vyjadřuje povinnost nebo nutnost (pravidlo školy).',
+    'must|have to',
+    '"Must" (nebo "have to") vyjadřuje povinnost nebo nutnost (pravidlo školy).',
     ['modals', 'must']),
 
   mcq('mod10', 'modals', 'B1',
@@ -538,17 +538,17 @@ const GRAMMAR_BASE: GrammarExercise[] = [
   // ─── ARTICLES (10) ────────────────────────────────────────────────
 
   mcq('art01', 'articles', 'A1',
-    'She is ___ teacher.',
+    'What does your mum do? – She is ___ teacher.',
     ['a', 'an', 'the'],
     'a',
-    'Před podstatným jménem začínajícím souhláskou použijeme neurčitý člen "a".',
+    'U povolání používáme neurčitý člen. "Teacher" začíná souhláskou → "a".',
     ['articles', 'a_an']),
 
   mcq('art02', 'articles', 'A1',
-    'He is ___ engineer.',
+    'What does your dad do? – He is ___ engineer.',
     ['a', 'an', 'the'],
     'an',
-    'Před podstatným jménem začínajícím samohláskou (e) použijeme "an".',
+    'U povolání používáme neurčitý člen. "Engineer" začíná samohláskou → "an".',
     ['articles', 'a_an']),
 
   mcq('art03', 'articles', 'A1',
@@ -558,8 +558,9 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     'Určitý člen "the" používáme pro jedinečné věci (slunce, měsíc).',
     ['articles', 'the']),
 
-  cloze('art04', 'articles', 'A2',
+  mcq('art04', 'articles', 'A2',
     'I usually have ___ breakfast at 7 am.',
+    ['a', 'the', '—'],
     '—',
     'Před jídly (breakfast, lunch, dinner) nepoužíváme člen (nulový člen).',
     ['articles', 'zero']),
@@ -594,12 +595,12 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     'We went to ___ cinema last night.',
     ['a', 'an', 'the'],
     'the',
-    '"The cinema" – mluvčí i posluchač vědí, o jaké kino jde (místní, obvyklé).',
+    '"Go to the cinema" je ustálené spojení – mluvčí i posluchač vědí, o jaké kino jde (místní, obvyklé).',
     ['articles', 'the']),
 
   translate('art10', 'articles', 'A2',
-    'Přelož: "Je učitelka na škole v Praze."',
-    'She is a teacher at a school in Prague.',
+    'Je učitelka na škole v Praze.',
+    'She is a teacher at a school in Prague.|She teaches at a school in Prague.',
     'Povolání: a teacher. Neznámá škola: a school. Města bez členu: Prague.',
     ['articles', 'translate']),
 
@@ -640,7 +641,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['prepositions', 'in']),
 
   cloze('prep06', 'prepositions', 'A2',
-    'The book is ___ the table.',
+    'The book is ___ the table. (= na stole)',
     'on',
     '"On" = na povrchu: on the table, on the floor.',
     ['prepositions', 'on']),
@@ -659,14 +660,14 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['prepositions', 'with']),
 
   translate('prep09', 'prepositions', 'A1',
-    'Přelož: "Mluvíme o počasí."',
-    'We are talking about the weather.',
+    'Mluvíme o počasí.',
+    'We are talking about the weather.|We talk about the weather.',
     'Předložková vazba: talk about (mluvit o).',
     ['prepositions', 'about']),
 
   mcq('prep10', 'prepositions', 'A2',
     'This present is ___ you.',
-    ['to', 'for', 'from'],
+    ['to', 'for', 'at'],
     'for',
     '"For" = pro: This is for you (to je pro tebe).',
     ['prepositions', 'for']),
@@ -712,7 +713,7 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['comparatives', 'superlative', 'irregular']),
 
   translate('comp07', 'comparatives', 'A2',
-    'Přelož: "Angličtina je lehčí než čeština."',
+    'Angličtina je lehčí než čeština.',
     'English is easier than Czech.',
     'Easy → easier (y → ier). Srovnání: přídavné jméno + -er + than.',
     ['comparatives', 'translate']),
@@ -734,13 +735,13 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   cloze('cond02', 'conditionals', 'B1',
     'If I ___ (be) rich, I would travel the world.',
-    'were',
-    'Second conditional: If + minulý čas, would + základní tvar. U "be" se často používá "were" pro všechny osoby.',
+    'were|was',
+    'Second conditional: If + minulý čas, would + základní tvar. U "be" se ve spisovné angličtině používá "were" pro všechny osoby (hovorově i "was").',
     ['conditionals', 'second']),
 
   mcq('cond03', 'conditionals', 'B1',
     'If you study hard, you ___ pass the exam.',
-    ['will', 'would', 'could'],
+    ['will', 'would', 'did'],
     'will',
     'First conditional vyjadřuje reálnou podmínku: If + přítomný čas, will + sloveso.',
     ['conditionals', 'first']),
@@ -759,8 +760,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['conditionals', 'first', 'negative']),
 
   translate('cond06', 'conditionals', 'B1',
-    'Přelož: "Kdyby nebylo tak pozdě, šel bych ven."',
-    'If it weren\'t so late, I would go out.',
+    'Kdyby nebylo tak pozdě, šel bych ven.',
+    'If it weren\'t so late, I would go out.|If it wasn\'t so late, I would go out.',
     'Second conditional: nereálná přítomná podmínka. If + were + not → weren\'t.',
     ['conditionals', 'second', 'translate']),
 
@@ -772,9 +773,9 @@ const GRAMMAR_BASE: GrammarExercise[] = [
 
   mcq('cond08', 'conditionals', 'B1',
     'If I ___ you, I would apologize.',
-    ['am', 'was', 'were'],
+    ['am', 'be', 'were'],
     'were',
-    'Second conditional: If I were you = Kdybych byl tebou. "Were" se používá pro všechny osoby.',
+    'Second conditional: If I were you = Kdybych byl tebou (na tvém místě). Ustálený obrat pro radu; ve spisovné angličtině "were" pro všechny osoby.',
     ['conditionals', 'second']),
 
   // ─── PASSIVE VOICE (6) ────────────────────────────────────────────
@@ -786,9 +787,9 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['passive', 'present']),
 
   cloze('pass02', 'passive', 'B1',
-    'The book ___ (write) by J.K. Rowling.',
-    'was written',
-    'Trpný rod minulý: was/were + minulé příčestí. Write → written.',
+    'The Harry Potter books ___ (write) by J.K. Rowling.',
+    'were written',
+    'Trpný rod minulý: was/were + minulé příčestí. Books (množné číslo) → were. Write → wrote → written.',
     ['passive', 'past']),
 
   mcq('pass03', 'passive', 'B1',
@@ -799,14 +800,14 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['passive', 'past']),
 
   cloze('pass04', 'passive', 'B1',
-    'These cars ___ (make) in Germany.',
+    'Every year, thousands of these cars ___ (make) in Germany.',
     'are made',
     'Trpný rod pro obecné skutečnosti: are + minulé příčestí.',
     ['passive', 'present']),
 
   translate('pass05', 'passive', 'B1',
-    'Přelož: "Tento film byl natočen v roce 2020."',
-    'This film was made in 2020.',
+    'Tento film byl natočen v roce 2020.',
+    'This film was made in 2020.|This movie was made in 2020.|This film was shot in 2020.|This movie was shot in 2020.',
     'Trpný rod minulý: was + minulé příčestí (made).',
     ['passive', 'translate']),
 
@@ -866,8 +867,8 @@ const GRAMMAR_BASE: GrammarExercise[] = [
     ['questions', 'wh']),
 
   translate('q08', 'questions', 'A2',
-    'Přelož: "Kolik to stojí?"',
-    'How much does it cost?',
+    'Kolik to stojí?',
+    'How much does it cost?|How much is it?',
     '"How much" = kolik (cena). Otázka: How much + does + podmět + sloveso?',
     ['questions', 'translate']),
 ];

@@ -87,13 +87,13 @@ export const ARTICLE_EXERCISES: ArticleExercise[] = [
   },
   {
     id: 'art_08',
-    sentence: 'I spoke to ___ woman at ___ reception. ___ woman told me to wait.',
+    sentence: 'I spoke to ___ woman at ___ reception desk. ___ woman told me to wait.',
     gaps: [
       { answer: 'a', position: 0 },
       { answer: 'the', position: 1 },
       { answer: 'the', position: 2 },
     ],
-    explanationCs: 'Ženu zmiňujeme poprvé → „a". Recepce je známá z kontextu → „the". Ve třetí mezeře ženu již známe → „the".',
+    explanationCs: 'Ženu zmiňujeme poprvé → „a". Recepční pult je známý z kontextu (ten v dané budově) → „the". Ve třetí mezeře ženu již známe → „the".',
     rule: 'first_mention',
     level: 'B1',
   },
@@ -393,7 +393,7 @@ export const ARTICLE_EXERCISES: ArticleExercise[] = [
       { answer: '-', position: 0 },
       { answer: 'a', position: 1 },
     ],
-    explanationCs: 'Jídlo obecně → nulový člen. Ale „big meal" je počitatelné, poprvé zmíněné → „a".',
+    explanationCs: 'Název denního jídla (breakfast) → nulový člen. Ale „big meal" je počitatelné, poprvé zmíněné → „a".',
     rule: 'zero_meals',
     level: 'B1',
   },
@@ -435,7 +435,7 @@ export const ARTICLE_EXERCISES: ArticleExercise[] = [
     gaps: [{ answer: '-', position: 0 }],
     explanationCs: '„Advice" je nepočitatelné – NELZE říct „an advice". Bez členu.',
     rule: 'countable',
-    level: 'A1',
+    level: 'A2',
   },
   {
     id: 'art_43',
@@ -443,7 +443,7 @@ export const ARTICLE_EXERCISES: ArticleExercise[] = [
     gaps: [{ answer: '-', position: 0 }],
     explanationCs: '„Furniture" je nepočitatelné – NELZE říct „a furniture". Bez členu.',
     rule: 'countable',
-    level: 'A1',
+    level: 'A2',
   },
   {
     id: 'art_44',
@@ -621,9 +621,9 @@ export const ARTICLE_EXERCISES: ArticleExercise[] = [
     id: 'art_62',
     sentence: 'He is in ___ hospital.',
     gaps: [{ answer: '-', position: 0 }],
-    explanationCs: '„Be in hospital" = být hospitalizován → bez členu (účel instituce).',
+    explanationCs: '„Be in hospital" = být hospitalizován → bez členu (účel instituce). Platí pro britskou angličtinu; americká říká „in the hospital".',
     rule: 'institutions',
-    level: 'A1',
+    level: 'A2',
   },
   {
     id: 'art_63',
@@ -708,9 +708,9 @@ export const ARTICLE_EXERCISES: ArticleExercise[] = [
   },
   {
     id: 'art_72',
-    sentence: 'This is ___ first time I am here.',
+    sentence: 'This is ___ first time I have been here.',
     gaps: [{ answer: 'the', position: 0 }],
-    explanationCs: 'Před řadovou číslovkou „first" je vždy „the".',
+    explanationCs: 'Před řadovou číslovkou „first" je vždy „the". Pozor: po „the first time" následuje předpřítomný čas (I have been), ne „I am".',
     rule: 'superlatives',
     level: 'A1',
   },
@@ -799,7 +799,7 @@ export const ARTICLE_RULES: Record<
       'Když se k témuž vrátíme nebo je z kontextu jasné, o čem mluvíme, použijeme určitý člen „the". ' +
       'Čeština členy nemá, proto je to pro české mluvčí nejtěžší pravidlo. ' +
       'Představte si „a/an" jako „nějaký" a „the" jako „ten konkrétní". ' +
-      'Pokud o osobě nebo věci mluvíte poprvé a posluchač ji nezná, vždy „a/an".',
+      'Pokud o osobě nebo věci (počitatelné, v jednotném čísle) mluvíte poprvé a posluchač ji nezná, vždy „a/an".',
     examples: [
       'I saw a dog in the park. The dog was very big.',
       'She bought a book. The book was interesting.',
@@ -843,7 +843,8 @@ export const ARTICLE_RULES: Record<
       'a některé denní doby (at night, at noon) se používají bez členu. ' +
       'Říkáme „have breakfast", nikoliv „have a breakfast". ' +
       'Pozor na výjimky: „in the morning" a „in the evening" člen mají. ' +
-      'Také pokud je jídlo blíže popsáno přídavným jménem, člen se může vrátit: „The breakfast was delicious."',
+      'Pokud ale mluvíme o konkrétním jídle nebo je popsáno přídavným jménem, člen se vrací: ' +
+      '„The breakfast at the hotel was delicious.", „We had a big lunch."',
     examples: [
       'I always have breakfast at seven.',
       'She plays tennis every Sunday.',
@@ -855,8 +856,9 @@ export const ARTICLE_RULES: Record<
     titleCs: 'Počitatelná vs. nepočitatelná podstatná jména',
     explanationCs:
       'Počitatelná podstatná jména v jednotném čísle vyžadují člen: „a book", „an apple". ' +
-      'Nepočitatelná podstatná jména člen nemají: „advice" (nikoliv „an advice"), ' +
+      'Nepočitatelná podstatná jména nemají neurčitý člen: „advice" (nikoliv „an advice"), ' +
       '„information", „furniture", „luggage", „equipment", „homework", „research". ' +
+      'Určitý člen „the" s nimi použít lze, když jde o konkrétní věc: „the advice you gave me". ' +
       'Pokud chcete vyjádřit množství u nepočitatelných, použijte „a piece of": „a piece of advice". ' +
       'Mnoho chyb českých studentů pochází z toho, že v češtině se tyto rozdíly neprojevují.',
     examples: [

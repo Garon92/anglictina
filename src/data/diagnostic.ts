@@ -131,7 +131,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'vocab',
     question: 'A person who flies an aeroplane is called a ___.',
     answer: 'pilot',
-    explanationCs: 'Osoba, která řídí letadlo, je pilot – „pilot".',
+    explanationCs: 'Osoba, která řídí letadlo, se anglicky řekne stejně jako česky – „pilot".',
   },
   {
     id: 'diag_13',
@@ -216,7 +216,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'reading',
     question:
       'Read: "The shop opens at 9 a.m. and closes at 7 p.m." How many hours is the shop open?',
-    answer: '10',
+    answer: '10|ten|10 hours|ten hours',
     explanationCs: 'Od 9:00 do 19:00 je 10 hodin.',
   },
 
@@ -239,8 +239,8 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     skill: 'vocab',
     question:
       'Despite all the difficulties, she managed to ___ her goal. (synonym of "achieve")',
-    answer: 'accomplish',
-    explanationCs: '„Accomplish" je synonymum pro „achieve" – dosáhnout cíle.',
+    answer: 'accomplish|reach|attain|fulfil|fulfill|realise|realize',
+    explanationCs: '„Accomplish" (také „reach", „attain", „fulfil") je synonymum pro „achieve" – dosáhnout cíle.',
   },
   {
     id: 'diag_23',
@@ -324,13 +324,14 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   {
     id: 'diag_30',
     level: 'B1',
-    type: 'fill',
+    type: 'mcq',
     skill: 'reading',
     question:
       'Read: "Although the restaurant had received mixed reviews online, we decided to try it anyway. The food turned out to be excellent and the service was outstanding." The word "outstanding" in this context means ___.',
-    answer: 'excellent',
+    options: ['very good', 'not yet paid', 'standing outside', 'average'],
+    answerIndex: 0,
     explanationCs:
-      '„Outstanding" zde znamená vynikající, výborný – synonymum k „excellent".',
+      '„Outstanding" zde znamená vynikající, výborný (very good, excellent). Význam „not yet paid" (nezaplacený) má jen u dluhů a účtů.',
   },
 ];
 

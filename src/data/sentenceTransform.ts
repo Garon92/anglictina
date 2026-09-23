@@ -67,6 +67,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'passive',
     level: 'B1',
     hintCs: 'Trpný rod v budoucím čase s will.',
+    alternatives: ['is going to be repaired'],
   },
   {
     id: 'st05',
@@ -89,7 +90,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'passive',
     level: 'B1',
     hintCs: 'Trpný rod v předpřítomném čase.',
-    alternatives: ['has already been completed'],
+    alternatives: ['has been finished already', 'has already been completed'],
   },
   {
     id: 'st07',
@@ -158,7 +159,6 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'conditionals',
     level: 'B1',
     hintCs: 'Druhý kondicionál s would.',
-    alternatives: ['we would go'],
   },
   {
     id: 'st13',
@@ -182,6 +182,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'conditionals',
     level: 'B1',
     hintCs: 'Druhý kondicionál s přídavným jménem ve 2. stupni.',
+    alternatives: ['If she was taller'],
   },
   {
     id: 'st15',
@@ -218,7 +219,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
   },
   {
     id: 'st18',
-    original: 'I will go to the beach if the weather is nice.',
+    original: 'I will only go to the beach if the weather is nice.',
     keyWord: 'WON\'T',
     answer: 'I won\'t go to the beach if the weather isn\'t nice.',
     gapAnswer: 'I won\'t go',
@@ -226,7 +227,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'conditionals',
     level: 'A2',
     hintCs: 'Záporný tvar prvního kondicionálu.',
-    alternatives: ['I won\'t go', 'I will not go'],
+    alternatives: ['I will not go'],
   },
   {
     id: 'st19',
@@ -263,6 +264,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'reported',
     level: 'B1',
     hintCs: 'Nepřímá řeč — posuňte čas dozadu.',
+    alternatives: ['said that she was'],
   },
   {
     id: 'st22',
@@ -274,6 +276,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'reported',
     level: 'B1',
     hintCs: 'Nepřímá řeč — will → would.',
+    alternatives: ['that he would call'],
   },
   {
     id: 'st23',
@@ -285,7 +288,6 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'reported',
     level: 'B1',
     hintCs: 'Nepřímá otázka s whether.',
-    alternatives: ['if I liked'],
   },
   {
     id: 'st24',
@@ -308,6 +310,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'reported',
     level: 'B1',
     hintCs: 'Nepřímá řeč — present perfect → past perfect.',
+    alternatives: ['that he had never been'],
   },
   {
     id: 'st26',
@@ -330,6 +333,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'reported',
     level: 'B1',
     hintCs: 'Nepřímá řeč — can → could.',
+    alternatives: ['that he could swim'],
   },
   {
     id: 'st28',
@@ -347,7 +351,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
   {
     id: 'st29',
     original: 'Tom is taller than Peter.',
-    keyWord: 'SHORT',
+    keyWord: 'SHORTER',
     answer: 'Peter is shorter than Tom.',
     gapAnswer: 'is shorter than',
     prompt: 'Peter _____ Tom.',
@@ -365,7 +369,6 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'comparisons',
     level: 'A2',
     hintCs: 'Přeformulujte na superlativ.',
-    alternatives: ['is the cleverest'],
   },
   {
     id: 'st31',
@@ -421,6 +424,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'comparisons',
     level: 'B1',
     hintCs: 'Superlativ — the + -est.',
+    alternatives: ['the fastest'],
   },
   {
     id: 'st36',
@@ -432,7 +436,6 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'comparisons',
     level: 'A2',
     hintCs: 'Vazba as … as pro stejnou míru.',
-    alternatives: ['as tall as'],
   },
   {
     id: 'st37',
@@ -571,7 +574,6 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'relative',
     level: 'B1',
     hintCs: 'Vztažná věta s which pro věci.',
-    alternatives: ['that I bought'],
   },
   {
     id: 'st49',
@@ -616,7 +618,6 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'relative',
     level: 'B1',
     hintCs: 'Vztažná věta s who — předložka na konci.',
-    alternatives: ['that I told you'],
   },
   {
     id: 'st53',
@@ -639,7 +640,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'relative',
     level: 'B1',
     hintCs: 'Vztažná věta s which — předložka na konci.',
-    alternatives: ['that we stayed at', 'where we stayed'],
+    alternatives: ['at which we stayed'],
   },
 
   // ===== purpose (8) =====
@@ -653,6 +654,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'purpose',
     level: 'A2',
     hintCs: 'Účelový infinitiv — to + sloveso.',
+    alternatives: ['in order to buy', 'so as to buy'],
   },
   {
     id: 'st56',
@@ -664,7 +666,6 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'purpose',
     level: 'B1',
     hintCs: 'Účelová vazba in order to.',
-    alternatives: ['in order to pass'],
   },
   {
     id: 'st57',
@@ -676,6 +677,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'purpose',
     level: 'B1',
     hintCs: 'Záporný účel — so as not to.',
+    alternatives: ['so that I wouldn\'t', 'so that I would not', 'so I wouldn\'t'],
   },
   {
     id: 'st58',
@@ -699,6 +701,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'purpose',
     level: 'B1',
     hintCs: 'Účelová vazba to avoid + -ing.',
+    alternatives: ['in order to avoid getting', 'so as to avoid getting'],
   },
   {
     id: 'st60',
@@ -710,6 +713,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'purpose',
     level: 'B1',
     hintCs: 'Účelová vedlejší věta se so that + can.',
+    alternatives: ['so she can', 'so that she could', 'so as to'],
   },
   {
     id: 'st61',
@@ -721,6 +725,7 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'purpose',
     level: 'A2',
     hintCs: 'Jednoduchý účelový infinitiv.',
+    alternatives: ['in order to see', 'so as to see'],
   },
   {
     id: 'st62',
@@ -791,25 +796,27 @@ export const SENTENCE_TRANSFORMS: SentenceTransformExercise[] = [
     category: 'mixed',
     level: 'B1',
     hintCs: 'Suggest + gerundium.',
+    alternatives: ['suggested that we go', 'suggested that we should go', 'suggested we go', 'suggested we should go'],
   },
   {
     id: 'st68',
     original: 'I regret not studying harder at school.',
     keyWord: 'WISH',
     answer: 'I wish I had studied harder at school.',
-    gapAnswer: 'I had studied harder',
-    prompt: 'I wish _____ at school.',
+    gapAnswer: 'wish I had studied',
+    prompt: 'I _____ harder at school.',
     category: 'mixed',
     level: 'B1',
     hintCs: 'Wish + past perfect pro lítost nad minulostí.',
+    alternatives: ['wish I\'d studied'],
   },
   {
     id: 'st69',
     original: 'It\'s a pity you can\'t come to the party.',
     keyWord: 'WISH',
     answer: 'I wish you could come to the party.',
-    gapAnswer: 'you could come',
-    prompt: 'I wish _____ to the party.',
+    gapAnswer: 'wish you could come',
+    prompt: 'I _____ to the party.',
     category: 'mixed',
     level: 'B1',
     hintCs: 'Wish + minulý čas pro nereálné přání v přítomnosti.',

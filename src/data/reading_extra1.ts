@@ -39,9 +39,9 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       {
         id: 'read_extra1_01_q4',
         type: 'mcq',
-        question: 'What does the narrator do with the grandmother?',
-        options: ['Play cards', 'Watch TV', 'Learn to bake', 'Go shopping'],
-        answerIndex: 2,
+        question: 'What does the grandmother teach the narrator?',
+        options: ['How to play cards', 'How to bake', 'How to grow strawberries', 'How to tell stories'],
+        answerIndex: 1,
       },
     ],
   },
@@ -64,8 +64,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_02_q1',
         type: 'mcq',
         question: 'Why does the narrator choose pasta?',
-        options: ['It is cheaper', 'He loves cheese', 'He does not like chicken', 'His friend chooses it too'],
-        answerIndex: 1,
+        options: ['The narrator loves cheese', 'It is cheaper', 'The narrator does not like chicken', 'Tomáš chooses it too'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra1_02_q2',
@@ -85,8 +85,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_02_q4',
         type: 'mcq',
         question: 'What do they get after the main course?',
-        options: ['A dessert', 'A drink', 'A piece of fruit', 'A cake'],
-        answerIndex: 2,
+        options: ['A yoghurt', 'A piece of fruit', 'A drink', 'A piece of cake'],
+        answerIndex: 1,
       },
     ],
   },
@@ -101,23 +101,23 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       'Last month, my family moved to a new flat. It is on the third floor of a big building. We have ' +
       'three bedrooms, a living room, a kitchen and a bathroom. My room is small but I like it. ' +
       'The walls are blue and I have a desk near the window. My sister\'s room is next to mine. ' +
-      'The kitchen is the biggest room. We eat breakfast and dinner there. There is a balcony in ' +
-      'the living room. My mum puts flowers on the balcony. From the balcony, we can see a park. ' +
+      'The kitchen is the biggest room. We eat breakfast and dinner there. The living room has ' +
+      'a balcony. My mum puts flowers on the balcony. From the balcony, we can see a park. ' +
       'I like the new flat because it is closer to my school.',
     questions: [
       {
         id: 'read_extra1_03_q1',
         type: 'mcq',
         question: 'On which floor is the new flat?',
-        options: ['First floor', 'Second floor', 'Third floor', 'Fourth floor'],
-        answerIndex: 2,
+        options: ['Ground floor', 'First floor', 'Second floor', 'Third floor'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra1_03_q2',
         type: 'truefalse',
-        question: 'The narrator\'s room has green walls.',
+        question: 'The narrator\'s room has blue walls.',
         options: ['True', 'False'],
-        answerIndex: 1,
+        answerIndex: 0,
       },
       {
         id: 'read_extra1_03_q3',
@@ -129,9 +129,9 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       {
         id: 'read_extra1_03_q4',
         type: 'tfns',
-        question: 'The flat has a garden.',
+        question: 'The narrator\'s sister is younger than the narrator.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 1,
+        answerIndex: 2,
       },
     ],
   },
@@ -167,7 +167,7 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       {
         id: 'read_extra1_04_q3',
         type: 'tfns',
-        question: 'Klára is good at maths.',
+        question: 'Klára finds maths easy.',
         options: ['True', 'False', 'Not stated'],
         answerIndex: 1,
       },
@@ -175,8 +175,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_04_q4',
         type: 'mcq',
         question: 'What does Klára do with her friend Petra after school?',
-        options: ['They play sports', 'They practise speaking English', 'They watch films', 'They do maths homework'],
-        answerIndex: 1,
+        options: ['They practise speaking English', 'They play sports', 'They watch films', 'They do maths homework'],
+        answerIndex: 0,
       },
     ],
   },
@@ -199,8 +199,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_05_q1',
         type: 'mcq',
         question: 'What time does the narrator wake up on Saturday?',
-        options: ['At seven', 'At eight', 'At nine', 'At ten'],
-        answerIndex: 2,
+        options: ['At nine', 'At ten', 'At eleven', 'At twelve'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra1_05_q2',
@@ -214,14 +214,14 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         type: 'tfns',
         question: 'The narrator plays football with friends in the park.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 1,
+        answerIndex: 2,
       },
       {
         id: 'read_extra1_05_q4',
         type: 'mcq',
         question: 'What does the narrator do on Sunday evening?',
-        options: ['Watches TV', 'Plays games', 'Prepares for school', 'Goes to a café'],
-        answerIndex: 2,
+        options: ['Watches TV', 'Prepares for school', 'Plays games', 'Goes to a café'],
+        answerIndex: 1,
       },
     ],
   },
@@ -244,8 +244,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_06_q1',
         type: 'mcq',
         question: 'Why did they go to the shopping centre?',
-        options: ['To buy clothes', 'To buy new shoes', 'To buy a bag', 'To eat lunch'],
-        answerIndex: 1,
+        options: ['To buy new shoes', 'To buy clothes', 'To buy a bag', 'To eat lunch'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra1_06_q2',
@@ -258,8 +258,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_06_q3',
         type: 'mcq',
         question: 'How much did the trainers cost?',
-        options: ['Six hundred crowns', 'Seven hundred crowns', 'Eight hundred crowns', 'Nine hundred crowns'],
-        answerIndex: 2,
+        options: ['Five hundred crowns', 'Six hundred crowns', 'Seven hundred crowns', 'Eight hundred crowns'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra1_06_q4',
@@ -278,12 +278,12 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
     level: 'A2',
     topic: 'travel',
     text:
-      'Last weekend, our class went on a trip to Vienna. We left from Brno at seven in the morning ' +
+      'Last weekend, our class went on a trip to Vienna. We left Brno at seven in the morning ' +
       'by coach. The journey took about two hours. When we arrived, we first visited Schönbrunn ' +
       'Palace. It was beautiful and very big. Our guide told us about the history of the Habsburg ' +
-      'family. After the palace, we walked through the city centre and saw St. Stephen\'s Cathedral. ' +
+      'family. After the palace, we walked through the city centre and saw St Stephen\'s Cathedral. ' +
       'We had lunch at a small restaurant near the cathedral. I tried Wiener Schnitzel, which is a ' +
-      'famous Austrian dish. In the afternoon, we went to Prater amusement park and I went on the ' +
+      'famous Austrian dish. In the afternoon, we went to the Prater amusement park and I went on the ' +
       'big Ferris wheel. The view from the top was amazing. We got back to Brno at about nine in ' +
       'the evening. Everyone was tired but happy.',
     questions: [
@@ -291,8 +291,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_07_q1',
         type: 'mcq',
         question: 'How long did the journey from Brno to Vienna take?',
-        options: ['About one hour', 'About two hours', 'About three hours', 'About four hours'],
-        answerIndex: 1,
+        options: ['About two hours', 'About three hours', 'About four hours', 'About five hours'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra1_07_q2',
@@ -312,8 +312,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_07_q4',
         type: 'mcq',
         question: 'What did the narrator do at Prater?',
-        options: ['Ate lunch', 'Visited a museum', 'Went on the Ferris wheel', 'Bought souvenirs'],
-        answerIndex: 2,
+        options: ['Ate lunch', 'Went on the Ferris wheel', 'Visited a museum', 'Bought souvenirs'],
+        answerIndex: 1,
       },
     ],
   },
@@ -339,11 +339,11 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         question: 'What symptoms did the narrator have?',
         options: [
           'A stomach ache and a fever',
-          'A sore throat and a headache',
           'A cough and a runny nose',
+          'A sore throat and a headache',
           'A broken arm and a headache',
         ],
-        answerIndex: 1,
+        answerIndex: 2,
       },
       {
         id: 'read_extra1_08_q2',
@@ -389,8 +389,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_09_q1',
         type: 'mcq',
         question: 'Where is the school garden?',
-        options: ['In front of the school', 'Behind the gym', 'Next to the canteen', 'On the roof'],
-        answerIndex: 1,
+        options: ['In front of the school', 'Next to the canteen', 'Behind the gym', 'On the roof'],
+        answerIndex: 2,
       },
       {
         id: 'read_extra1_09_q2',
@@ -402,9 +402,9 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       {
         id: 'read_extra1_09_q3',
         type: 'tfns',
-        question: 'Mr Černý teaches chemistry at the school.',
+        question: 'The school garden was Mr Černý\'s idea.',
         options: ['True', 'False', 'Not stated'],
-        answerIndex: 1,
+        answerIndex: 2,
       },
       {
         id: 'read_extra1_09_q4',
@@ -436,8 +436,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_10_q1',
         type: 'mcq',
         question: 'When does Matěj work at the supermarket?',
-        options: ['Every day after school', 'On Saturdays', 'On weekends', 'On Sundays'],
-        answerIndex: 1,
+        options: ['On Saturdays', 'Every day after school', 'On Friday evenings', 'On Sundays'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra1_10_q2',
@@ -457,8 +457,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_10_q4',
         type: 'mcq',
         question: 'What does Jana do at the supermarket?',
-        options: ['She puts products on shelves', 'She cleans the floor', 'She works at the cash desk', 'She is the manager'],
-        answerIndex: 2,
+        options: ['She puts products on shelves', 'She cleans the floor', 'She is the manager', 'She works at the cash desk'],
+        answerIndex: 3,
       },
     ],
   },
@@ -483,8 +483,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_11_q1',
         type: 'mcq',
         question: 'Who usually cooks the Friday dinner?',
-        options: ['The narrator', 'The mum', 'The dad', 'Martin'],
-        answerIndex: 2,
+        options: ['The dad', 'The mum', 'The narrator', 'Martin'],
+        answerIndex: 0,
       },
       {
         id: 'read_extra1_11_q2',
@@ -506,11 +506,11 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         question: 'What good news did Martin share during dinner?',
         options: [
           'He won a sports competition',
-          'He got a good mark in physics',
           'He found a part-time job',
+          'He got a good mark in physics',
           'He passed his driving test',
         ],
-        answerIndex: 1,
+        answerIndex: 2,
       },
     ],
   },
@@ -524,10 +524,10 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
     text:
       'Last Saturday, I spent the whole day at my grandma\'s house. She promised to teach me how to ' +
       'make svíčková, which is a traditional Czech dish. First, we went to the local market to buy ' +
-      'fresh vegetables — carrots, celery and onions. We already had beef at home. Grandma showed ' +
+      'fresh vegetables — carrots, celeriac and onions. We already had beef at home. Grandma showed ' +
       'me how to prepare the sauce. It takes a long time because you have to cook the vegetables ' +
       'slowly and then blend them. While the meat was in the oven, we made dumplings from scratch. ' +
-      'That was the hardest part because the dough has to be the right consistency. The whole flat ' +
+      'That was the hardest part because the dough has to be the right consistency. The whole house ' +
       'smelled wonderful. When everything was ready, we sat down and ate together. It was delicious! ' +
       'Grandma said my dumplings were almost as good as hers. I felt really proud.',
     questions: [
@@ -549,8 +549,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_12_q3',
         type: 'mcq',
         question: 'What was the hardest part of cooking?',
-        options: ['Making the sauce', 'Cutting the vegetables', 'Making the dumplings', 'Cooking the meat'],
-        answerIndex: 2,
+        options: ['Making the sauce', 'Cutting the vegetables', 'Cooking the meat', 'Making the dumplings'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra1_12_q4',
@@ -572,7 +572,7 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       'My family moved from Prague to Hradec Králové six months ago because of my dad\'s new job. ' +
       'At first, I was really sad because I had to leave my friends and my old school. Our new ' +
       'house is bigger than our Prague flat. It has a small garden with an apple tree. My room is ' +
-      'on the second floor and it has a nice view of the river. I started at a new school in ' +
+      'upstairs and it has a nice view of the river. I started at a new school in ' +
       'September. The first week was difficult, but then I met Lukáš in my class. He invited me ' +
       'to play football with his friends after school. Now I have a group of friends and I feel at ' +
       'home here. I still talk to my Prague friends online almost every day. Sometimes I miss the ' +
@@ -608,8 +608,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_13_q4',
         type: 'mcq',
         question: 'How does the narrator stay in contact with Prague friends?',
-        options: ['He visits them every weekend', 'He calls them on the phone', 'He talks to them online', 'He writes them letters'],
-        answerIndex: 2,
+        options: ['By visiting them every weekend', 'By calling them on the phone', 'By writing them letters', 'By talking to them online'],
+        answerIndex: 3,
       },
     ],
   },
@@ -621,7 +621,7 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
     level: 'A2',
     topic: 'education',
     text:
-      'This semester, there is an exchange student in our class. Her name is Sophie and she comes ' +
+      'This year, there is an exchange student in our class. Her name is Sophie and she comes ' +
       'from France. She is staying with a host family in our town for five months. Sophie speaks ' +
       'French and English, and she is learning Czech. She says Czech is very difficult, especially ' +
       'the pronunciation. We try to help her by speaking slowly and explaining words she doesn\'t ' +
@@ -635,8 +635,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_14_q1',
         type: 'mcq',
         question: 'How long is Sophie staying?',
-        options: ['Three months', 'Four months', 'Five months', 'Six months'],
-        answerIndex: 2,
+        options: ['Two months', 'Three months', 'Four months', 'Five months'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra1_14_q2',
@@ -657,12 +657,12 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         type: 'mcq',
         question: 'According to Sophie, how are French schools different?',
         options: [
-          'They have fewer students',
-          'They have longer days but more holidays',
+          'They have fewer students in each class',
           'They start later in the morning',
-          'They do not have a canteen',
+          'They have longer days but more holidays',
+          'They do not have a school canteen',
         ],
-        answerIndex: 1,
+        answerIndex: 2,
       },
     ],
   },
@@ -712,12 +712,12 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         type: 'mcq',
         question: 'According to the text, what skills can e-sports help develop?',
         options: [
-          'Physical fitness and endurance',
           'Teamwork and communication',
+          'Physical fitness and endurance',
           'Creative writing and reading',
           'Cooking and time management',
         ],
-        answerIndex: 1,
+        answerIndex: 0,
       },
     ],
   },
@@ -729,7 +729,7 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
     level: 'B1',
     topic: 'travel',
     text:
-      'After finishing their final exams, many European young people decide to travel by Interrail, ' +
+      'After finishing their final exams, many young Europeans decide to travel by Interrail, ' +
       'a train pass that allows unlimited travel across most European countries. My cousin David did ' +
       'his Interrail trip last summer. He travelled for three weeks with two friends and they visited ' +
       'seven countries: Germany, Austria, Italy, Slovenia, Croatia, Hungary and Slovakia. They slept ' +
@@ -745,8 +745,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_16_q1',
         type: 'mcq',
         question: 'How long was David\'s Interrail trip?',
-        options: ['Two weeks', 'Three weeks', 'Four weeks', 'One month'],
-        answerIndex: 1,
+        options: ['Ten days', 'Two weeks', 'Three weeks', 'Four weeks'],
+        answerIndex: 2,
       },
       {
         id: 'read_extra1_16_q2',
@@ -767,12 +767,12 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         type: 'mcq',
         question: 'What problem did they have in Munich?',
         options: [
-          'Their hostel was fully booked',
-          'They could not find a restaurant',
           'They missed a train connection',
+          'They could not find a restaurant',
+          'Their hostel was fully booked',
           'They lost their luggage',
         ],
-        answerIndex: 2,
+        answerIndex: 0,
       },
     ],
   },
@@ -822,9 +822,9 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         type: 'mcq',
         question: 'What could students do with the anonymous box?',
         options: [
-          'Submit homework late',
+          'Hand in homework late',
           'Report bullying',
-          'Submit questions about mental health',
+          'Ask questions',
           'Suggest new school rules',
         ],
         answerIndex: 2,
@@ -835,14 +835,14 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
   // ─── 18. Online Shopping vs High Street (B1) ──────────────────────────
   {
     id: 'read_extra1_18',
-    title: 'Online Shopping vs High Street',
+    title: 'Online Shopping vs the High Street',
     level: 'B1',
     topic: 'shopping',
     text:
       'The way people shop has changed dramatically in recent years. More and more Czech consumers, ' +
       'especially young people, prefer to buy things online rather than in traditional shops. Online ' +
       'shopping offers several advantages: you can compare prices easily, shop at any time of day ' +
-      'and have products delivered to your door. Popular Czech e-shops like Alza and Mall.cz offer ' +
+      'and have products delivered to your door. Popular Czech e-shops like Alza offer ' +
       'a huge selection of electronics, clothes and household goods. However, online shopping also ' +
       'has disadvantages. You cannot try on clothes or test products before buying them. Returns can ' +
       'be complicated and delivery sometimes takes longer than expected. Meanwhile, many small shops ' +
@@ -855,8 +855,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_18_q1',
         type: 'mcq',
         question: 'According to the text, which group especially prefers online shopping?',
-        options: ['Elderly people', 'Young people', 'Parents with small children', 'Business owners'],
-        answerIndex: 1,
+        options: ['Elderly people', 'Business owners', 'Parents with small children', 'Young people'],
+        answerIndex: 3,
       },
       {
         id: 'read_extra1_18_q2',
@@ -868,7 +868,7 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       {
         id: 'read_extra1_18_q3',
         type: 'tfns',
-        question: 'Alza and Mall.cz offer free delivery on all orders.',
+        question: 'Alza offers free delivery on all orders.',
         options: ['True', 'False', 'Not stated'],
         answerIndex: 2,
       },
@@ -877,12 +877,12 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         type: 'mcq',
         question: 'How have some local shop owners responded to online competition?',
         options: [
-          'By lowering all their prices',
-          'By closing their shops permanently',
           'By creating websites and click-and-collect services',
-          'By moving to bigger cities',
+          'By closing their shops permanently',
+          'By lowering their prices below online prices',
+          'By moving their shops to bigger cities',
         ],
-        answerIndex: 2,
+        answerIndex: 0,
       },
     ],
   },
@@ -902,7 +902,7 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
       'through rivers to the sea, contributing to ocean pollution. Some Czech municipalities have ' +
       'started campaigns to reduce single-use plastics. For example, several towns now ban plastic ' +
       'bags at local markets and encourage people to use reusable bottles. Schools are also playing ' +
-      'a role. At our gymnasium, we organised a river clean-up event last spring and collected over ' +
+      'a role. At our school, we organised a river clean-up event last spring and collected over ' +
       'two hundred kilograms of rubbish along a three-kilometre stretch of the Vltava. Experts say ' +
       'that individual actions, such as refusing unnecessary plastic packaging, can make a real ' +
       'difference if enough people participate.',
@@ -912,12 +912,12 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         type: 'mcq',
         question: 'What are microplastics?',
         options: [
-          'Large pieces of plastic in rivers',
+          'Large pieces of plastic floating on rivers',
+          'Harmful chemicals that factories release into water',
+          'Plastic bags that break into two or three pieces',
           'Tiny plastic fragments smaller than five millimetres',
-          'Plastic bags floating in water',
-          'Chemicals released by factories',
         ],
-        answerIndex: 1,
+        answerIndex: 3,
       },
       {
         id: 'read_extra1_19_q2',
@@ -937,8 +937,8 @@ export const READING_TEXTS_EXTRA1: ReadingText[] = [
         id: 'read_extra1_19_q4',
         type: 'mcq',
         question: 'How much rubbish did the school collect during the river clean-up?',
-        options: ['Over fifty kilograms', 'Over one hundred kilograms', 'Over two hundred kilograms', 'Over three hundred kilograms'],
-        answerIndex: 2,
+        options: ['Over fifty kilograms', 'Over one hundred kilograms', 'Over one hundred and fifty kilograms', 'Over two hundred kilograms'],
+        answerIndex: 3,
       },
     ],
   },

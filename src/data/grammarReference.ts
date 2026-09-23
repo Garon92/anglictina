@@ -198,7 +198,7 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       { en: 'It won\'t be easy.', cs: 'Nebude to snadné.' },
       { en: 'Are you going to buy a new phone?', cs: 'Chystáš se koupit nový telefon?' },
       { en: 'I think he will pass the exam.', cs: 'Myslím, že tu zkoušku složí.' },
-      { en: 'Look! The bus is going to leave!', cs: 'Podívej! Ten autobus odjíždí!' },
+      { en: 'Look! The bus is going to leave!', cs: 'Podívej! Ten autobus hned odjede!' },
     ],
     keyRules: [
       'Will: spontánní rozhodnutí, předpovědi založené na názoru, sliby a nabídky.',
@@ -223,6 +223,8 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       '„Must" vyjadřuje silnou povinnost: „You must wear a seatbelt" (Musíte mít zapnutý pás). ' +
       '„Should" vyjadřuje radu: „You should study more" (Měl bys víc studovat). ' +
       '„May/Might" vyjadřují možnost: „It may rain" (Možná bude pršet).\n\n' +
+      'Pozor na rozdíl: „mustn\'t" = zákaz (You mustn\'t smoke here – Nesmíš tu kouřit), ' +
+      'ale „don\'t have to" = není nutné (You don\'t have to come – Nemusíš chodit).\n\n' +
       'Po způsobových slovesech vždy následuje základní tvar slovesa (infinitiv bez to). ' +
       'Způsobová slovesa nemají koncovku -s ve 3. osobě: „She can dance" (nikoli „She cans dance"). ' +
       'Nemají tvar -ing ani příčestí.',
@@ -239,7 +241,8 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       'Po modálním slovesu vždy následuje základní tvar slovesa (bez to).',
       'Modální slovesa nemají koncovku -s ve 3. osobě (She can, nikoli She cans).',
       'Can = schopnost/povolení, Must = povinnost, Should = rada.',
-      'May/Might = možnost nebo zdvořilá žádost.',
+      'May/Might = možnost; May I…? = zdvořilá žádost o svolení.',
+      'Mustn\'t = nesmíš (zákaz), don\'t have to = nemusíš (není nutné).',
       'Zápor: can\'t, mustn\'t, shouldn\'t atd.',
     ],
   },
@@ -257,9 +260,9 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       '(Mám psa — jednoho, nespecifikovaného). „An" používáme před slovy začínajícími samohláskovou hláskou: ' +
       '„an apple", „an hour" (pozor: záleží na výslovnosti, ne na písmenu — „a university", ale „an umbrella").\n\n' +
       'Určitý člen „the" používáme, když je jasné, o čem mluvíme, nebo když už jsme danou věc zmínili: ' +
-      '„I have a dog. The dog is brown" (Mám psa. Ten pes je hnědý). Také se používá pro unikátní věci: ' +
-      '„the sun", „the moon", „the Czech Republic".\n\n' +
-      'Člen nepoužíváme před: vlastními jmény (David, Prague), jazyky (English, Czech), jídly (breakfast, lunch), ' +
+      '„I have a dog. The dog is brown" (Mám psa. Ten pes je hnědý). Také se používá pro jedinečné věci ' +
+      '(„the sun", „the moon") a v některých zeměpisných názvech („the Czech Republic", „the Alps").\n\n' +
+      'Člen nepoužíváme před: vlastními jmény (David, Prague), jazyky (English, Czech), názvy denních jídel (breakfast, lunch), ' +
       'sporty (football, tennis) a obecnými nepočitatelnými podstatnými jmény (water, music, love).',
     examples: [
       { en: 'I need a new phone.', cs: 'Potřebuji nový telefon.' },
@@ -273,7 +276,7 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       'A/An = neurčitý člen, používáme poprvé nebo pro „jeden z mnoha".',
       'An před samohláskovou hláskou (an apple, an hour), a před souhláskovou (a dog, a university).',
       'The = určitý člen, když oba vědí, o čem je řeč, nebo pro unikátní věci.',
-      'Bez členu: vlastní jména, jazyky, sporty, jídla, obecná nepočitatelná podstatná jména.',
+      'Bez členu: vlastní jména, jazyky, sporty, názvy denních jídel, obecná nepočitatelná podstatná jména.',
     ],
   },
 
@@ -319,10 +322,11 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
     explanationCs:
       'Přídavná jména v angličtině můžeme stupňovat ve třech stupních: základní (big), druhý stupeň — komparativ ' +
       '(bigger), a třetí stupeň — superlativ (the biggest).\n\n' +
-      'Krátká přídavná jména (1–2 slabiky): přidáváme -er pro komparativ a -est pro superlativ: ' +
-      'tall → taller → the tallest, nice → nicer → the nicest. Pokud přídavné jméno končí na souhlásku po ' +
-      'krátké samohlásce, zdvojujeme koncovou souhlásku: big → bigger → the biggest, hot → hotter → the hottest.\n\n' +
-      'Dlouhá přídavná jména (3+ slabiky a většina dvouslabičných): používáme more/most: ' +
+      'Krátká přídavná jména (jednoslabičná a dvouslabičná zakončená na -y): přidáváme -er pro komparativ a -est ' +
+      'pro superlativ: tall → taller → the tallest, nice → nicer → the nicest, easy → easier → the easiest. ' +
+      'Pokud přídavné jméno končí na souhlásku po krátké samohlásce, zdvojujeme koncovou souhlásku: ' +
+      'big → bigger → the biggest, hot → hotter → the hottest.\n\n' +
+      'Dlouhá přídavná jména (většina dvouslabičných a všechna delší): používáme more/most: ' +
       'beautiful → more beautiful → the most beautiful, interesting → more interesting → the most interesting.\n\n' +
       'Existují nepravidelné tvary, které je nutné se naučit: good → better → the best, ' +
       'bad → worse → the worst, far → further/farther → the furthest/farthest.\n\n' +
@@ -332,15 +336,15 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       { en: 'Prague is bigger than Brno.', cs: 'Praha je větší než Brno.' },
       { en: 'This book is more interesting than that one.', cs: 'Tato kniha je zajímavější než tamta.' },
       { en: 'She is the tallest girl in our class.', cs: 'Je nejvyšší dívka v naší třídě.' },
-      { en: 'My English is better than last year.', cs: 'Moje angličtina je lepší než loni.' },
+      { en: 'My English is better than it was last year.', cs: 'Moje angličtina je lepší než loni.' },
       { en: 'This is the worst film I have ever seen.', cs: 'To je nejhorší film, jaký jsem kdy viděl.' },
       { en: 'Summer is hotter than spring.', cs: 'Léto je teplejší než jaro.' },
     ],
     keyRules: [
-      'Krátká přídavná jména: -er (komparativ), -est (superlativ).',
-      'Dlouhá přídavná jména: more (komparativ), the most (superlativ).',
+      'Krátká přídavná jména (1 slabika, 2 slabiky na -y): -er (komparativ), -est (superlativ).',
+      'Dlouhá přídavná jména (ostatní dvouslabičná a delší): more (komparativ), the most (superlativ).',
       'Nepravidelné tvary: good → better → best, bad → worse → worst.',
-      'Srovnání: přídavné jméno + than (She is older than me).',
+      'Srovnání: 2. stupeň + than (She is older than me).',
       'Superlativ: the + superlativ + in/of (the best in the class).',
     ],
   },
@@ -362,8 +366,11 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       '(Jestli bude pršet, zůstanu doma.) V české škole se tento typ učí nejčastěji.\n\n' +
       'Druhý kondicionál (Second Conditional) se používá pro nereálné nebo nepravděpodobné situace v přítomnosti ' +
       'nebo budoucnosti: If + Past Simple, would + základní tvar. „If I won the lottery, I would travel around the world." ' +
-      '(Kdybych vyhrál v loterii, cestoval bych po světě.) Pozor: u slovesa „be" se v podmínce používá „were" pro ' +
-      'všechny osoby: „If I were you, I would study harder."\n\n' +
+      '(Kdybych vyhrál v loterii, cestoval bych po světě.) Pozor: u slovesa „be" se v podmínce ve spisovné angličtině ' +
+      'používá „were" pro všechny osoby: „If I were you, I would study harder." (Hovorově se objevuje i „was".)\n\n' +
+      'Třetí kondicionál (Third Conditional) se používá pro nereálné situace v minulosti – to, co se už stát nemůže: ' +
+      'If + Past Perfect, would have + příčestí minulé. „If I had studied harder, I would have passed the exam." ' +
+      '(Kdybych se byl víc učil, byl bych zkoušku udělal.)\n\n' +
       'Důležité pravidlo: po „if" nikdy nepoužíváme „will" v podmínkové větě (ne „If it will rain").',
     examples: [
       { en: 'If you mix red and blue, you get purple.', cs: 'Když smícháš červenou a modrou, dostaneš fialovou.' },
@@ -372,13 +379,15 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       { en: 'If I had more money, I would buy a car.', cs: 'Kdybych měl víc peněz, koupil bych si auto.' },
       { en: 'If I were you, I would apologise.', cs: 'Kdybych byl tebou, omluvil bych se.' },
       { en: 'If she studied harder, she would get better marks.', cs: 'Kdyby se víc učila, měla by lepší známky.' },
+      { en: 'If we had left earlier, we would have caught the train.', cs: 'Kdybychom byli vyrazili dřív, stihli bychom vlak.' },
     ],
     keyRules: [
       'Zero Conditional: If + Present Simple, Present Simple (obecné pravdy).',
       'First Conditional: If + Present Simple, will + sloveso (reálné budoucí situace).',
-      'Second Conditional: If + Past Simple, would + sloveso (nereálné situace).',
-      'Po „if" nikdy nepoužíváme „will".',
-      'U 2. kondicionálu: If I were (ne „was") you — pro všechny osoby.',
+      'Second Conditional: If + Past Simple, would + sloveso (nereálné situace v přítomnosti).',
+      'Third Conditional: If + Past Perfect, would have + příčestí minulé (nereálné situace v minulosti).',
+      'V podmínkové části s „if" nepoužíváme „will".',
+      'U 2. kondicionálu se ve spisovné angličtině používá „were" pro všechny osoby (If I were you).',
     ],
   },
 
@@ -392,7 +401,7 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
       'Trpný rod (Passive Voice) se používá, když je důležitější, co se stalo nebo komu se to stalo, než kdo to udělal. ' +
       'Také se používá, když nevíme, kdo danou činnost vykonal, nebo to není podstatné.\n\n' +
       'Tvoření: podmět + tvar slovesa „to be" + příčestí minulé (past participle). Čas se mění formou slovesa „be": ' +
-      'Present Simple Passive: „The room is cleaned every day" (Pokoj je uklízen každý den). ' +
+      'Present Simple Passive: „The room is cleaned every day" (Pokoj se uklízí každý den). ' +
       'Past Simple Passive: „The bridge was built in 1920" (Most byl postaven v roce 1920). ' +
       'Present Perfect Passive: „The letter has been sent" (Dopis byl odeslán). ' +
       'Future Passive: „The project will be finished next week" (Projekt bude dokončen příští týden).\n\n' +
@@ -403,7 +412,7 @@ export const GRAMMAR_REFERENCE: GrammarTopic[] = [
     examples: [
       { en: 'English is spoken all over the world.', cs: 'Anglicky se mluví po celém světě.' },
       { en: 'The school was built in 1965.', cs: 'Škola byla postavena v roce 1965.' },
-      { en: 'The homework has been done.', cs: 'Domácí úkol byl udělaný.' },
+      { en: 'The homework has been done.', cs: 'Domácí úkol už byl udělán.' },
       { en: 'The match will be played on Saturday.', cs: 'Zápas se bude hrát v sobotu.' },
       { en: 'The window was broken by the ball.', cs: 'Okno bylo rozbito míčem.' },
       { en: 'These cars are made in Germany.', cs: 'Tato auta se vyrábějí v Německu.' },

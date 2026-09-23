@@ -26,7 +26,7 @@ export const CONFUSABLE_CATEGORIES: Record<string, string> = {
 };
 
 export const CONFUSABLE_PAIRS: ConfusablePair[] = [
-  // ── SIMILAR MEANING (12) ──────────────────────────────────────────────
+  // ── SIMILAR MEANING (12) ─────────────────────────────────────────────
 
   {
     id: 'conf_01',
@@ -35,7 +35,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'půjčit si (od někoho)',
     meaningB_cs: 'půjčit (někomu)',
     explanationCs:
-      'Borrow = vzít si něco od někoho na čas. Lend = dát někomu něco na čas. Česky obojí „půjčit", ale směr je opačný.',
+      'Borrow = vzít si něco od někoho na čas. Lend = dát někomu něco na čas. Česky obojí „půjčit“, ale směr je opačný.',
     exampleA: 'Can I borrow your pen?',
     exampleB: 'Could you lend me your pen?',
     level: 'A2',
@@ -66,7 +66,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'vytvořit, vyrobit',
     meaningB_cs: 'dělat, provádět',
     explanationCs:
-      'Make = vytvořit něco nového (make a cake, make a decision). Do = provádět činnost (do homework, do the dishes). Česky je obojí často „dělat".',
+      'Make = vytvořit něco nového (make a cake, make a decision). Do = provádět činnost (do homework, do the dishes). Česky je obojí často „dělat“.',
     exampleA: 'She made a beautiful cake for the party.',
     exampleB: 'Have you done your homework yet?',
     level: 'A2',
@@ -97,7 +97,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'říci (slova)',
     meaningB_cs: 'říci (někomu), sdělit',
     explanationCs:
-      'Say = vyslovit slova (say hello, say that…). Tell = sdělit informaci někomu – vždy s osobou (tell me, tell a story). Česky obojí „říci".',
+      'Say = vyslovit slova (say hello, say that…). Tell = sdělit informaci někomu – vždy s osobou (tell me, tell a story). Česky obojí „říci“.',
     exampleA: 'She said she was tired.',
     exampleB: 'She told me she was tired.',
     level: 'A2',
@@ -128,7 +128,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'mluvit (formálně), hovořit jazykem',
     meaningB_cs: 'mluvit, povídat si (neformálně)',
     explanationCs:
-      'Speak = formálnější, používá se s jazyky (speak English). Talk = neformální konverzace (talk to a friend). Česky obojí „mluvit".',
+      'Speak = formálnější, používá se s jazyky (speak English). Talk = neformální konverzace (talk to a friend). Česky obojí „mluvit“.',
     exampleA: 'Do you speak French?',
     exampleB: 'We talked for hours about our trip.',
     level: 'A2',
@@ -140,14 +140,14 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'talk',
       },
       {
-        sentence: 'I need to ___ to you about something important.',
-        answer: 'talk',
-        wrongOption: 'speak',
+        sentence: 'I didn\'t want to go, but my friends ___ me into it.',
+        answer: 'talked',
+        wrongOption: 'spoke',
       },
       {
-        sentence: 'Could I ___ to the manager, please?',
-        answer: 'speak',
-        wrongOption: 'talk',
+        sentence: 'Hello, this is Tom ___. How can I help you?',
+        answer: 'speaking',
+        wrongOption: 'talking',
       },
     ],
   },
@@ -197,7 +197,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     category: 'similar_meaning',
     exercises: [
       {
-        sentence: 'Let\'s ___ a movie tonight.',
+        sentence: 'Could you ___ my bag for a minute while I buy a ticket?',
         answer: 'watch',
         wrongOption: 'see',
       },
@@ -228,7 +228,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     category: 'similar_meaning',
     exercises: [
       {
-        sentence: 'Please ___ your homework to school tomorrow.',
+        sentence: 'Come to my party on Saturday and ___ your guitar!',
         answer: 'bring',
         wrongOption: 'take',
       },
@@ -252,7 +252,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'učit se',
     meaningB_cs: 'učit (někoho)',
     explanationCs:
-      'Learn = získávat znalosti (žák). Teach = předávat znalosti (učitel). Study = studovat, věnovat se učení. Česky „učit" může být obojí.',
+      'Learn = získávat znalosti (žák). Teach = předávat znalosti (učitel). Study = studovat, věnovat se učení. Česky „učit“ může být obojí.',
     exampleA: 'I\'m learning to play the guitar.',
     exampleB: 'She teaches maths at a secondary school.',
     level: 'A1',
@@ -269,7 +269,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'teach',
       },
       {
-        sentence: 'He ___ English at the university.',
+        sentence: 'Mr Brown ___ English to adults at a language school.',
         answer: 'teaches',
         wrongOption: 'learns',
       },
@@ -314,7 +314,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'oloupit (osobu/místo)',
     meaningB_cs: 'ukrást (věc)',
     explanationCs:
-      'Rob = oloupit osobu nebo místo (rob a bank). Steal = ukrást konkrétní věc (steal money). Česky obojí „krást/loupit".',
+      'Rob = oloupit osobu nebo místo (rob a bank). Steal = ukrást konkrétní věc (steal money). Česky obojí „krást/loupit“.',
     exampleA: 'Two men robbed the bank yesterday.',
     exampleB: 'Someone stole my bicycle.',
     level: 'B1',
@@ -340,7 +340,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'doufat (reálná možnost)',
     meaningB_cs: 'přát si (nereálné/minulost)',
     explanationCs:
-      'Hope = doufat v něco reálného (I hope it\'s sunny). Wish = přát si něco nereálného nebo litovat (I wish I were taller). Česky obojí „doufat/přát si".',
+      'Hope = doufat v něco reálného (I hope it\'s sunny). Wish = přát si něco nereálného nebo litovat (I wish I were taller). Česky obojí „doufat/přát si“.',
     exampleA: 'I hope you pass the exam.',
     exampleB: 'I wish I could fly.',
     level: 'B1',
@@ -388,14 +388,14 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'tripping',
       },
       {
-        sentence: 'It was a long ___ from Prague to Madrid.',
-        answer: 'journey',
-        wrongOption: 'travel',
+        sentence: 'My aunt works at a ___ agency, so she often gets cheap holidays.',
+        answer: 'travel',
+        wrongOption: 'trip',
       },
     ],
   },
 
-  // ── SIMILAR FORM (8) ──────────────────────────────────────────────────
+  // ── SIMILAR FORM (7 + conf_19 = czech_interference) ──────────────────
 
   {
     id: 'conf_13',
@@ -404,7 +404,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'vedle, u',
     meaningB_cs: 'kromě, navíc',
     explanationCs:
-      'Beside = vedle (místně). Besides = kromě toho, navíc. Jedno písmeno „s" mění celý význam.',
+      'Beside = vedle (místně). Besides = kromě toho, navíc. Jedno písmeno „s“ mění celý význam.',
     exampleA: 'Come and sit beside me.',
     exampleB: 'Besides English, she also speaks German.',
     level: 'B1',
@@ -492,7 +492,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'rada (podstatné jméno)',
     meaningB_cs: 'radit (sloveso)',
     explanationCs:
-      'Advice (s „c") = podstatné jméno, rada. Advise (s „s") = sloveso, radit. Česky: rada × radit.',
+      'Advice (s „c“) = podstatné jméno, rada. Advise (s „s“) = sloveso, radit. Česky: rada × radit.',
     exampleA: 'She gave me some good advice.',
     exampleB: 'I would advise you to study harder.',
     level: 'B1',
@@ -523,7 +523,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'položit (něco)',
     meaningB_cs: 'ležet, lehnout si',
     explanationCs:
-      'Lay = položit něco (lay the book on the table) — potřebuje předmět. Lie = ležet (lie on the bed) — bez předmětu. Pozor: minulý čas lie = lay!',
+      'Lay = položit něco (lay the book on the table) – potřebuje předmět. Lie = ležet (lie on the bed) – bez předmětu. Pozor: minulý čas lie = lay!',
     exampleA: 'Lay the books on the table, please.',
     exampleB: 'I like to lie on the grass and look at the sky.',
     level: 'B1',
@@ -554,7 +554,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'zvednout (něco), zvýšit',
     meaningB_cs: 'stoupat, vstávat (samo)',
     explanationCs:
-      'Raise = zvednout něco (raise your hand) — potřebuje předmět. Rise = stoupat samo (the sun rises) — bez předmětu. Česky: zvednout × stoupat.',
+      'Raise = zvednout něco (raise your hand) – potřebuje předmět. Rise = stoupat samo (the sun rises) – bez předmětu. Česky: zvednout × stoupat.',
     exampleA: 'Please raise your hand if you have a question.',
     exampleB: 'The sun rises in the east.',
     level: 'B1',
@@ -585,11 +585,11 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'kdo, který (pro osoby)',
     meaningB_cs: 'který (pro věci/zvířata)',
     explanationCs:
-      'Who = pro osoby. Which = pro věci a zvířata. That = pro obojí (méně formální). Česky je „který" univerzální.',
+      'Who = pro osoby. Which = pro věci a zvířata. That = pro obojí (méně formální). Česky je „který“ univerzální.',
     exampleA: 'The man who lives next door is a teacher.',
     exampleB: 'The book which I bought was really good.',
     level: 'A2',
-    category: 'similar_form',
+    category: 'czech_interference',
     exercises: [
       {
         sentence: 'She is the girl ___ won the competition.',
@@ -613,7 +613,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     id: 'conf_20',
     wordA: 'its',
     wordB: "it's",
-    meaningA_cs: 'jeho (přivlastňovací)',
+    meaningA_cs: 'jeho, její (přivlastňovací; u věcí a zvířat)',
     meaningB_cs: 'to je / ono je (stažený tvar)',
     explanationCs:
       'Its = přivlastňovací zájmeno (its colour). It\'s = zkrácené it is / it has. Česky: jeho × to je.',
@@ -640,7 +640,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     ],
   },
 
-  // ── FALSE FRIENDS (12) ────────────────────────────────────────────────
+  // ── FALSE FRIENDS (12) ───────────────────────────────────────────────
 
   {
     id: 'conf_21',
@@ -649,7 +649,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 've skutečnosti, vlastně',
     meaningB_cs: 'v současnosti, aktuálně',
     explanationCs:
-      'Actually = ve skutečnosti (NE aktuálně!). Currently = v současné době. Čeští studenti říkají „actually" místo „currently" podle českého „aktuálně".',
+      'Actually = ve skutečnosti (NE aktuálně!). Currently = v současné době. Čeští studenti říkají „actually“ místo „currently“ podle českého „aktuálně“.',
     exampleA: 'Actually, I don\'t agree with you.',
     exampleB: 'She is currently working on a new project.',
     level: 'B1',
@@ -677,10 +677,10 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     id: 'conf_22',
     wordA: 'eventually',
     wordB: 'possibly',
-    meaningA_cs: 'nakonec, nakonec přece jen',
+    meaningA_cs: 'nakonec, časem (po delší době)',
     meaningB_cs: 'možná, eventuálně',
     explanationCs:
-      'Eventually = nakonec, po nějaké době (NE eventuálně!). Possibly = možná. Český „eventuálně" ≠ anglické „eventually".',
+      'Eventually = nakonec, po nějaké době (NE eventuálně!). Possibly = možná. Český „eventuálně“ ≠ anglické „eventually“.',
     exampleA: 'He eventually found his keys under the sofa.',
     exampleB: 'Could you possibly help me with this?',
     level: 'B1',
@@ -706,7 +706,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'soucitný, chápavý',
     meaningB_cs: 'sympatický, milý',
     explanationCs:
-      'Sympathetic = soucitný, chápavý (NE sympatický!). Český „sympatický" = likeable, nice, pleasant. Jeden z nejčastějších false friends.',
+      'Sympathetic = soucitný, chápavý (NE sympatický!). Český „sympatický“ = likeable, nice, pleasant. Jeden z nejčastějších false friends.',
     exampleA: 'She was very sympathetic when I told her my problems.',
     exampleB: 'He\'s a very likeable person — everyone enjoys his company.',
     level: 'B1',
@@ -737,7 +737,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'šéfkuchař',
     meaningB_cs: 'šéf, vedoucí',
     explanationCs:
-      'Chef = šéfkuchař (NE šéf!). Český „šéf" = boss, manager. Chef je jen v kuchyni.',
+      'Chef = šéfkuchař (NE šéf!). Český „šéf“ = boss, manager. Chef je jen v kuchyni.',
     exampleA: 'The chef prepared a wonderful dinner.',
     exampleB: 'I need to ask my boss for a day off.',
     level: 'A2',
@@ -749,7 +749,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'chef',
       },
       {
-        sentence: 'The ___ at this restaurant is from Italy.',
+        sentence: 'The food was delicious — please give our compliments to the ___.',
         answer: 'chef',
         wrongOption: 'boss',
       },
@@ -768,7 +768,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'tělocvična',
     meaningB_cs: 'gymnázium',
     explanationCs:
-      'Gymnasium = tělocvična (NE gymnázium!). České „gymnázium" = grammar school. V americké angličtině se tělocvičně říká „gym".',
+      'Gymnasium = tělocvična (NE gymnázium!). České „gymnázium“ = grammar school. V běžné řeči se tělocvičně říká zkráceně „gym“.',
     exampleA: 'The students are playing basketball in the gymnasium.',
     exampleB: 'He studied at a grammar school in Prague.',
     level: 'A2',
@@ -794,7 +794,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'látka, textilie',
     meaningB_cs: 'továrna',
     explanationCs:
-      'Fabric = látka, textilie (NE fabrika!). Český „fabrika" = factory. Typický false friend.',
+      'Fabric = látka, textilie (NE fabrika!). Český „fabrika“ = factory. Typický false friend.',
     exampleA: 'This dress is made from a beautiful fabric.',
     exampleB: 'He works in a car factory.',
     level: 'B1',
@@ -820,7 +820,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'časopis',
     meaningB_cs: 'sklad, skladiště',
     explanationCs:
-      'Magazine = časopis (NE magazín ve smyslu sklad!). Český „magazín" (sklad) = warehouse. V češtině se „magazín" používá i pro časopis, ale pozor na kontext.',
+      'Magazine = časopis (NE sklad!). Zastaralé české „magacín“ (= sklad) se anglicky řekne warehouse.',
     exampleA: 'She reads fashion magazines every month.',
     exampleB: 'The goods are stored in a large warehouse.',
     level: 'A2',
@@ -846,7 +846,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'vyhlídka, perspektiva',
     meaningB_cs: 'brožura, prospekt',
     explanationCs:
-      'Prospect = vyhlídka, perspektiva (NE prospekt!). Český „prospekt" (leták) = brochure, leaflet.',
+      'Prospect = vyhlídka, perspektiva (NE prospekt!). Český „prospekt“ (leták) = brochure, leaflet.',
     exampleA: 'The prospect of a promotion motivated her.',
     exampleB: 'Pick up a brochure about the hotel at reception.',
     level: 'B1',
@@ -872,7 +872,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'konzervant (v jídle)',
     meaningB_cs: 'prezervativ',
     explanationCs:
-      'Preservative = konzervant v potravinách (NE prezervativ!). Český „prezervativ" = condom. Velmi trapný false friend!',
+      'Preservative = konzervant v potravinách (NE prezervativ!). Český „prezervativ“ = condom. Velmi trapný false friend!',
     exampleA: 'This juice contains no artificial preservatives.',
     exampleB: 'Condoms are available at any pharmacy.',
     level: 'B1',
@@ -898,7 +898,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'shoda, souběh',
     meaningB_cs: 'konkurence, soutěž',
     explanationCs:
-      'Concurrence = shoda, souběh událostí (NE konkurence!). Český „konkurence" = competition. V obchodním kontextu také „competitors".',
+      'Concurrence = shoda, souběh událostí (NE konkurence!). Český „konkurence“ = competition. V obchodním kontextu také „competitors“.',
     exampleA: 'The concurrence of these events was surprising.',
     exampleB: 'There is a lot of competition in this market.',
     level: 'B1',
@@ -924,7 +924,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'účtenka, stvrzenka',
     meaningB_cs: 'recept (kuchařský)',
     explanationCs:
-      'Receipt = účtenka (NE recept!). Český „recept" (kuchařský) = recipe. Lékařský recept = prescription.',
+      'Receipt = účtenka (NE recept!). Český „recept“ (kuchařský) = recipe. Lékařský recept = prescription.',
     exampleA: 'Keep the receipt in case you want to return it.',
     exampleB: 'Can you give me the recipe for this cake?',
     level: 'A2',
@@ -955,7 +955,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'miliarda (10⁹)',
     meaningB_cs: 'bilion (10¹²)',
     explanationCs:
-      'Anglické billion = miliarda (NE bilion!). Český „bilion" = anglické trillion. Často matoucí při čtení zpráv.',
+      'Anglické billion = miliarda (NE bilion!). Český „bilion“ = anglické trillion. Často matoucí při čtení zpráv.',
     exampleA: 'The company is worth 5 billion dollars.',
     exampleB: 'The national debt has reached 2 trillion dollars.',
     level: 'B1',
@@ -967,14 +967,14 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'trillion',
       },
       {
-        sentence: 'The country\'s GDP is over 20 ___ dollars.',
+        sentence: 'A thousand billion is one ___.',
         answer: 'trillion',
         wrongOption: 'billion',
       },
     ],
   },
 
-  // ── CZECH INTERFERENCE (8) ────────────────────────────────────────────
+  // ── CZECH INTERFERENCE (8 + conf_19) ─────────────────────────────────
 
   {
     id: 'conf_33',
@@ -983,7 +983,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'zábava, zábavný',
     meaningB_cs: 'vtipný, směšný',
     explanationCs:
-      'Fun = zábava, zábavný (it was fun). Funny = vtipný, legrační (a funny joke). Čeští studenti je často zaměňují, protože česky je obojí „zábavný/vtipný".',
+      'Fun = zábava, zábavný (it was fun). Funny = vtipný, legrační (a funny joke). Pozor: „The party was funny“ znamená, že byl večírek k smíchu (nebo divný), ne že jsme se dobře bavili.',
     exampleA: 'The party was really fun.',
     exampleB: 'He told a really funny joke.',
     level: 'A2',
@@ -1000,9 +1000,9 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'funny',
       },
       {
-        sentence: 'It\'s not ___ to make fun of people.',
-        answer: 'funny',
-        wrongOption: 'fun',
+        sentence: 'Have ___ at the party tonight!',
+        answer: 'fun',
+        wrongOption: 'funny',
       },
     ],
   },
@@ -1014,16 +1014,16 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'znát, vědět',
     meaningB_cs: 'umět, moci',
     explanationCs:
-      'V češtině říkáme „umím anglicky", ale anglicky se říká „I can speak English" nebo „I know English" — NE „I know to speak". Čeští studenti často používají „know" místo „can".',
+      'V češtině říkáme „umím anglicky“, ale anglicky se říká „I can speak English“ nebo „I know English“ – NE „I know to speak“. Čeští studenti často používají „know“ místo „can“.',
     exampleA: 'I know the answer to this question.',
     exampleB: 'She can swim very well.',
     level: 'A1',
     category: 'czech_interference',
     exercises: [
       {
-        sentence: '___ you play the piano?',
-        answer: 'Can',
-        wrongOption: 'Do you know',
+        sentence: 'My brother is only five, but he ___ already read.',
+        answer: 'can',
+        wrongOption: 'knows',
       },
       {
         sentence: 'I ___ speak three languages.',
@@ -1045,7 +1045,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'jiný, ostatní',
     meaningB_cs: 'další, jiný (jeden)',
     explanationCs:
-      'Other = jiný/ostatní (množné: other people). Another = ještě jeden, an + other (another cup of tea). Česky obojí „jiný/další".',
+      'Other = jiný/ostatní (množné: other people). Another = ještě jeden, an + other (another cup of tea). Česky obojí „jiný/další“.',
     exampleA: 'The other students are in the library.',
     exampleB: 'Would you like another cup of coffee?',
     level: 'A2',
@@ -1057,7 +1057,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'other',
       },
       {
-        sentence: 'Some people like tea, ___ people prefer coffee.',
+        sentence: 'Some people like tea, but ___ people prefer coffee.',
         answer: 'other',
         wrongOption: 'another',
       },
@@ -1076,7 +1076,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'od (konkrétní čas)',
     meaningB_cs: 'po dobu (délka času)',
     explanationCs:
-      'Since = od konkrétního bodu v čase (since 2020). For = po dobu (for three years). Čeští studenti to zaměňují, protože česky se časový bod i trvání někdy řekne stejně.',
+      'Since = od konkrétního bodu v čase (since 2020). For = po dobu (for three years). Pozor i na čas: česky „bydlím tu deset let“ (přítomný čas), anglicky I have lived here for ten years (předpřítomný čas).',
     exampleA: 'I have lived here since 2015.',
     exampleB: 'I have lived here for ten years.',
     level: 'A2',
@@ -1104,10 +1104,10 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     id: 'conf_37',
     wordA: 'used to',
     wordB: 'be used to',
-    meaningA_cs: 'dříve jsem (zvyk v minulosti)',
+    meaningA_cs: 'dříve (něco dělával) – zvyk v minulosti',
     meaningB_cs: 'být zvyklý na',
     explanationCs:
-      'Used to = dříve jsem dělával (I used to smoke). Be used to = být zvyklý na (I\'m used to getting up early). Čeští studenti to zaměňují kvůli slovu „zvyklý".',
+      'Used to = dříve jsem dělával (I used to smoke). Be used to = být zvyklý na (I\'m used to getting up early). Čeští studenti to zaměňují kvůli slovu „zvyklý“.',
     exampleA: 'I used to play football when I was young.',
     exampleB: 'She is used to working long hours.',
     level: 'B1',
@@ -1119,9 +1119,9 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
         wrongOption: 'is used to',
       },
       {
-        sentence: 'I\'m ___ waking up early — I\'ve done it for years.',
-        answer: 'used to',
-        wrongOption: 'used to be',
+        sentence: 'I ___ waking up early — I\'ve done it for years.',
+        answer: 'am used to',
+        wrongOption: 'used to',
       },
       {
         sentence: 'She ___ have long hair, but she cut it last year.',
@@ -1138,7 +1138,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'tak (+ přídavné jméno)',
     meaningB_cs: 'tak, takový (+ podstatné jméno)',
     explanationCs:
-      'So + adjective (so beautiful). Such + a/an + noun (such a beautiful day). Česky obojí „tak/takový", ale anglická gramatika rozlišuje.',
+      'So + adjective (so beautiful). Such + a/an + noun (such a beautiful day). Česky obojí „tak/takový“, ale anglická gramatika rozlišuje.',
     exampleA: 'The movie was so boring.',
     exampleB: 'It was such a boring movie.',
     level: 'A2',
@@ -1200,7 +1200,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     meaningA_cs: 'stále, ještě (kladné věty)',
     meaningB_cs: 'ještě (záporné věty a otázky)',
     explanationCs:
-      'Still = stále, pořád (v kladných větách, uprostřed). Yet = ještě (v záporných větách a otázkách, na konci). Česky obojí „ještě/stále".',
+      'Still = stále, pořád (v kladných větách, uprostřed). Yet = ještě (v záporných větách a otázkách, na konci). Česky obojí „ještě/stále“.',
     exampleA: 'She still lives with her parents.',
     exampleB: 'He hasn\'t finished yet.',
     level: 'A2',

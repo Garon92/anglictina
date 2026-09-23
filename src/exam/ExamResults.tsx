@@ -115,7 +115,7 @@ export default function ExamResults({
             const info = partInfo(s.part);
             const r = s.max ? s.points / s.max : 0;
             return (
-              <li key={s.part}>
+              <li key={s.part} className="min-w-0">
                 <button type="button" className="card card-link flex w-full items-center gap-3 !p-3 text-left" onClick={() => setReviewPart(s.part)}>
                   <span className="tile-icon" aria-hidden="true">{info.icon}</span>
                   <span className="min-w-0 flex-1">

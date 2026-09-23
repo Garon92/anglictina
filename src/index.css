@@ -985,3 +985,7 @@
     white-space: normal;
   }
 }
+
+@layer components {
+  .exam-wave span { height: 10px; }
+}

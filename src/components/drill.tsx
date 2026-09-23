@@ -16,6 +16,7 @@ import { playComplete, playCorrect, playIncorrect } from '../sounds';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { confirmDialog } from '../kit';
 import { displayAnswer } from '../lib/answer';
+import { guessLang } from '../utils';
 import { PageHeader, ProgressBar, Stars, starsFor } from './ui';
 
 /* ─── Session hook ────────────────────────────────────────────────── */
@@ -143,6 +144,7 @@ export function DrillSetup({
   backLabel,
   poolSize,
   poolLabel,
+  poolNoun,
   onStart,
   startLabel = 'Začít',
   children,
@@ -160,6 +162,8 @@ export function DrillSetup({
   poolSize?: number;
   /** Custom text next to the start button (instead of "K dispozici N úloh"). */
   poolLabel?: ReactNode;
+  /** Czech noun forms for the pool count [1, 2–4, 5+], default úloha/úlohy/úloh. */
+  poolNoun?: [string, string, string];
   onStart: () => void;
   startLabel?: string;
   children?: ReactNode;
@@ -191,7 +195,9 @@ export function DrillSetup({
             <span className="text-sm text-muted">{poolLabel}</span>
           ) : poolSize !== undefined ? (
             <span className="text-sm text-muted">
-              {empty ? 'Pro tento výběr nejsou žádné úlohy — uprav filtry.' : `K dispozici ${poolSize} ${poolSize === 1 ? 'úloha' : poolSize < 5 ? 'úlohy' : 'úloh'}`}
+              {empty
+                ? 'Pro tento výběr nic nemáme — uprav filtry.'
+                : `K dispozici ${poolSize} ${(poolNoun ?? ['úloha', 'úlohy', 'úloh'])[poolSize === 1 ? 0 : poolSize >= 2 && poolSize <= 4 ? 1 : 2]}`}
             </span>
           ) : null}
         </div>
@@ -612,7 +618,7 @@ export function ResultScreen({
           <ul className="space-y-2">
             {mistakes.map((m, i) => (
               <li key={i} className="card !p-3">
-                <div className="text-sm text-fg" lang="en">{m.prompt}</div>
+                <div className="text-sm text-fg" lang={guessLang(m.prompt)}>{m.prompt}</div>
                 <div className="mt-1 text-sm">
                   <span className="font-bold text-success" lang="en">✓ {displayAnswer(m.answer)}</span>
                   {m.userAnswer && <span className="ml-2 text-danger line-through decoration-2" lang="en">{m.userAnswer}</span>}

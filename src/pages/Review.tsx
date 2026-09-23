@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { getStats, getAllSRSStates, getDrillSessions, getExamSessions, currentStreak } from '../db';
 import { formatMinutes } from '../utils';
 import { VOCABULARY } from '../data/vocabulary';
@@ -11,6 +11,7 @@ import { dayKey, addDays, parseDayKey, startOfDay, czechPlural } from '../lib/da
 import type { UserStats, SRSState, DrillSession, ExamSession } from '../types';
 import { DEFAULT_STATS } from '../types';
 import { PageHeader, ProgressBar, StatTile } from '../components/ui';
+import { skillSummary } from '../exam/history';
 import { Segmented } from '../components/ui';
 
 type TabKey = 'overview' | 'skills' | 'vocab' | 'exams' | 'achievements';
@@ -35,7 +36,10 @@ interface ReviewData {
 
 export default function Review() {
   const [data, setData] = useState<ReviewData | null>(null);
-  const [tab, setTab] = useState<TabKey>('overview');
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get('tab') as TabKey | null;
+  const tab: TabKey = tabParam && TABS.some((t) => t.value === tabParam) ? tabParam : 'overview';
+  const setTab = (t: TabKey) => setParams(t === 'overview' ? {} : { tab: t }, { replace: true });
 
   useEffect(() => {
     (async () => {
@@ -382,7 +386,7 @@ function ExamsTab({ exams }: { exams: ExamSession[] }) {
                   <span className="block text-sm font-bold text-fg">{examLabel(e)}</span>
                   <span className="block text-xs text-muted">
                     {new Date(e.startedAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    {' · '}P {Math.round(e.scoreBySkill.listening)} % · Č {Math.round(e.scoreBySkill.reading)} % · J {Math.round(e.scoreBySkill.language)} %
+                    {' · '}{skillSummary(e)}
                   </span>
                 </span>
                 <span className={`text-lg font-black tabular-nums ${pct >= 44 ? 'text-success' : 'text-danger'}`}>

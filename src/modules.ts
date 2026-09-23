@@ -38,8 +38,8 @@ export const MODULES: ModuleDef[] = [
   { id: 'vocab_topics', path: '/vocab-topics', title: 'Slovíčka podle témat', desc: 'Maturitní témata s příklady', icon: '🧭', group: 'vocab', tracked: true, keywords: 'temata rodina cestovani' },
   { id: 'phrasal_verbs', path: '/phrasal-verbs', title: 'Frázová slovesa', desc: 'get up, look after, give up…', icon: '🧩', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'phrasal verbs' },
   { id: 'idioms', path: '/idioms', title: 'Idiomy a kolokace', desc: 'Ustálená spojení', icon: '💎', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'idioms collocations make do' },
-  { id: 'irregular_verbs', path: '/irregular-verbs', title: 'Nepravidelná slovesa', desc: 'go – went – gone', icon: '🔁', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'irregular verbs past participle' },
-  { id: 'confusables', path: '/confusables', title: 'Záměnná slova', desc: 'false friends, make × do…', icon: '🔀', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'false friends confusables' },
+  { id: 'irregular_verbs', path: '/irregular-verbs', title: 'Nepravidelná slovesa', desc: 'go – went – gone', icon: '🪜', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'irregular verbs past participle' },
+  { id: 'confusables', path: '/confusables', title: 'Záměnná slova', desc: 'false friends, make × do…', icon: '⚖️', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'false friends confusables' },
   { id: 'word_formation', path: '/word-formation', title: 'Tvoření slov', desc: 'Předpony a přípony', icon: '🔧', group: 'vocab', examSkill: 'language', tracked: true, keywords: 'word formation prefix suffix' },
   { id: 'custom_words', path: '/custom-words', title: 'Vlastní slovíčka', desc: 'Tvůj osobní slovníček', icon: '✍️', group: 'vocab', tracked: true, keywords: 'vlastni slovnicek' },
   { id: 'matching', path: '/matching', title: 'Pexeso', desc: 'Spojuj slova s překladem', icon: '🃏', group: 'vocab', tracked: true, keywords: 'hra pexeso matching' },
@@ -47,14 +47,14 @@ export const MODULES: ModuleDef[] = [
   // Gramatika
   { id: 'grammar', path: '/grammar', title: 'Gramatika – mix', desc: 'Časy, modální slovesa, stupňování…', icon: '✏️', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'grammar mix' },
   { id: 'tenses', path: '/tenses', title: 'Přehled časů', desc: 'Časová osa, vzorce a příklady', icon: '⏱️', group: 'grammar', keywords: 'tenses casy present past' },
-  { id: 'articles', path: '/articles', title: 'Členy', desc: 'a / an / the / –', icon: '📐', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'articles a an the' },
+  { id: 'articles', path: '/articles', title: 'Členy', desc: 'a / an / the / –', icon: '🅰️', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'articles a an the' },
   { id: 'prepositions', path: '/prepositions', title: 'Předložky', desc: 'in / on / at a další', icon: '📌', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'prepositions in on at' },
   { id: 'conditionals', path: '/conditionals', title: 'Podmínkové věty', desc: 'If… typy 0–3', icon: '🔀', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'conditionals if' },
   { id: 'passive_voice', path: '/passive', title: 'Trpný rod', desc: 'is made, was built…', icon: '🔄', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'passive voice trpny rod' },
   { id: 'reported_speech', path: '/reported-speech', title: 'Nepřímá řeč', desc: 'He said that…', icon: '🗨️', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'reported speech neprima rec' },
   { id: 'word_order', path: '/word-order', title: 'Slovosled', desc: 'Skládej věty ve správném pořadí', icon: '🧱', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'word order slovosled' },
   { id: 'error_correction', path: '/error-correction', title: 'Oprav chybu', desc: 'Najdi a oprav chybu ve větě', icon: '🩹', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'error correction chyby' },
-  { id: 'sentence_transform', path: '/sentence-transform', title: 'Přeformulace', desc: 'Stejný význam, jiná stavba', icon: '🔁', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'transformation key word' },
+  { id: 'sentence_transform', path: '/sentence-transform', title: 'Přeformulace', desc: 'Stejný význam, jiná stavba', icon: '♻️', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'transformation key word' },
   { id: 'czech_errors', path: '/czech-errors', title: 'Typické chyby Čechů', desc: 'Čeština nám podráží nohy', icon: '🇨🇿', group: 'grammar', examSkill: 'language', tracked: true, keywords: 'czech errors chyby cechu' },
   { id: 'translation', path: '/translation', title: 'Překlad vět', desc: 'Z češtiny do angličtiny', icon: '🔤', group: 'grammar', tracked: true, keywords: 'translation preklad' },
 
@@ -68,7 +68,7 @@ export const MODULES: ModuleDef[] = [
 
   // Kvízy
   { id: 'mixed', path: '/mixed-quiz', title: 'Mix kvíz', desc: 'Otázky ze všech modulů', icon: '🎲', group: 'quiz', tracked: true, keywords: 'mix quiz' },
-  { id: 'speed', path: '/speed', title: 'Rychlovka', desc: '20 otázek proti času', icon: '⏱️', group: 'quiz', tracked: true, keywords: 'speed rychlovka cas' },
+  { id: 'speed', path: '/speed', title: 'Rychlovka', desc: '20 otázek proti času', icon: '⚡', group: 'quiz', tracked: true, keywords: 'speed rychlovka cas' },
   { id: 'favorites_quiz', path: '/favorites-quiz', title: 'Kvíz z oblíbených', desc: 'Procvič si uložená slova', icon: '💛', group: 'quiz', tracked: true, keywords: 'oblibene favorites' },
   { id: 'diagnostic', path: '/diagnostic', title: 'Rozřazovací test', desc: 'Zjisti svou úroveň A1–B1', icon: '🩺', group: 'quiz', tracked: true, keywords: 'diagnostika uroven test' },
 

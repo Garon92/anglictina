@@ -12,9 +12,16 @@ export function ttsSupported(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
 }
 
+/** macOS/iOS novelty voices (sound effects, singing…) — useless for learning English. */
+const NOVELTY = /^(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|junior|organ|pipe organ|superstar|trinoids|whisper|wobble|zarvox|ralph|fred|grandma|grandpa|rocko|shelley|flo|sandy|eddy|reed)\b/i;
+
 export function getAvailableVoices(): SpeechSynthesisVoice[] {
   if (!ttsSupported()) return [];
-  return speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('en'));
+  const rank = (v: SpeechSynthesisVoice) => (/en[-_]gb/i.test(v.lang) ? 0 : /en[-_](us|au|ie|ca|nz)/i.test(v.lang) ? 1 : 2);
+  return speechSynthesis
+    .getVoices()
+    .filter((v) => v.lang.toLowerCase().startsWith('en') && !NOVELTY.test(v.name.replace(/\s*\(.*$/, '')))
+    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 }
 
 export function initTTS(preferredVoiceName?: string): Promise<SpeechSynthesisVoice[]> {

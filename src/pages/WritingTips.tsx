@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router';
 import { useSettings } from '../App';
 import { WRITING_TEMPLATES } from '../data/writing';
 import { speak, stopSpeaking } from '../tts';
-import { confirmDialog, plural } from '../kit';
+import { plural } from '../kit';
+import { safeConfirm } from '../lib/confirm';
 import { PageHeader, ProgressBar, Segmented, SpeakButton } from '../components/ui';
 import type { WritingTemplate } from '../types';
 
@@ -327,7 +328,7 @@ function WritingPractice({ tpl, range }: { tpl: Tpl; range: [number, number] | n
 
   const clear = async () => {
     if (count > 5) {
-      const ok = await confirmDialog({ title: 'Smazat text?', message: 'Tvůj rozepsaný text se smaže.', confirmLabel: 'Smazat', cancelLabel: 'Ponechat', danger: true });
+      const ok = await safeConfirm({ title: 'Smazat text?', message: 'Tvůj rozepsaný text se smaže.', confirmLabel: 'Smazat', cancelLabel: 'Ponechat', danger: true });
       if (!ok) return;
     }
     change('');

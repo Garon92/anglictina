@@ -3,7 +3,8 @@ import { speak, stopSpeaking } from '../tts';
 import { shuffleArray } from '../utils';
 import { VOCABULARY } from '../data/vocabulary';
 import { useSettings } from '../App';
-import { confirmDialog, toast } from '../kit';
+import { toast } from '../kit';
+import { safeConfirm } from '../lib/confirm';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { PageHeader, Segmented, SpeakButton } from '../components/ui';
 import {
@@ -213,7 +214,7 @@ export default function CustomWords() {
   }
 
   async function removeWord(w: CustomWord) {
-    const ok = await confirmDialog({
+    const ok = await safeConfirm({
       title: 'Smazat slovíčko?',
       message: `„${w.en} — ${w.cs}“ zmizí z tvého slovníčku.`,
       confirmLabel: 'Smazat',

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { confirmDialog } from '../kit';
+import { safeConfirm } from '../lib/confirm';
 import { getExamSessions } from '../db';
 import type { ExamSession } from '../types';
 import { EXAM_SETS } from './sets';
-import { PARTS, SUBTESTS, partMax, FULL_MINUTES, LISTENING_MINUTES, READING_MINUTES, type PartNo, type ExamMode } from './structure';
-import { loadRun, clearRun, partHistory, pickSetForPart, setTitle, runParts, type ExamRun } from './run';
+import { PARTS, SUBTESTS, partMax, FULL_MINUTES, LISTENING_MINUTES, READING_MINUTES, MODE_LABELS, type PartNo, type ExamMode } from './structure';
+import { loadRun, clearRun, partHistory, pickSetForPart, setTitle, runParts, remainingTime, partLabel, type ExamRun } from './run';
 import { answeredCount } from './scoring';
+import { attemptLabel, passedAttempt, scoreText, skillSummary } from './history';
 import { PageHeader, ProgressBar } from '../components/ui';
 import { useSettings } from '../App';
 import { daysUntil, czechPlural } from '../lib/dates';
@@ -37,7 +38,7 @@ export default function ExamHome() {
 
   async function start(url: string) {
     if (current) {
-      const ok = await confirmDialog({
+      const ok = await safeConfirm({
         title: 'Zahodit rozpracovaný test?',
         message: 'Máš rozpracovaný test. Když začneš nový, rozpracované odpovědi se smažou.',
         confirmLabel: 'Začít nový',
@@ -55,7 +56,8 @@ export default function ExamHome() {
     if (h.mode !== 'full' || !h.setId) continue;
     bestBySet.set(h.setId, Math.max(bestBySet.get(h.setId) ?? 0, h.scoreTotal));
   }
-  const fullHistory = history.filter((h) => h.mode === 'full');
+  // All v2 attempts (full, listening-only, reading-only, part training) with details.
+  const recentAttempts = history.filter((h) => h.partPoints && h.id !== undefined);
   const days = daysUntil(settings.examDate);
 
   return (
@@ -156,25 +158,36 @@ export default function ExamHome() {
       </section>
 
       {/* History */}
-      {fullHistory.length > 0 && (
+      {recentAttempts.length > 0 && (
         <section className="mt-3" aria-labelledby="hist-title">
           <div className="mb-2 flex items-center justify-between">
-            <h2 id="hist-title" className="section-title !mb-0">Poslední testy</h2>
-            <Link to="/review" className="text-sm font-bold">Všechny výsledky →</Link>
+            <h2 id="hist-title" className="section-title !mb-0">Poslední pokusy</h2>
+            <Link to="/review?tab=exams" className="text-sm font-bold">Všechny výsledky →</Link>
           </div>
           <ul className="grid gap-2 sm:grid-cols-2">
-            {fullHistory.slice(0, 4).map((h) => (
-              <li key={h.id}>
-                <Link to={`/exam/history/${h.id}`} className="card card-link flex items-center gap-3 !p-3 no-underline">
-                  <span className={`grid h-12 w-12 place-items-center rounded-xl text-lg font-black tabular-nums ${h.scoreTotal >= 44 ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}>{h.scoreTotal}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-bold text-fg">{EXAM_SETS.find((s) => s.id === h.setId)?.title ?? 'Mix'}</span>
-                    <span className="block text-xs text-muted">{new Date(h.startedAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long' })} · P {h.scoreBySkill.listening} % · Č {h.scoreBySkill.reading} % · J {h.scoreBySkill.language} %</span>
-                  </span>
-                  <span aria-hidden="true" className="text-muted">›</span>
-                </Link>
-              </li>
-            ))}
+            {recentAttempts.slice(0, 6).map((h) => {
+              const ok = passedAttempt(h);
+              const set = h.setId === 'mix' ? 'Mix' : EXAM_SETS.find((s) => s.id === h.setId)?.title ?? 'Test';
+              const partNo = h.mode === 'part' && h.parts?.length === 1 ? h.parts[0] : null;
+              return (
+                <li key={h.id} className="min-w-0">
+                  <Link to={`/exam/history/${h.id}`} className="card card-link flex items-center gap-3 !p-3 no-underline">
+                    <span className={`grid h-12 min-w-12 place-items-center rounded-xl px-1 text-base font-black tabular-nums ${ok ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'}`}>{scoreText(h)}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate font-bold text-fg">{partNo ? `Část ${partNo} · ${set}` : set}</span>
+                        <span className="badge shrink-0 !text-[0.65rem]">{attemptLabel(h)}</span>
+                      </span>
+                      <span className="block truncate text-xs text-muted">
+                        {new Date(h.startedAt).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long' })}
+                        {!partNo && ` · ${skillSummary(h)}`}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" className="text-muted">›</span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
@@ -243,19 +256,41 @@ function ResumeCard({ run, onDiscard }: { run: ExamRun; onDiscard: () => void })
   const parts = runParts(run);
   const total = parts.reduce((s, p) => s + PARTS[p - 1].items, 0);
   const done = parts.reduce((s, p) => s + answeredCount(p as PartNo, run.answers), 0);
-  const left = run.deadline ? Math.max(0, Math.round((run.deadline - Date.now()) / 60000)) : null;
+  const ms = remainingTime(run);
+  const left = ms === null ? null : Math.max(0, Math.round(ms / 60000));
+  const title = run.mode === 'part' && run.part ? `Trénink · ${partLabel(run.part)}` : `${setTitle(run)} · ${MODE_LABELS[run.mode]}`;
   return (
-    <section className="card mb-5 flex flex-wrap items-center gap-4 !border-warning !p-4" aria-label="Rozpracovaný test">
-      <span className="text-3xl" aria-hidden="true">⏸️</span>
-      <div className="min-w-0 flex-1">
-        <div className="font-black text-fg">Rozpracovaný test: {setTitle(run)}</div>
-        <div className="text-sm text-muted">
-          Vyplněno {done} z {total}
-          {left !== null && ` · ${left > 0 ? `zbývá ${left} min` : 'čas vypršel'}`}
+    <section className="card mb-5 !border-warning !p-4" aria-label="Rozpracovaný test">
+      <div className="flex items-start gap-3">
+        <span className="text-3xl" aria-hidden="true">⏸️</span>
+        <div className="min-w-0 flex-1">
+          <div className="eyebrow">Rozpracovaný test</div>
+          <div className="font-black text-fg">{title}</div>
+          <div className="text-sm text-muted">
+            Vyplněno {done} z {total}
+            {left !== null && ` · ${left > 0 ? `zbývá ${left} min (čas stojí)` : 'čas vypršel'}`}
+          </div>
         </div>
       </div>
-      <button type="button" className="btn-ghost btn-sm" onClick={onDiscard}>Zahodit</button>
-      <Link to="/exam/run" className="btn-primary">Pokračovat</Link>
+      <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={async () => {
+            const ok = await safeConfirm({
+              title: 'Zahodit rozpracovaný test?',
+              message: 'Vyplněné odpovědi se smažou a test se nezapočítá.',
+              confirmLabel: 'Zahodit',
+              cancelLabel: 'Ponechat',
+              danger: true,
+            });
+            if (ok) onDiscard();
+          }}
+        >
+          Zahodit
+        </button>
+        <Link to="/exam/run" className="btn-primary">Pokračovat v testu</Link>
+      </div>
     </section>
   );
 }

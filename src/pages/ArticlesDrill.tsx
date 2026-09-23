@@ -281,7 +281,7 @@ export default function ArticlesDrill() {
           <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
         </div>
         <p className="mb-1 text-sm font-bold text-muted">
-          {nGaps > 1 ? `Doplň členy do všech ${nGaps} mezer` : 'Doplň člen'} ({ZERO_HINT}):
+          {nGaps === 2 ? 'Doplň členy do obou mezer' : nGaps > 2 ? `Doplň členy do všech ${nGaps} mezer` : 'Doplň člen'} ({ZERO_HINT}):
         </p>
         <p className="mb-5 text-xl leading-loose font-bold break-words text-fg" lang="en">
           {parts.map((part, i) => (

@@ -3,11 +3,12 @@ import { Link } from 'react-router';
 import { recordMistakeReview, CLEAR_AFTER } from '../progress';
 import { getAllMistakes, deleteMistakes } from '../db';
 import { moduleTitle, moduleIcon } from '../modules';
-import { isAnswerCorrect, displayAnswer } from '../lib/answer';
+import { isAnswerCorrect, displayAnswer, isGapAnswerCorrect, isMultiGap, gapVariants } from '../lib/answer';
 import { shuffleArray, guessLang } from '../utils';
 import type { MistakeItem } from '../types';
-import { confirmDialog, toast } from '../kit';
-import { DrillTopBar, Feedback, NextButton, OptionList, ResultScreen, TextAnswer, useDrillSession } from '../components/drill';
+import { toast } from '../kit';
+import { safeConfirm } from '../lib/confirm';
+import { DrillTopBar, Feedback, NextButton, OptionList, ResultScreen, TextAnswer, MultiGapAnswer, countGaps, useDrillSession } from '../components/drill';
 import { EmptyState, PageHeader } from '../components/ui';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { czechPlural } from '../lib/dates';
@@ -62,6 +63,7 @@ export default function MistakeDrill() {
         onRestart={due.length || active.length ? () => void start(due.length > 0) : undefined}
         restartLabel="Další kolo"
         title="Kolo oprav hotovo"
+        hideMistakesLink
       >
         <p className="mt-3 text-center text-sm text-muted">
           Chyba zmizí z fronty, když ji {CLEAR_AFTER}× po sobě odpovíš správně (mezi pokusy je den pauza).
@@ -184,7 +186,7 @@ export default function MistakeDrill() {
               type="button"
               className="btn-ghost btn-sm"
               onClick={async () => {
-                const ok = await confirmDialog({
+                const ok = await safeConfirm({
                   title: 'Vymazat všechny chyby?',
                   message: 'Seznam chyb k opakování se smaže. Statistiky cvičení zůstanou.',
                   confirmLabel: 'Vymazat',
@@ -218,6 +220,13 @@ function MistakeCard({
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [text, setText] = useState('');
+  const [gaps, setGaps] = useState<string[]>([]);
+  // Several gaps in the prompt and a matching "x ... y" answer → one input per gap (as in the drill).
+  const gapCount = (() => {
+    if (item.kind !== 'text' || !isMultiGap(item.answer)) return 1;
+    const parts = gapVariants(item.answer)[0]?.length ?? 1;
+    return countGaps(item.prompt) === parts ? parts : 1;
+  })();
   const [result, setResult] = useState<boolean | null>(null);
   const [revealed, setRevealed] = useState(false);
 
@@ -256,6 +265,23 @@ function MistakeCard({
             submit(i === correctIndex, item.options![i]);
           }}
         />
+      ) : item.kind === 'text' && gapCount > 1 ? (
+        <>
+          <p className="-mt-2 mb-3 text-xs text-muted">Doplň všechna slova v pořadí mezer.</p>
+          <MultiGapAnswer
+            count={gapCount}
+            values={gaps}
+            onChange={setGaps}
+            onSubmit={() => submit(isGapAnswerCorrect(gaps, item.answer), gaps.join(' … '))}
+            disabled={result !== null}
+            status={result === null ? null : result ? 'correct' : 'wrong'}
+          />
+          {result === null && (
+            <button type="button" className="btn-primary btn-lg mt-3" disabled={gaps.filter((g) => g?.trim()).length < gapCount} onClick={() => submit(isGapAnswerCorrect(gaps, item.answer), gaps.join(' … '))}>
+              Ověřit
+            </button>
+          )}
+        </>
       ) : item.kind === 'text' ? (
         <div className="flex gap-2">
           <div className="flex-1">

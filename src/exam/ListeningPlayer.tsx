@@ -52,8 +52,10 @@ export default function ListeningPlayer({
 
   useEffect(() => () => playback.current?.stop(), []);
 
+  const noVoice = !supported || !voicesReady;
+
   function play(twice = false) {
-    if (playing || left <= 0) return;
+    if (playing || left <= 0 || noVoice) return;
     onPlay();
     setPlaying(true);
     const pb = speakScript(script, { rate, intro, onLine: setLine });
@@ -82,7 +84,6 @@ export default function ListeningPlayer({
     setLine(-1);
   }
 
-  const noVoice = !supported || !voicesReady;
   const transcriptVisible = showTranscript || forceTranscript;
 
   return (
@@ -93,25 +94,27 @@ export default function ListeningPlayer({
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
           </button>
         ) : (
-          <button type="button" className="exam-play" onClick={() => play()} disabled={left <= 0} aria-label={`Přehrát ${label}`}>
+          <button type="button" className="exam-play" onClick={() => play()} disabled={left <= 0 || noVoice} aria-label={`Přehrát ${label}`}>
             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" /></svg>
           </button>
         )}
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold text-fg">
-            {playing ? 'Přehrávám…' : used === 0 ? `Přehrát ${label}` : left > 0 ? 'Přehrát znovu' : 'Nahrávka už zazněla'}
+            {noVoice ? 'Nahrávku nejde přehrát' : playing ? 'Přehrávám…' : used === 0 ? `Přehrát ${label}` : left > 0 ? 'Přehrát znovu' : 'Nahrávka už zazněla'}
           </div>
           <div className="text-xs text-muted">
-            {Number.isFinite(maxPlays)
-              ? left > 0
-                ? `Zbývá ${left}× (u maturity zazní každá nahrávka dvakrát)`
-                : 'Obě přehrání vyčerpána'
-              : 'Neomezený počet přehrání'}
+            {noVoice
+              ? 'Chybí anglický hlas'
+              : Number.isFinite(maxPlays)
+                ? left > 0
+                  ? `Ještě ${left}× — jako u maturity`
+                  : 'Obě přehrání vyčerpána'
+                : 'Můžeš pouštět opakovaně'}
           </div>
         </div>
         {playing && <Wave />}
-        {!playing && used === 0 && maxPlays === 2 && (
-          <button type="button" className="btn-ghost btn-sm" onClick={() => play(true)} title="Nahrávka zazní dvakrát s krátkou pauzou, jako u maturity">
+        {!playing && !noVoice && used === 0 && maxPlays === 2 && (
+          <button type="button" className="btn-ghost btn-sm w-full sm:w-auto" onClick={() => play(true)} title="Nahrávka zazní dvakrát s krátkou pauzou, jako u maturity">
             Přehrát 2× za sebou
           </button>
         )}

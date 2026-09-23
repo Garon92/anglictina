@@ -12,6 +12,8 @@ export const appStore = createStore('anglictina', {
     collapsedGroups: [] as string[],
     /** Last help dialog version seen. */
     helpSeen: 0,
+    /** Name used only in this app (the family-wide g92 name belongs to the kids' apps). */
+    name: '',
     /** Exam: allow unlimited replays of recordings in practice mode. */
     examPracticeReplays: true,
   },

@@ -26,8 +26,8 @@ export default function ExamHistoryDetail() {
     return (
       <div className="page-container py-10 text-center">
         <div className="mb-3 text-5xl" aria-hidden="true">🗂️</div>
-        <h1 className="page-title">Rozbor není k dispozici</h1>
-        <p className="page-subtitle">U starších pokusů se odpovědi neukládaly.</p>
+        <h1 className="page-title">{session ? 'Rozbor není k dispozici' : 'Pokus nenalezen'}</h1>
+        <p className="page-subtitle">{session ? 'U starších pokusů se odpovědi neukládaly.' : 'Takový výsledek v tomto zařízení není uložený.'}</p>
         <Link to="/exam" className="btn-primary">Zpět na přehled</Link>
       </div>
     );

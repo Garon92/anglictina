@@ -53,7 +53,19 @@ export default function Practice() {
         </Link>
       </div>
 
-      {filtered.length === 0 && <p className="card text-center text-muted">Nic takového nemáme. Zkus jiné slovo.</p>}
+      {filtered.length === 0 && (
+        <div className="card text-center">
+          <p className="text-muted">Takové cvičení nemáme.</p>
+          <Link to={`/search?q=${encodeURIComponent(query.trim())}`} className="btn-soft mt-3">
+            🔍 Hledat „{query.trim()}“ ve slovníku →
+          </Link>
+        </div>
+      )}
+      {filtered.length > 0 && q && (
+        <p className="-mt-2 mb-4 text-sm">
+          <Link to={`/search?q=${encodeURIComponent(query.trim())}`} className="font-bold">Hledat „{query.trim()}“ i ve slovníku →</Link>
+        </p>
+      )}
 
       <div className="space-y-7">
         {GROUPS.map((g) => {

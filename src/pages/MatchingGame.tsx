@@ -4,7 +4,7 @@ import type { VocabWord } from '../types';
 import { shuffleArray } from '../utils';
 import { speak, stopSpeaking } from '../tts';
 import { playCorrect, playIncorrect } from '../sounds';
-import { confirmDialog } from '../kit';
+import { safeConfirm } from '../lib/confirm';
 import { useSettings } from '../App';
 import { useDrillSession, DrillSetup, FilterGroup, Chip, ResultScreen } from '../components/drill';
 import { ProgressBar, StatTile } from '../components/ui';
@@ -220,7 +220,7 @@ export default function MatchingGame() {
       setPhase('setup');
       return;
     }
-    const ok = await confirmDialog({
+    const ok = await safeConfirm({
       title: 'Ukončit hru?',
       message: 'Nalezené páry se uloží a uvidíš výsledek.',
       confirmLabel: 'Ukončit',

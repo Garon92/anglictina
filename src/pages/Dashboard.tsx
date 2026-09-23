@@ -10,9 +10,10 @@ import { dayKey, daysUntil, lastDays, czechPlural, parseDayKey, DAY_NAMES_SHORT 
 
 import type { DrillSession, ExamSession } from '../types';
 import { Ring, ProgressBar } from '../components/ui';
-import { useSettings as useKitSettings } from '../lib/useKitSettings';
+import { useAppName } from '../lib/name';
 import { getModule, sessionModule, type ModuleDef } from '../modules';
 import { greeting } from '../kit/cz';
+import { attemptLabel, skillPct } from '../exam/history';
 
 const DailyChallenge = lazy(() => import('../components/DailyChallenge'));
 const WordOfTheDay = lazy(() => import('../components/WordOfTheDay'));
@@ -26,6 +27,7 @@ interface DashData {
   lastExam?: ExamSession;
   dailyDone: boolean;
   recent: ModuleDef[];
+  pendingRun: { id: string } | null;
 }
 
 const DEFAULT_QUICK = ['vocab', 'grammar', 'reading', 'listening'].map((id) => getModule(id)!).filter(Boolean);
@@ -54,20 +56,22 @@ function weekMinutes(sessions: DrillSession[]): { day: string; minutes: number }
 
 export default function Dashboard() {
   const { settings } = useSettings();
-  const kit = useKitSettings();
+  const [appName] = useAppName();
   const [data, setData] = useState<DashData | null>(null);
 
   const load = useCallback(async () => {
     const weekStart = lastDays(7)[0];
-    const [today, deck, mistakes, sessions, exams, daily] = await Promise.all([
+    const [today, deck, mistakes, sessions, exams, daily, pendingRun] = await Promise.all([
       getTodaySummary(),
       getDeckOverview(settings, 'vocab', VOCAB_TOTAL),
       getMistakeSummary(),
       getDrillSessions(),
       getExamSessions(),
       kvGet(`daily:${dayKey()}`),
+      kvGet<{ id: string }>('exam:current'),
     ]);
-    const lastExam = exams.filter((e) => e.mode === 'full').sort((a, b) => b.startedAt - a.startedAt)[0];
+    const sorted = exams.sort((a, b) => b.startedAt - a.startedAt);
+    const lastExam = sorted.find((e) => e.mode === 'full') ?? sorted.find((e) => e.mode === 'listening' || e.mode === 'reading');
     setData({
       today,
       deck,
@@ -77,6 +81,7 @@ export default function Dashboard() {
       lastExam,
       dailyDone: !!daily,
       recent: recentModules(sessions),
+      pendingRun: pendingRun ?? null,
     });
   }, [settings]);
 
@@ -99,11 +104,12 @@ export default function Dashboard() {
       id: 'review',
       icon: '🗂️',
       title: 'Opakování slovíček',
-      detail: deck.due > 0 ? `${deck.due} ${czechPlural(deck.due, 'kartička čeká', 'kartičky čekají', 'kartiček čeká')}` : deck.seen === 0 ? 'Zatím žádná naučená slovíčka' : 'Vše zopakováno',
-      done: deck.due === 0 && deck.seen > 0,
+      detail: deck.due > 0 ? `${deck.due} ${czechPlural(deck.due, 'kartička čeká', 'kartičky čekají', 'kartiček čeká')}` : 'Na dnešek zopakováno',
+      done: deck.due === 0 && deck.oldReviewedToday > 0,
       to: '/vocab',
       cta: 'Opakovat',
-      hidden: deck.seen === 0,
+      // Only when there is (or was) something to repeat today — new words alone aren't "repetition".
+      hidden: deck.due === 0 && deck.oldReviewedToday === 0,
     },
     {
       id: 'new',
@@ -147,13 +153,13 @@ export default function Dashboard() {
         <div>
           <p className="text-sm font-bold text-muted">{formatToday()}</p>
           <h1 className="text-3xl font-black tracking-tight text-fg">
-            {greeting(kit.playerName)}
+            {greeting(appName)}
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <span className="badge !px-3 !py-1.5 !text-sm" title="Dny v řadě, kdy ses učil/a">
             <span className={today.streak >= 3 ? 'animate-fire-pulse inline-block' : ''} aria-hidden="true">🔥</span>
-            {today.streak} {czechPlural(today.streak, 'den', 'dny', 'dní')} v řadě
+            {today.streak > 0 ? `${today.streak} ${czechPlural(today.streak, 'den', 'dny', 'dní')} v řadě` : 'Začni sérii dnes'}
           </span>
           {settings.showCountdown && examDays >= 0 && (
             <Link to="/exam" className="badge !bg-accent-soft !px-3 !py-1.5 !text-sm !text-accent-text no-underline">
@@ -183,6 +189,18 @@ export default function Dashboard() {
             </div>
           </div>
           <ul className="space-y-2">
+            {data.pendingRun && (
+              <li>
+                <Link to="/exam/run" className="card-link flex items-center gap-3 rounded-2xl border-2 border-warning bg-warning-soft p-3 no-underline">
+                  <span className="tile-icon !bg-surface" aria-hidden="true">⏸️</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold text-fg">Pokračovat v testu</span>
+                    <span className="block text-xs text-muted">Rozpracovaný test čeká — čas je zastavený</span>
+                  </span>
+                  <svg className="shrink-0 text-muted" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+                </Link>
+              </li>
+            )}
             {visibleTasks.map((t) => (
               <PlanRow key={t.id} task={t} />
             ))}
@@ -217,7 +235,7 @@ export default function Dashboard() {
           ))}
         </div>
         <p className="mt-3 text-center text-sm">
-          <Link to="/practice" className="font-bold">Všechna cvičení →</Link>
+          <Link to="/practice" className="inline-flex min-h-[44px] items-center px-2 font-bold">Všechna cvičení →</Link>
         </p>
       </section>
     </div>
@@ -257,7 +275,7 @@ function PlanRow({ task }: { task: PlanTask }) {
             <span className={`font-bold leading-tight ${task.done ? 'text-muted line-through decoration-2' : 'text-fg'}`}>{task.title}</span>
             {task.badge && !task.done && <span className="badge hidden !bg-accent-soft !text-accent-text !text-[0.65rem] sm:inline-flex">{task.badge}</span>}
           </span>
-          <span className="block truncate text-xs text-muted">
+          <span className="line-clamp-2 block text-xs text-muted">
             {task.badge && !task.done && <span className="font-bold text-accent-text sm:hidden">{task.badge} · </span>}
             {task.detail}
           </span>
@@ -275,12 +293,13 @@ function PlanRow({ task }: { task: PlanTask }) {
 }
 
 function ExamCard({ lastExam, goal }: { lastExam?: ExamSession; goal: number }) {
-  const score = lastExam?.scoreTotal ?? null;
+  const full = lastExam?.mode === 'full';
+  const score = lastExam ? (full ? lastExam.scoreTotal : Math.round((lastExam.scoreTotal / (lastExam.maxScore || 1)) * 100)) : null;
   return (
     <section className="card g92-card--accent !p-5" aria-label="Připravenost na maturitu">
       <div className="flex items-center justify-between gap-2">
         <div className="eyebrow">Maturita nanečisto</div>
-        <Link to="/exam" className="text-sm font-bold">Testy →</Link>
+        <Link to="/exam" className="-my-2 inline-flex min-h-[44px] items-center px-1 text-sm font-bold">Testy →</Link>
       </div>
       {score === null ? (
         <>
@@ -290,18 +309,19 @@ function ExamCard({ lastExam, goal }: { lastExam?: ExamSession; goal: number }) 
         </>
       ) : (
         <>
+          {!full && <p className="mt-1 text-xs font-bold text-muted">Poslední pokus: {attemptLabel(lastExam!)}</p>}
           <div className="mt-2 flex items-baseline gap-2">
             <span className={`text-4xl font-black tabular-nums ${score >= 44 ? 'text-success' : 'text-danger'}`}>{score}</span>
-            <span className="text-muted">/ 100 bodů</span>
+            <span className="text-muted">{full ? '/ 100 bodů' : '%'}</span>
             <span className={`badge ml-auto ${score >= 44 ? '!bg-success-soft !text-success' : '!bg-danger-soft !text-danger'}`}>
               {score >= 44 ? 'Prospěl/a' : 'Pod hranicí'}
             </span>
           </div>
           <ScoreScale score={score} goal={goal} />
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-            <SkillPct label="Poslech" value={lastExam!.scoreBySkill.listening} />
-            <SkillPct label="Čtení" value={lastExam!.scoreBySkill.reading} />
-            <SkillPct label="Jazyk" value={lastExam!.scoreBySkill.language} />
+            <SkillPct label="Poslech" value={skillPct(lastExam!, 'listening')} />
+            <SkillPct label="Čtení" value={skillPct(lastExam!, 'reading')} />
+            <SkillPct label="Jazyk" value={skillPct(lastExam!, 'language')} />
           </div>
         </>
       )}
@@ -320,10 +340,10 @@ export function ScoreScale({ score, goal }: { score: number; goal?: number }) {
   );
 }
 
-function SkillPct({ label, value }: { label: string; value: number }) {
+function SkillPct({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-surface p-2">
-      <div className="font-black tabular-nums text-fg">{Math.round(value)} %</div>
+      <div className="font-black tabular-nums text-fg">{value}</div>
       <div className="text-muted">{label}</div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import type { ExamSet, PictureOption } from './types';
 import type { ExamAnswers } from './scoring';
 import { itemResults, isOpenAnswerCorrect } from './scoring';
@@ -160,8 +160,17 @@ function Paragraphs({ text }: { text: string }) {
 
 function Part1(p: PartViewProps) {
   const res = p.review ? itemResults(1, p.set, p.answers) : [];
+  // The real test shows pictures only; captions would turn listening into reading.
+  const [captionsOn, setCaptionsOn] = useState(false);
+  const showCaptions = p.review || p.practice || captionsOn;
   return (
     <div className="space-y-6">
+      {!p.review && !p.practice && (
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" className="g92-toggle" checked={captionsOn} onChange={(e) => setCaptionsOn(e.target.checked)} />
+          Zobrazit popisky obrázků (u maturity nejsou)
+        </label>
+      )}
       {p.set.part1.items.map((it, i) => (
         <section key={i} className="card !p-4">
           <TaskHeader no={taskNo(1, i)} result={p.review ? res[i] : undefined}>{it.question}</TaskHeader>
@@ -172,6 +181,7 @@ function Part1(p: PartViewProps) {
                 key={j}
                 letter={LETTERS[j]}
                 option={o}
+                showCaption={showCaptions}
                 selected={p.answers.p1[i] === j}
                 disabled={p.review}
                 state={p.review ? (j === it.answer ? 'correct' : j === p.answers.p1[i] ? 'wrong' : 'dim') : undefined}
@@ -186,15 +196,15 @@ function Part1(p: PartViewProps) {
   );
 }
 
-function PictureChoice({ letter, option, selected, disabled, state, onClick }: {
-  letter: string; option: PictureOption; selected: boolean; disabled: boolean; state?: 'correct' | 'wrong' | 'dim'; onClick: () => void;
+function PictureChoice({ letter, option, selected, disabled, state, onClick, showCaption }: {
+  letter: string; option: PictureOption; selected: boolean; disabled: boolean; state?: 'correct' | 'wrong' | 'dim'; onClick: () => void; showCaption: boolean;
 }) {
   const cls = `exam-pic ${state === 'correct' ? 'is-correct' : state === 'wrong' ? 'is-wrong' : state === 'dim' ? 'is-dim' : selected ? 'is-selected' : ''}`;
   return (
     <button type="button" className={cls} onClick={onClick} disabled={disabled} aria-pressed={selected} aria-label={`${letter}: ${option.caption}`}>
       <span className="exam-pic__letter" aria-hidden="true">{letter}</span>
       <span className="exam-pic__emoji" aria-hidden="true">{option.emoji}</span>
-      <span className="exam-pic__caption" lang="en">{option.caption}</span>
+      {showCaption && <span className="exam-pic__caption" lang="en">{option.caption}</span>}
     </button>
   );
 }

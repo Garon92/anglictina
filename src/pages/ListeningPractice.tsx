@@ -3,7 +3,8 @@ import { Link } from 'react-router';
 import { LISTENING_EXERCISES } from '../data/listening';
 import { MATURITA_TOPICS, type ListeningExercise, type ListeningQuestion } from '../types';
 import { kvGet, kvSet } from '../db';
-import { speak, speakScript, stopSpeaking, parseScript, scriptToText, ttsSupported } from '../tts';
+import { speak, speakScript, stopSpeaking, parseScript, scriptToText } from '../tts';
+import { useEnglishVoice } from '../hooks/useEnglishVoice';
 import { shuffleArray } from '../utils';
 import { isAnswerCorrect } from '../lib/answer';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -134,7 +135,8 @@ export default function ListeningPractice() {
   const playId = useRef(0);
   const correctRef = useRef(0);
   const session = useDrillSession('listening', { tags: exercise ? [exercise.type, exercise.topic] : [] });
-  const canSpeak = useMemo(() => ttsSupported(), []);
+  const voice = useEnglishVoice();
+  const canSpeak = voice !== 'no';
 
   const normalRate = settings.ttsRate || 0.9;
   const slowRate = Math.max(0.5, Math.round(normalRate * 0.7 * 100) / 100);
@@ -459,7 +461,7 @@ export default function ListeningPractice() {
             <span className="eyebrow">
               Otázka {idx + 1} z {questions.length}
             </span>
-            {q.type === 'truefalse' && <span className="badge !bg-warning-soft !text-warning">True / False</span>}
+            {q.type === 'truefalse' && <span className="badge !bg-warning-soft !text-warning">Pravda / nepravda</span>}
             {q.type === 'fill' && <span className="badge">Doplň slovo</span>}
           </div>
           <p id="listening-question" className="mb-4 text-lg leading-snug font-bold break-words text-fg" lang="en">

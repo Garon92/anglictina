@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { saveSettings } from '../db';
 import type { UserSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
-import { getSettings as getKitSettings, setSettings as setKitSettings } from '../kit';
+import { setAppName } from '../lib/name';
 import { daysUntil, czechPlural } from '../lib/dates';
 
 interface Props {
@@ -21,7 +21,7 @@ const STEPS = 3;
 export default function Onboarding({ onComplete }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [name, setName] = useState(() => getKitSettings().playerName);
+  const [name, setName] = useState('');
   const [settings, setSettings] = useState<UserSettings>(() => ({
     ...DEFAULT_SETTINGS,
     examDate: DEFAULT_SETTINGS.examDate === '2028-05-05' ? defaultExamDate() : DEFAULT_SETTINGS.examDate,
@@ -31,7 +31,7 @@ export default function Onboarding({ onComplete }: Props) {
 
   async function finish(goTo?: string) {
     const final = { ...settings, onboardingDone: true };
-    if (name.trim() !== getKitSettings().playerName) setKitSettings({ playerName: name.trim() });
+    if (name.trim()) setAppName(name);
     await saveSettings(final);
     onComplete(final);
     if (goTo) navigate(goTo);
@@ -55,7 +55,22 @@ export default function Onboarding({ onComplete }: Props) {
               </ul>
               <label className="mx-auto mt-6 block max-w-sm text-left">
                 <span className="g92-label">Jak ti mám říkat? (nepovinné)</span>
-                <input className="input mt-1" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="Tvoje jméno" />
+                <input
+                  className="input mt-1"
+                  value={name}
+                  maxLength={40}
+                  autoComplete="given-name"
+                  enterKeyHint="next"
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      setStep(1);
+                    }
+                  }}
+                  placeholder="Tvoje jméno"
+                />
+                <span className="g92-hint mt-1 block">Jméno uvidíš jen v Angličtině.</span>
               </label>
               <button type="button" className="btn-primary btn-lg mt-6 w-full" onClick={() => setStep(1)}>Pojďme na to</button>
             </div>
@@ -70,7 +85,7 @@ export default function Onboarding({ onComplete }: Props) {
 
               <h2 className="mt-7 text-2xl font-black text-fg">Kolik bodů chceš mít?</h2>
               <p className="mt-1 text-sm text-muted">K úspěchu stačí 44 ze 100. Cíl kolem 60 dává bezpečnou rezervu.</p>
-              <div className="mt-3 grid grid-cols-4 gap-2" role="radiogroup" aria-label="Cílové skóre">
+              <div className="mt-3 grid grid-cols-4 gap-2" role="group" aria-label="Cílové skóre">
                 {[44, 50, 60, 70].map((s) => (
                   <button key={s} type="button" className="g92-chip justify-center !text-base" aria-pressed={settings.goalScore === s} onClick={() => update({ goalScore: s })}>{s}</button>
                 ))}
@@ -83,7 +98,7 @@ export default function Onboarding({ onComplete }: Props) {
             <div>
               <h2 className="text-2xl font-black text-fg">Kolik času denně?</h2>
               <p className="mt-1 text-sm text-muted">Pravidelnost je důležitější než délka. I 15 minut denně udělá velký rozdíl.</p>
-              <div className="mt-4 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Minut denně">
+              <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Minut denně">
                 {[
                   { min: 10, desc: 'Rychlá dávka' },
                   { min: 15, desc: 'Lehký trénink' },
@@ -99,7 +114,7 @@ export default function Onboarding({ onComplete }: Props) {
 
               <h2 className="mt-7 text-2xl font-black text-fg">Nová slovíčka denně</h2>
               <p className="mt-1 text-sm text-muted">Méně nových = lépe se zapamatují. Změníš kdykoli v nastavení.</p>
-              <div className="mt-3 grid grid-cols-4 gap-2" role="radiogroup" aria-label="Nová slovíčka denně">
+              <div className="mt-3 grid grid-cols-4 gap-2" role="group" aria-label="Nová slovíčka denně">
                 {[5, 8, 12, 15].map((n) => (
                   <button key={n} type="button" className="g92-chip justify-center !text-base" aria-pressed={settings.newCardsPerDay === n} onClick={() => update({ newCardsPerDay: n })}>{n}</button>
                 ))}
@@ -115,6 +130,7 @@ export default function Onboarding({ onComplete }: Props) {
               <p className="mt-2 text-sm text-muted">Krátký rozřazovací test (asi 10 minut) ukáže tvou úroveň a co procvičovat nejdřív. Můžeš ho udělat i později.</p>
               <button type="button" className="btn-primary btn-lg mt-6 w-full" onClick={() => void finish('/diagnostic')}>Udělat rozřazovací test</button>
               <button type="button" className="btn-secondary btn-lg mt-3 w-full" onClick={() => void finish()}>Přeskočit a začít se učit</button>
+              <button type="button" className="btn-ghost mt-3" onClick={() => setStep(2)}>‹ Zpět</button>
             </div>
           )}
 

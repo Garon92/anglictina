@@ -7,7 +7,10 @@ import { VOCABULARY } from '../data/vocabulary';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { useSettings } from '../App';
 import { useSettings as useKitSettings } from '../lib/useKitSettings';
-import { setSettings as setKitSettings, confirmDialog, toast, KIT_VERSION } from '../kit';
+import { setSettings as setKitSettings, toast, KIT_VERSION } from '../kit';
+import { safeConfirm } from '../lib/confirm';
+import { useAppName } from '../lib/name';
+import { resetAppLocalData } from '../lib/reset';
 import { dayKey } from '../lib/dates';
 import type { UserSettings } from '../types';
 import { PageHeader } from '../components/ui';
@@ -15,6 +18,7 @@ import { PageHeader } from '../components/ui';
 export default function Settings() {
   const { settings, updateSettings } = useSettings();
   const kit = useKitSettings();
+  const [appName, setAppName] = useAppName();
   const fileRef = useRef<HTMLInputElement>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(() => getAvailableVoices());
   const { canInstall, install } = usePwaInstall();
@@ -48,7 +52,7 @@ export default function Settings() {
       if (!data || typeof data !== 'object' || !('stats' in data || 'srsStates' in data || 'settings' in data)) {
         throw new Error('not a backup');
       }
-      const ok = await confirmDialog({
+      const ok = await safeConfirm({
         title: 'Obnovit ze zálohy?',
         message: `Záloha z ${data.exportedAt ? new Date(data.exportedAt).toLocaleString('cs-CZ') : 'neznámého data'} se sloučí s daty v tomto zařízení (stejné záznamy se přepíšou).`,
         confirmLabel: 'Obnovit',
@@ -63,7 +67,7 @@ export default function Settings() {
   }
 
   async function handleReset() {
-    const ok = await confirmDialog({
+    const ok = await safeConfirm({
       title: 'Smazat všechna data?',
       message: 'Smaže se veškerý pokrok, slovíčka, chyby, výsledky testů, oblíbené i vlastní slovíčka. Tuto akci nejde vrátit. Doporučujeme nejdřív stáhnout zálohu.',
       confirmLabel: 'Smazat vše',
@@ -71,10 +75,7 @@ export default function Settings() {
     });
     if (!ok) return;
     await clearAllData();
-    try {
-      localStorage.removeItem('anglictina_favorites');
-      localStorage.removeItem('anglictina_custom_words');
-    } catch { /* ignore */ }
+    resetAppLocalData();
     location.reload();
   }
 
@@ -97,33 +98,43 @@ export default function Settings() {
         <Slider label="Nejvíc opakování denně" value={settings.maxReviewsPerDay} min={20} max={300} step={10} onChange={(v) => update({ maxReviewsPerDay: v })} />
       </Section>
 
-      <Section title="Vzhled a zvuk" note="Platí pro všechny aplikace v menu garon92.">
-        <div>
-          <span className="g92-label">Motiv</span>
-          <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Motiv">
-            {([['auto', '🔄 Podle systému'], ['light', '☀️ Světlý'], ['dark', '🌙 Tmavý']] as const).map(([v, l]) => (
-              <button key={v} type="button" className="g92-chip" aria-pressed={kit.theme === v} onClick={() => setKitSettings({ theme: v })}>{l}</button>
-            ))}
-          </div>
-        </div>
+      <Section title="Tato aplikace">
+        <label className="block">
+          <span className="g92-label">Jak ti mám říkat? (nepovinné)</span>
+          <input className="input mt-1" value={appName} maxLength={40} placeholder="Tvoje jméno" autoComplete="given-name" onChange={(e) => setAppName(e.target.value)} />
+          <span className="g92-hint mt-1 block">Jméno se zobrazuje jen v Angličtině (ostatní aplikace v menu mají vlastní).</span>
+        </label>
         <div>
           <span className="g92-label">Velikost písma</span>
-          <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Velikost písma">
+          <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-label="Velikost písma">
             {([['small', 'Menší'], ['medium', 'Střední'], ['large', 'Větší']] as const).map(([v, l]) => (
               <button key={v} type="button" className="g92-chip" aria-pressed={settings.fontSize === v} onClick={() => update({ fontSize: v })}>{l}</button>
             ))}
           </div>
         </div>
-        <Row label="Zvukové efekty">
-          <input type="checkbox" role="switch" className="g92-toggle" checked={kit.sound} onChange={(e) => setKitSettings({ sound: e.target.checked })} aria-label="Zvukové efekty" />
+      </Section>
+
+      <Section title="Zvuky a vzhled" note="Platí pro všechny aplikace v menu garon92 (stejné jako v ⚙ v menu).">
+        <Row label="Zvuky">
+          <input type="checkbox" role="switch" className="g92-toggle" checked={kit.sound} onChange={(e) => setKitSettings({ sound: e.target.checked })} aria-label="Zvuky" />
         </Row>
-        <Row label="Omezit animace">
-          <input type="checkbox" role="switch" className="g92-toggle" checked={kit.reducedMotion === 'on'} onChange={(e) => setKitSettings({ reducedMotion: e.target.checked ? 'on' : 'auto' })} aria-label="Omezit animace" />
-        </Row>
-        <label className="block">
-          <span className="g92-label">Jak ti máme říkat? (nepovinné)</span>
-          <input className="input mt-1" value={kit.playerName} maxLength={40} placeholder="Tvoje jméno" onChange={(e) => setKitSettings({ playerName: e.target.value })} />
-        </label>
+        <Slider label="Hlasitost" value={Math.round(kit.volume * 100)} min={0} max={100} step={5} suffix=" %" onChange={(v) => setKitSettings({ volume: v / 100 })} />
+        <div>
+          <span className="g92-label">Vzhled</span>
+          <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-label="Vzhled">
+            {([['auto', 'Auto'], ['light', '☀️ Světlý'], ['dark', '🌙 Tmavý']] as const).map(([v, l]) => (
+              <button key={v} type="button" className="g92-chip" aria-pressed={kit.theme === v} onClick={() => setKitSettings({ theme: v })}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <span className="g92-label">Animace (Auto = podle zařízení)</span>
+          <div className="mt-1.5 flex flex-wrap gap-2" role="group" aria-label="Animace">
+            {([['auto', 'Auto'], ['on', 'Méně'], ['off', 'Všechny']] as const).map(([v, l]) => (
+              <button key={v} type="button" className="g92-chip" aria-pressed={kit.reducedMotion === v} onClick={() => setKitSettings({ reducedMotion: v })}>{l}</button>
+            ))}
+          </div>
+        </div>
       </Section>
 
       <Section title="Výslovnost">
@@ -178,10 +189,10 @@ export default function Settings() {
 
       <Section title="Zdroje">
         <ul className="divide-y divide-border text-sm">
-          <li><Link to="/grammar-ref" className="flex justify-between py-2.5 font-bold">📋 Přehled gramatiky <span aria-hidden="true">›</span></Link></li>
-          <li><Link to="/study-plan" className="flex justify-between py-2.5 font-bold">📅 Studijní plán <span aria-hidden="true">›</span></Link></li>
-          <li><a href="https://maturita.cermat.cz/menu/testy-a-zadani-z-predchozich-obdobi" target="_blank" rel="noopener noreferrer" className="flex justify-between py-2.5 font-bold">🎯 Oficiální testy CERMAT <span aria-hidden="true">↗</span></a></li>
-          <li><a href="https://www.newgeneralservicelist.com/" target="_blank" rel="noopener noreferrer" className="flex justify-between py-2.5 font-bold">📚 New General Service List <span aria-hidden="true">↗</span></a></li>
+          <li><Link to="/grammar-ref" className="flex min-h-[44px] items-center justify-between py-2 font-bold">📋 Přehled gramatiky <span aria-hidden="true">›</span></Link></li>
+          <li><Link to="/study-plan" className="flex min-h-[44px] items-center justify-between py-2 font-bold">📅 Studijní plán <span aria-hidden="true">›</span></Link></li>
+          <li><a href="https://maturita.cermat.cz/menu/testy-a-zadani-z-predchozich-obdobi" target="_blank" rel="noopener noreferrer" className="flex min-h-[44px] items-center justify-between py-2 font-bold">🎯 Oficiální testy CERMAT <span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.newgeneralservicelist.com/" target="_blank" rel="noopener noreferrer" className="flex min-h-[44px] items-center justify-between py-2 font-bold">📚 New General Service List <span aria-hidden="true">↗</span></a></li>
         </ul>
       </Section>
 

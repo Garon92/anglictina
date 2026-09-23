@@ -13,7 +13,7 @@ export function registerHelp() {
       { icon: '📈', text: 'Pokrok — série dní, statistiky, výsledky testů a úspěchy.' },
     ],
     keys: [
-      { keys: ['1', '2', '3', '4'], text: 'volba odpovědi / hodnocení kartičky' },
+      { keys: ['1', '2', '3', '4'], text: 'volba odpovědi (nebo A–D) / hodnocení kartičky' },
       { keys: ['Enter'], text: 'potvrdit, další úloha' },
       { keys: ['Mezerník'], text: 'otočit kartičku' },
     ],

@@ -61,7 +61,7 @@ export default function Practice() {
           if (!items.length) return null;
           return (
             <section key={g.id} aria-labelledby={`g-${g.id}`}>
-              <div className="mb-2.5 flex items-baseline gap-2">
+              <div className="mb-2.5 flex flex-wrap items-baseline gap-x-2">
                 <h2 id={`g-${g.id}`} className="text-lg font-black text-fg">
                   <span aria-hidden="true">{g.icon}</span> {g.title}
                 </h2>
@@ -77,7 +77,7 @@ export default function Practice() {
         })}
       </div>
 
-      <section className="card g92-card--accent mt-8 flex flex-wrap items-center gap-4 !p-5">
+      <section className="card g92-card--accent mt-8 flex flex-col gap-4 !p-5 sm:flex-row sm:items-center">
         <span className="text-4xl" aria-hidden="true">🎯</span>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-black text-fg">Připraven/a na opravdový test?</h2>

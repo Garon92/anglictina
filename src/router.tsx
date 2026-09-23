@@ -1,4 +1,4 @@
-import { createBrowserRouter, type RouteObject } from 'react-router';
+import { createBrowserRouter, redirect, type RouteObject } from 'react-router';
 import App, { SplashScreen } from './App';
 import RouteError from './components/RouteError';
 
@@ -62,6 +62,8 @@ export const routes: RouteObject[] = [
       page('exam/run', () => import('./exam/ExamRunner')),
       page('exam/history/:id', () => import('./exam/ExamHistoryDetail')),
       page('exam/timer', () => import('./exam/ExamTimer')),
+      // Old bookmarks / shortcuts to …/index.html
+      { path: 'index.html', loader: () => redirect('/') },
       page('*', () => import('./pages/NotFound')),
     ],
   },

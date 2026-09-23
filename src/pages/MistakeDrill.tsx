@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { getActiveMistakes, recordMistakeReview, CLEAR_AFTER } from '../progress';
+import { recordMistakeReview, CLEAR_AFTER } from '../progress';
 import { getAllMistakes, deleteMistakes } from '../db';
 import { moduleTitle, moduleIcon } from '../modules';
 import { isAnswerCorrect, displayAnswer } from '../lib/answer';

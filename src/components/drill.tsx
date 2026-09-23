@@ -10,7 +10,10 @@
  *   ResultScreen     — stars, score, list of mistakes, restart
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { getDrillSessions, getAllMistakes } from '../db';
+import { getModuleByPath, sessionModule } from '../modules';
+import { dayKey, addDays, parseDayKey, czechPlural } from '../lib/dates';
 import { recordAnswer, recordSession, forgiveMistake, type AnswerInput } from '../progress';
 import { playComplete, playCorrect, playIncorrect } from '../sounds';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -176,6 +179,7 @@ export function DrillSetup({
   return (
     <div className="page-container">
       <PageHeader title={title} subtitle={subtitle} icon={icon} back={back} backLabel={backLabel} />
+      <ModuleProgressStrip />
       <div className="card space-y-5 !p-5">
         {children}
         {onCountChange && count !== undefined && (
@@ -203,6 +207,53 @@ export function DrillSetup({
         </div>
       </div>
       {footer && <div className="mt-5">{footer}</div>}
+    </div>
+  );
+}
+
+/** "Procvičeno 5× · úspěšnost 72 % · 3 chyby k opravě" for the module of the current route. */
+function ModuleProgressStrip() {
+  const { pathname } = useLocation();
+  const mod = getModuleByPath(pathname);
+  const [info, setInfo] = useState<{ sessions: number; total: number; correct: number; mistakes: number; last: string } | null>(null);
+
+  useEffect(() => {
+    if (!mod?.tracked) return;
+    let alive = true;
+    Promise.all([getDrillSessions(), getAllMistakes()])
+      .then(([sessions, mistakes]) => {
+        if (!alive) return;
+        const own = sessions.filter((s) => sessionModule(s) === mod.id);
+        setInfo({
+          sessions: own.length,
+          total: own.reduce((n, s) => n + s.totalItems, 0),
+          correct: own.reduce((n, s) => n + s.correctItems, 0),
+          mistakes: mistakes.filter((m) => m.module === mod.id && !m.resolvedAt).length,
+          last: own.reduce((d, s) => (s.date > d ? s.date : d), ''),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [mod]);
+
+  if (!info || info.sessions === 0) return null;
+  const pct = info.total ? Math.round((info.correct / info.total) * 100) : 0;
+  const today = dayKey();
+  const lastLabel = info.last === today ? 'dnes' : info.last === addDays(today, -1) ? 'včera' : parseDayKey(info.last).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' });
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-2xl bg-surface-2 px-4 py-2.5 text-sm text-muted">
+      <span>Procvičeno <strong className="text-fg">{info.sessions}×</strong> (naposledy {lastLabel})</span>
+      <span>
+        Úspěšnost{' '}
+        <strong className={pct >= 80 ? 'text-success' : pct >= 60 ? 'text-warning' : 'text-danger'}>{pct} %</strong>
+      </span>
+      {info.mistakes > 0 && (
+        <Link to="/mistakes" className="font-bold">
+          {info.mistakes} {czechPlural(info.mistakes, 'chyba', 'chyby', 'chyb')} k opravě →
+        </Link>
+      )}
     </div>
   );
 }

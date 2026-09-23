@@ -41,15 +41,26 @@ const BACK_LABELS: Record<string, string> = {
   '/review': 'Pokrok',
 };
 
-export function BackLink({ to, label }: { to: string; label?: string }) {
+const BACK_CLS = '-ml-2 mb-2 inline-flex min-h-[40px] items-center gap-1 rounded-lg px-2 text-sm font-bold text-muted no-underline hover:bg-surface-2 hover:text-fg';
+const BACK_ICON = (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m15 18-6-6 6-6" />
+  </svg>
+);
+
+/** Back link to a parent route, or — with `onClick` — a back button inside a page (e.g. from a detail view). */
+export function BackLink({ to, label, onClick }: { to?: string; label?: string; onClick?: () => void }) {
+  if (onClick || !to) {
+    return (
+      <button type="button" className={BACK_CLS} onClick={onClick}>
+        {BACK_ICON}
+        {label ?? 'Zpět'}
+      </button>
+    );
+  }
   return (
-    <Link
-      to={to}
-      className="-ml-2 mb-2 inline-flex min-h-[40px] items-center gap-1 rounded-lg px-2 text-sm font-bold text-muted no-underline hover:bg-surface-2 hover:text-fg"
-    >
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="m15 18-6-6 6-6" />
-      </svg>
+    <Link to={to} className={BACK_CLS}>
+      {BACK_ICON}
       {label ?? BACK_LABELS[to] ?? 'Zpět'}
     </Link>
   );

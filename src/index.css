@@ -978,3 +978,10 @@
     display: none;
   }
 }
+
+/* Long filter labels may wrap instead of overflowing on narrow phones. */
+@layer components {
+  .g92-chip {
+    white-space: normal;
+  }
+}

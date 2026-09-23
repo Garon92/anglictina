@@ -4,7 +4,7 @@ import { getActiveMistakes, recordMistakeReview, CLEAR_AFTER } from '../progress
 import { getAllMistakes, deleteMistakes } from '../db';
 import { moduleTitle, moduleIcon } from '../modules';
 import { isAnswerCorrect, displayAnswer } from '../lib/answer';
-import { shuffleArray } from '../utils';
+import { shuffleArray, guessLang } from '../utils';
 import type { MistakeItem } from '../types';
 import { confirmDialog, toast } from '../kit';
 import { DrillTopBar, Feedback, NextButton, OptionList, ResultScreen, TextAnswer, useDrillSession } from '../components/drill';
@@ -241,7 +241,7 @@ function MistakeCard({
         <span aria-hidden="true">{moduleIcon(item.module)}</span> {moduleTitle(item.module)}
         {item.wrongCount > 1 && <span className="badge !bg-warning-soft !text-warning">{item.wrongCount}× chybně</span>}
       </div>
-      <p className="mb-4 text-lg font-bold text-fg" lang="en">{item.prompt}</p>
+      <p className="mb-4 text-lg font-bold text-fg" lang={guessLang(item.prompt)}>{item.prompt}</p>
       {item.context && <p className="-mt-2 mb-4 text-sm text-muted">{item.context}</p>}
 
       {mcq ? (
@@ -250,6 +250,7 @@ function MistakeCard({
           selected={selected}
           correctIndex={correctIndex}
           revealed={result !== null}
+          lang={guessLang(item.options!.join(' '))}
           onSelect={(i) => {
             setSelected(i);
             submit(i === correctIndex, item.options![i]);

@@ -114,3 +114,8 @@ export function downloadFile(content: string, filename: string, type = 'applicat
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** Rough language guess for the `lang` attribute: Czech if the text has Czech diacritics. */
+export function guessLang(text: string): 'cs' | 'en' {
+  return /[ěščřžýáíéůúťďňĚŠČŘŽÝÁÍÉŮÚŤĎŇ]/.test(text) ? 'cs' : 'en';
+}

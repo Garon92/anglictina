@@ -204,9 +204,9 @@ export function FilterGroup({ label, children, hint }: { label: string; children
   );
 }
 
-export function Chip({ active, onClick, children, title }: { active: boolean; onClick: () => void; children: ReactNode; title?: string }) {
+export function Chip({ active, onClick, children, title, className = '' }: { active: boolean; onClick: () => void; children: ReactNode; title?: string; className?: string }) {
   return (
-    <button type="button" className="g92-chip" aria-pressed={active} onClick={onClick} title={title}>
+    <button type="button" className={`g92-chip ${className}`} aria-pressed={active} onClick={onClick} title={title}>
       {children}
     </button>
   );
@@ -290,7 +290,13 @@ export function OptionList({
   columns?: 1 | 2;
 }) {
   const map: Record<string, () => void> = {};
-  if (!revealed && keys) options.forEach((_, i) => (map[String(i + 1)] = () => onSelect(i)));
+  if (!revealed && keys) {
+    options.forEach((_, i) => {
+      map[String(i + 1)] = () => onSelect(i);
+      // Letters match the A–D badges (as in the maturita answer sheet).
+      map[String.fromCharCode(97 + i)] = () => onSelect(i);
+    });
+  }
   useKeyboard(map, !revealed && keys);
   return (
     <div className={`grid gap-2 ${columns === 2 ? 'sm:grid-cols-2' : ''}`} role="group" aria-label="Možnosti odpovědi">

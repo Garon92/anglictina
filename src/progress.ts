@@ -244,3 +244,20 @@ export async function getTodaySummary(): Promise<TodaySummary> {
   }
   return { minutes, items, correct, sessions: todays, modules, streak: currentStreak(stats, today), stats, dueCards: due.length };
 }
+
+/** The learner overrode an automatic "wrong" (e.g. a valid free translation): undo the new mistake. */
+export async function forgiveMistake(module: string, itemId: string): Promise<void> {
+  try {
+    const key = mistakeKey(module, itemId);
+    const prev = await getMistake(key);
+    if (!prev) return;
+    if (prev.wrongCount <= 1) {
+      const { deleteMistakes } = await import('./db');
+      await deleteMistakes([key]);
+    } else {
+      await putMistake({ ...prev, wrongCount: prev.wrongCount - 1 });
+    }
+  } catch {
+    /* ignore */
+  }
+}

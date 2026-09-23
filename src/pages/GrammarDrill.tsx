@@ -1,321 +1,219 @@
-import { useState, useMemo, useTransition } from 'react';
-import { useNavigate } from 'react-router';
-import { addDrillSession, getStats, saveStats, updateStreak } from '../db';
+import { useMemo, useState } from 'react';
 import { GRAMMAR_EXERCISES, GRAMMAR_CATEGORIES, CATEGORY_NAMES } from '../data/grammar';
 import { shuffleArray } from '../utils';
+import { isAnswerCorrect, isGapAnswerCorrect, isMultiGap, gapVariants } from '../lib/answer';
 import { useKeyboard } from '../hooks/useKeyboard';
-import { playCorrect, playIncorrect, playComplete } from '../sounds';
-import { trackError } from '../errorTracker';
 import type { GrammarExercise } from '../types';
+import {
+  useDrillSession, DrillSetup, FilterGroup, Chip, DrillTopBar, OptionList, TextAnswer, MultiGapAnswer,
+  Feedback, NextButton, ResultScreen, countGaps,
+} from '../components/drill';
+import { Link } from 'react-router';
 
-type Phase = 'select' | 'drill' | 'result';
+type Phase = 'setup' | 'drill' | 'result';
+const LEVELS = ['all', 'A1', 'A2', 'B1'] as const;
+
+/** Number of separate inputs an exercise needs (1 for single answers). */
+function gapInputs(ex: GrammarExercise): number {
+  if (ex.type === 'mcq' || !isMultiGap(ex.answer)) return 1;
+  const parts = gapVariants(ex.answer)[0]?.length ?? 1;
+  return countGaps(ex.prompt) === parts ? parts : 1;
+}
 
 export default function GrammarDrill() {
-  const navigate = useNavigate();
-  const [, startTransition] = useTransition();
-  const [phase, setPhase] = useState<Phase>('select');
-  const [selectedCats, setSelectedCats] = useState<string[]>([]);
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [exercises, setExercises] = useState<GrammarExercise[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [stats, setStats] = useState({ correct: 0, total: 0 });
-  const [startTime, setStartTime] = useState(0);
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [cats, setCats] = useState<string[]>([]);
+  const [level, setLevel] = useState<(typeof LEVELS)[number]>('all');
+  const [count, setCount] = useState(15);
+  const [items, setItems] = useState<GrammarExercise[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [text, setText] = useState('');
+  const [gaps, setGaps] = useState<string[]>([]);
+  const [result, setResult] = useState<boolean | null>(null);
+  const [overridden, setOverridden] = useState(false);
+  const session = useDrillSession('grammar', { tags: cats.length ? cats : ['all'] });
 
-  const ex = phase === 'drill' ? exercises[currentIndex] : undefined;
+  const pool = useMemo(
+    () => GRAMMAR_EXERCISES.filter((e) => (!cats.length || cats.includes(e.category)) && (level === 'all' || e.level === level)),
+    [cats, level],
+  );
 
-  const keyMap = useMemo(() => {
-    if (!ex || phase !== 'drill') return {};
-    if (showResult) return { Enter: nextExercise, ' ': nextExercise };
-    if (ex.type === 'mcq' && ex.options) {
-      const map: Record<string, () => void> = {};
-      ex.options.forEach((_, i) => { map[String(i + 1)] = () => setSelectedOption(i); });
-      map['Enter'] = () => { if (selectedOption !== null) checkAnswer(); };
-      return map;
-    }
-    return {};
-  }, [ex, phase, showResult, selectedOption]);
-  useKeyboard(keyMap, phase === 'drill');
+  const ex = items[idx];
+  const nGaps = ex ? gapInputs(ex) : 1;
 
-  function toggleCat(cat: string) {
-    setSelectedCats((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+  function start() {
+    setItems(shuffleArray(pool).slice(0, count));
+    setIdx(0);
+    resetItem();
+    session.start();
+    setPhase('drill');
   }
 
-  function startDrill() {
-    let pool = GRAMMAR_EXERCISES;
-    if (selectedCats.length > 0) {
-      pool = pool.filter((e) => selectedCats.includes(e.category));
+  function resetItem() {
+    setSelected(null);
+    setText('');
+    setGaps([]);
+    setResult(null);
+    setOverridden(false);
+  }
+
+  function submit(opt?: number) {
+    if (!ex || result !== null) return;
+    let correct: boolean;
+    let user: string;
+    if (ex.type === 'mcq' && ex.options) {
+      if (opt === undefined) return;
+      setSelected(opt);
+      user = ex.options[opt];
+      correct = user === ex.answer;
+    } else if (nGaps > 1) {
+      user = gaps.join(' … ');
+      correct = isGapAnswerCorrect(gaps, ex.answer);
+    } else {
+      user = text.trim();
+      if (!user) return;
+      correct = isAnswerCorrect(user, ex.answer);
     }
-    if (selectedLevel !== 'all') {
-      pool = pool.filter((e) => e.level === selectedLevel);
-    }
-    const selected = shuffleArray(pool).slice(0, 15);
-    startTransition(() => {
-      setExercises(selected);
-      setCurrentIndex(0);
-      setStats({ correct: 0, total: 0 });
-      setStartTime(Date.now());
-      setPhase('drill');
+    setResult(correct);
+    session.answer({
+      itemId: ex.id,
+      category: ex.category,
+      prompt: ex.prompt,
+      options: ex.type === 'mcq' ? ex.options : undefined,
+      kind: ex.type === 'mcq' ? 'mcq' : 'text',
+      answer: ex.answer,
+      userAnswer: user,
+      explanation: ex.explanationCs,
+      correct,
     });
   }
 
-  function checkAnswer() {
-    const ex = exercises[currentIndex];
-    let isCorrect = false;
-
-    if (ex.type === 'mcq' && ex.options) {
-      isCorrect = ex.options[selectedOption!] === ex.answer;
+  async function next() {
+    if (idx + 1 >= items.length) {
+      await session.finish();
+      setPhase('result');
     } else {
-      isCorrect = userAnswer.trim().toLowerCase() === ex.answer.toLowerCase();
-    }
-
-    if (isCorrect) {
-      playCorrect();
-    } else {
-      playIncorrect();
-      const ua = ex.type === 'mcq' && ex.options ? ex.options[selectedOption!] : userAnswer.trim();
-      trackError('grammar', ex.category, ex.prompt, ua, ex.answer);
-    }
-
-    setStats((prev) => ({
-      correct: prev.correct + (isCorrect ? 1 : 0),
-      total: prev.total + 1,
-    }));
-    setShowResult(true);
-  }
-
-  function nextExercise() {
-    if (currentIndex + 1 >= exercises.length) {
-      finishDrill();
-    } else {
-      setCurrentIndex((i) => i + 1);
-      setUserAnswer('');
-      setSelectedOption(null);
-      setShowResult(false);
+      setIdx(idx + 1);
+      resetItem();
     }
   }
 
-  async function finishDrill() {
-    const userStats = await getStats();
-    userStats.totalExercisesDone += stats.total;
-    userStats.totalStudyMinutes += (Date.now() - startTime) / 60000;
-    await saveStats(userStats);
-    await updateStreak();
+  useKeyboard(result !== null ? { Enter: () => void next() } : {}, phase === 'drill');
 
-    await addDrillSession({
-      date: new Date().toISOString().slice(0, 10),
-      type: 'grammar',
-      startedAt: startTime,
-      endedAt: Date.now(),
-      totalItems: stats.total,
-      correctItems: stats.correct,
-      tags: selectedCats.length > 0 ? selectedCats : ['all'],
-    });
-
-    setPhase('result');
-    playComplete();
-  }
-
-  if (phase === 'select') {
+  if (phase === 'setup') {
     return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
-        <h1 className="page-title">Gramatická cvičení</h1>
-        <p className="page-subtitle">Vyber si oblast nebo začni mix ze všeho.</p>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Úroveň</h3>
-          <div className="flex gap-2">
-            {['all', 'A1', 'A2', 'B1'].map((lvl) => (
-              <button
-                key={lvl}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectedLevel === lvl
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => setSelectedLevel(lvl)}
-              >
-                {lvl === 'all' ? 'Vše' : lvl}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">
-            Témata {selectedCats.length > 0 && `(${selectedCats.length})`}
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {GRAMMAR_CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  selectedCats.includes(cat)
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-                onClick={() => toggleCat(cat)}
-              >
-                {CATEGORY_NAMES[cat] || cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button className="btn-primary btn-lg w-full" onClick={startDrill}>
-          Začít cvičení (15 úloh)
-        </button>
-      </div>
+      <DrillSetup
+        title="Gramatika – mix"
+        subtitle="Časy, modální slovesa, stupňování, otázky… Vyber si oblast, nebo nech mix ze všeho."
+        icon="✏️"
+        poolSize={pool.length}
+        onStart={start}
+        count={count}
+        onCountChange={setCount}
+        footer={
+          <p className="text-center text-sm text-muted">
+            Potřebuješ si pravidla připomenout? <Link to="/grammar-ref">Přehled gramatiky</Link> · <Link to="/tenses">Přehled časů</Link>
+          </p>
+        }
+      >
+        <FilterGroup label="Úroveň">
+          {LEVELS.map((l) => (
+            <Chip key={l} active={level === l} onClick={() => setLevel(l)}>{l === 'all' ? 'Vše' : l}</Chip>
+          ))}
+        </FilterGroup>
+        <FilterGroup label={`Témata${cats.length ? ` (${cats.length})` : ' (vše)'}`}>
+          {GRAMMAR_CATEGORIES.map((c) => (
+            <Chip key={c} active={cats.includes(c)} onClick={() => setCats((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}>
+              {CATEGORY_NAMES[c] || c}
+            </Chip>
+          ))}
+        </FilterGroup>
+      </DrillSetup>
     );
   }
 
   if (phase === 'result') {
-    const pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
     return (
-      <div className="page-container flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="text-6xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Gramatika hotová!</h2>
-        <p className="text-slate-600 dark:text-slate-300 mb-1">
-          {stats.correct} / {stats.total} správně ({pct}%)
-        </p>
-        <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">
-          {pct >= 80 ? 'Skvělé, gramatiku zvládáš!' : pct >= 50 ? 'Dobrý základ, pokračuj.' : 'Zkus si projít přehled gramatiky.'}
-        </p>
-        <div className="flex gap-3">
-          <button className="btn-secondary" onClick={() => navigate('/')}>Domů</button>
-          <button className="btn-primary" onClick={() => { setPhase('select'); setSelectedCats([]); }}>
-            Další cvičení
-          </button>
+      <ResultScreen
+        correct={session.correct}
+        total={session.total}
+        mistakes={session.mistakes}
+        onRestart={start}
+        restartLabel="Nové kolo"
+      >
+        <div className="mt-3 text-center">
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setPhase('setup')}>Změnit výběr témat</button>
         </div>
-      </div>
+      </ResultScreen>
     );
   }
 
   if (!ex) return null;
-
-  const isCorrect = ex.type === 'mcq' && ex.options
-    ? ex.options[selectedOption!] === ex.answer
-    : userAnswer.trim().toLowerCase() === ex.answer.toLowerCase();
+  const last = idx + 1 >= items.length;
+  const correctIndex = ex.options ? ex.options.indexOf(ex.answer) : -1;
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-4">
-        <button className="btn-ghost text-sm" onClick={() => setPhase('select')}>← Zpět</button>
-        <span className="text-sm text-slate-500 font-medium">
-          {currentIndex + 1} / {exercises.length}
-        </span>
-      </div>
+      <DrillTopBar current={idx} total={items.length} correct={session.correct} onExit={() => void session.finish().then(() => setPhase('result'))} title="Gramatika" />
 
-      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mb-6">
-        <div
-          className="bg-primary-500 h-full rounded-full transition-all duration-300"
-          style={{ width: `${(currentIndex / exercises.length) * 100}%` }}
-        />
-      </div>
-
-      <div className="card !p-6 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            {CATEGORY_NAMES[ex.category] || ex.category}
-          </span>
-          <span className="badge bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300">{ex.level}</span>
+      <div className="card !p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="badge">{CATEGORY_NAMES[ex.category] || ex.category}</span>
+          <span className="badge !bg-accent-soft !text-accent-text">{ex.level}</span>
         </div>
+        {ex.type === 'translate' && <p className="mb-1 text-sm font-bold text-muted">Přelož do angličtiny:</p>}
+        {ex.type === 'open_cloze' && <p className="mb-1 text-sm font-bold text-muted">{nGaps > 1 ? 'Doplň chybějící slova:' : 'Doplň chybějící slovo:'}</p>}
+        {ex.type === 'cloze' && nGaps > 1 && <p className="mb-1 text-sm font-bold text-muted">Doplň všechny mezery:</p>}
+        <p className="mb-4 text-xl leading-relaxed font-bold text-fg" lang={ex.type === 'translate' ? 'cs' : 'en'}>{ex.prompt}</p>
 
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 leading-relaxed">
-          {(ex.type === 'open_cloze' || ex.type === 'translate') && (
-            <span className="text-sm text-slate-500 dark:text-slate-400 block mb-1">
-              {ex.type === 'open_cloze' ? 'Doplň chybějící slovo:' : 'Přelož do angličtiny:'}
-            </span>
-          )}
-          {String(ex.prompt ?? '')}
-        </h3>
-
-        {ex.type === 'mcq' && ex.options && !showResult && (
-          <div className="space-y-2">
-            {ex.options.map((opt, i) => (
-              <button
-                key={i}
-                className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
-                  selectedOption === i
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
-                    : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
-                }`}
-                onClick={() => setSelectedOption(i)}
-              >
-                {opt}
+        {ex.type === 'mcq' && ex.options ? (
+          <OptionList options={ex.options} selected={selected} correctIndex={correctIndex} revealed={result !== null} onSelect={(i) => submit(i)} />
+        ) : nGaps > 1 ? (
+          <>
+            <MultiGapAnswer count={nGaps} values={gaps} onChange={setGaps} onSubmit={() => submit()} disabled={result !== null} status={result === null ? null : result || overridden ? 'correct' : 'wrong'} />
+            {result === null && (
+              <button type="button" className="btn-primary btn-lg mt-3 w-full sm:w-auto" disabled={gaps.filter((g) => g?.trim()).length < nGaps} onClick={() => submit()}>
+                Ověřit
               </button>
-            ))}
-          </div>
-        )}
-
-        {ex.type === 'mcq' && ex.options && showResult && (
-          <div className="space-y-2">
-            {ex.options.map((opt, i) => (
-              <div
-                key={i}
-                className={`px-4 py-3 rounded-xl border-2 ${
-                  opt === ex.answer
-                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
-                    : selectedOption === i
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                    : 'border-slate-200 dark:border-slate-600'
-                }`}
-              >
-                {opt} {opt === ex.answer && ' ✓'}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {(ex.type === 'cloze' || ex.type === 'translate' || ex.type === 'open_cloze') && !showResult && (
-          <input
-            type="text"
-            className="input text-lg"
-            placeholder={ex.type === 'open_cloze' ? 'Doplň slovo...' : 'Tvoje odpověď...'}
-            value={userAnswer}
-            onChange={(e) => setUserAnswer(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && userAnswer.trim() && checkAnswer()}
-            autoFocus
-          />
-        )}
-
-        {(ex.type === 'cloze' || ex.type === 'translate' || ex.type === 'open_cloze') && showResult && (
-          <div className={`px-4 py-3 rounded-xl ${isCorrect ? 'bg-green-50 dark:bg-green-900/30 border-2 border-green-500' : 'bg-red-50 dark:bg-red-900/30 border-2 border-red-500'}`}>
-            <div className="flex items-center gap-2">
-              <span>{isCorrect ? '✅' : '❌'}</span>
-              <span className="font-medium dark:text-slate-100">{isCorrect ? 'Správně!' : `Správná odpověď: ${ex.answer}`}</span>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex-1">
+              <TextAnswer
+                value={text}
+                onChange={setText}
+                onSubmit={() => submit()}
+                disabled={result !== null}
+                status={result === null ? null : result || overridden ? 'correct' : 'wrong'}
+                placeholder={ex.type === 'translate' ? 'Napiš anglickou větu…' : 'Napiš odpověď…'}
+                multiline={ex.type === 'translate'}
+              />
             </div>
-            {!isCorrect && userAnswer && (
-              <p className="text-sm text-red-600 dark:text-red-400 mt-1">Tvoje odpověď: {userAnswer}</p>
+            {result === null && (
+              <button type="button" className="btn-primary btn-lg" disabled={!text.trim()} onClick={() => submit()}>Ověřit</button>
             )}
           </div>
         )}
 
-        {showResult && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-            <p className="text-sm text-blue-800 dark:text-blue-300">💡 {String(ex.explanationCs ?? '')}</p>
-          </div>
+        {result !== null && (
+          <Feedback
+            correct={result || overridden}
+            answer={ex.answer}
+            userAnswer={ex.type === 'mcq' ? undefined : nGaps > 1 ? gaps.join(' … ') : text.trim()}
+            explanation={ex.explanationCs}
+            title={overridden ? 'Uznáno' : undefined}
+          >
+            {!result && !overridden && ex.type === 'translate' && (
+              <button type="button" className="btn-ghost btn-sm mt-2 !px-2" onClick={() => { setOverridden(true); session.markLastCorrect(); }}>
+                Můj překlad je taky správně
+              </button>
+            )}
+          </Feedback>
         )}
+        {result !== null && <NextButton onClick={() => void next()} last={last} />}
       </div>
-
-      {!showResult ? (
-        <button
-          className="btn-primary btn-lg w-full"
-          disabled={ex.type === 'mcq' ? selectedOption === null : !userAnswer.trim().length}
-          onClick={checkAnswer}
-        >
-          Zkontrolovat
-        </button>
-      ) : (
-        <button className="btn-primary btn-lg w-full" onClick={nextExercise}>
-          {currentIndex + 1 >= exercises.length ? 'Zobrazit výsledky' : 'Další úloha →'}
-        </button>
-      )}
     </div>
   );
 }

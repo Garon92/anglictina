@@ -950,3 +950,25 @@
   .vocab-grade--good { background: var(--g92-success-soft); color: var(--g92-success); border-color: color-mix(in srgb, var(--g92-success) 30%, transparent); }
   .vocab-grade--easy { background: var(--g92-info-soft); color: var(--g92-info); border-color: color-mix(in srgb, var(--g92-info) 30%, transparent); }
 }
+
+@layer components {
+  .opt--compact {
+    min-height: 44px;
+    gap: 0.45rem;
+    padding: 0.4rem 0.55rem;
+    font-size: var(--g92-fs-sm);
+  }
+  .opt--compact .opt__key {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 8px;
+    font-size: var(--g92-fs-xs);
+  }
+}
+
+@layer components {
+  .card.g92-card--accent {
+    background: linear-gradient(160deg, var(--accent-soft), var(--g92-surface) 70%);
+    border-color: var(--accent-border);
+  }
+}

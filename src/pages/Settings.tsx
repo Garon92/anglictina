@@ -1,399 +1,235 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router';
-import { saveSettings, exportAllData, importData, clearAllData } from '../db';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
+import { exportAllData, importData, clearAllData, getSettings } from '../db';
 import { downloadFile } from '../utils';
 import { getAvailableVoices, setVoiceByName, speak, getCurrentVoiceName } from '../tts';
 import { VOCABULARY } from '../data/vocabulary';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { useSettings } from '../App';
+import { useSettings as useKitSettings } from '../lib/useKitSettings';
+import { setSettings as setKitSettings, confirmDialog, toast, KIT_VERSION } from '../kit';
+import { dayKey } from '../lib/dates';
 import type { UserSettings } from '../types';
+import { PageHeader } from '../components/ui';
 
 export default function Settings() {
-  const { settings, updateSettings: onUpdate } = useSettings();
-  const navigate = useNavigate();
+  const { settings, updateSettings } = useSettings();
+  const kit = useKitSettings();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [showConfirmReset, setShowConfirmReset] = useState(false);
-  const [importMsg, setImportMsg] = useState('');
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(() => getAvailableVoices());
   const { canInstall, install } = usePwaInstall();
 
   useEffect(() => {
-    const v = getAvailableVoices();
-    setVoices(v);
-    if (v.length === 0) {
-      const timer = setTimeout(() => setVoices(getAvailableVoices()), 500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+    if (voices.length) return;
+    const t = window.setTimeout(() => setVoices(getAvailableVoices()), 800);
+    return () => window.clearTimeout(t);
+  }, [voices.length]);
 
-  const update = (patch: Partial<UserSettings>) => {
-    const next = { ...settings, ...patch };
-    onUpdate(next);
-    saveSettings(next);
-  };
+  const update = (patch: Partial<UserSettings>) => updateSettings({ ...settings, ...patch });
 
   async function handleExport() {
     const json = await exportAllData();
-    downloadFile(json, `anglictina-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadFile(json, `anglictina-zaloha-${dayKey()}.json`);
+    toast('Záloha stažena', { variant: 'success' });
   }
 
   function handleAnkiExport() {
-    const lines = VOCABULARY.filter((w) => w.cs).map((w) => {
-      const front = w.en + (w.phonetic ? ` [${w.phonetic}]` : '');
-      const back = w.cs + (w.example ? `<br><i>${w.example}</i>` : '');
-      return `${front}\t${back}`;
-    });
-    const content = lines.join('\n');
-    downloadFile(content, `anglictina-anki-${new Date().toISOString().slice(0, 10)}.txt`);
+    const lines = VOCABULARY.map((w) => `${w.en}\t${w.cs}${w.example ? `<br><i>${w.example}</i>` : ''}`);
+    downloadFile(lines.join('\n'), `anglictina-anki-${dayKey()}.txt`, 'text/tab-separated-values');
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     try {
       const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data || typeof data !== 'object' || !('stats' in data || 'srsStates' in data || 'settings' in data)) {
+        throw new Error('not a backup');
+      }
+      const ok = await confirmDialog({
+        title: 'Obnovit ze zálohy?',
+        message: `Záloha z ${data.exportedAt ? new Date(data.exportedAt).toLocaleString('cs-CZ') : 'neznámého data'} se sloučí s daty v tomto zařízení (stejné záznamy se přepíšou).`,
+        confirmLabel: 'Obnovit',
+      });
+      if (!ok) return;
       await importData(text);
-      setImportMsg('Import proběhl úspěšně! Obnov stránku.');
+      updateSettings(await getSettings());
+      toast('Záloha obnovena', { variant: 'success' });
     } catch {
-      setImportMsg('Chyba při importu. Zkontroluj soubor.');
+      toast('Soubor se nepodařilo načíst — je to záloha z této aplikace?', { variant: 'danger' });
     }
   }
 
   async function handleReset() {
+    const ok = await confirmDialog({
+      title: 'Smazat všechna data?',
+      message: 'Smaže se veškerý pokrok, slovíčka, chyby, výsledky testů, oblíbené i vlastní slovíčka. Tuto akci nejde vrátit. Doporučujeme nejdřív stáhnout zálohu.',
+      confirmLabel: 'Smazat vše',
+      danger: true,
+    });
+    if (!ok) return;
     await clearAllData();
-    window.location.reload();
+    try {
+      localStorage.removeItem('anglictina_favorites');
+      localStorage.removeItem('anglictina_custom_words');
+    } catch { /* ignore */ }
+    location.reload();
   }
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Nastavení</h1>
-      <p className="page-subtitle">Přizpůsob si aplikaci podle sebe.</p>
+      <PageHeader title="Nastavení" subtitle="Cíle učení, vzhled, výslovnost a záloha dat." back="/" backLabel="Dnes" icon="⚙️" />
 
-      {/* Study settings */}
-      <div className="card mb-4">
-        <h3 className="section-title">Učení</h3>
-
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Zobrazit odpočet do maturity</span>
-          <button
-            className={`w-12 h-7 rounded-full transition-colors ${
-              settings.showCountdown ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'
-            }`}
-            onClick={() => update({ showCountdown: !settings.showCountdown })}
-          >
-            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-1 ${
-              settings.showCountdown ? 'translate-x-5' : ''
-            }`} />
-          </button>
-        </div>
-
-        {settings.showCountdown && (
-          <label className="block mb-4">
-            <span className="text-sm text-slate-600 dark:text-slate-300">Datum maturity</span>
-            <input
-              type="date"
-              className="input mt-1"
-              value={settings.examDate}
-              onChange={(e) => update({ examDate: e.target.value })}
-            />
-          </label>
-        )}
-
-        <label className="block mb-4">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Cílové skóre ({settings.goalScore} bodů)</span>
-          <input
-            type="range"
-            className="w-full mt-1"
-            min={44}
-            max={100}
-            value={settings.goalScore}
-            onChange={(e) => update({ goalScore: +e.target.value })}
-          />
-          <div className="flex justify-between text-xs text-slate-400">
-            <span>44 (min.)</span>
-            <span>100</span>
-          </div>
-        </label>
-
-        <label className="block mb-4">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Minut denně ({settings.minutesPerDay})</span>
-          <input
-            type="range"
-            className="w-full mt-1"
-            min={5}
-            max={60}
-            step={5}
-            value={settings.minutesPerDay}
-            onChange={(e) => update({ minutesPerDay: +e.target.value })}
-          />
-        </label>
-
-        <label className="block mb-4">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Nová slovíčka denně ({settings.newCardsPerDay})</span>
-          <input
-            type="range"
-            className="w-full mt-1"
-            min={1}
-            max={25}
-            value={settings.newCardsPerDay}
-            onChange={(e) => update({ newCardsPerDay: +e.target.value })}
-          />
-        </label>
-
+      <Section title="Cíle">
+        <Row label="Zobrazovat odpočet do maturity">
+          <input type="checkbox" role="switch" className="g92-toggle" checked={settings.showCountdown} onChange={(e) => update({ showCountdown: e.target.checked })} aria-label="Zobrazovat odpočet do maturity" />
+        </Row>
         <label className="block">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Max opakování denně ({settings.maxReviewsPerDay})</span>
-          <input
-            type="range"
-            className="w-full mt-1"
-            min={10}
-            max={100}
-            step={5}
-            value={settings.maxReviewsPerDay}
-            onChange={(e) => update({ maxReviewsPerDay: +e.target.value })}
-          />
+          <span className="g92-label">Datum písemné maturity (didaktický test)</span>
+          <input type="date" className="input mt-1" value={settings.examDate} onChange={(e) => e.target.value && update({ examDate: e.target.value })} />
+          <span className="mt-1 block text-xs text-muted">Přesné termíny zveřejňuje CERMAT, didaktické testy bývají začátkem května.</span>
         </label>
-      </div>
+        <Slider label="Cílové skóre v testu" value={settings.goalScore} min={44} max={100} step={1} suffix=" b" onChange={(v) => update({ goalScore: v })} hint="Hranice úspěšnosti je 44 bodů. Cíl kolem 60 dává bezpečnou rezervu." />
+        <Slider label="Denní cíl" value={settings.minutesPerDay} min={5} max={60} step={5} suffix=" min" onChange={(v) => update({ minutesPerDay: v })} />
+        <Slider label="Nová slovíčka denně" value={settings.newCardsPerDay} min={0} max={30} step={1} onChange={(v) => update({ newCardsPerDay: v })} hint="Méně je víc — 5–10 nových slov denně se dobře drží v paměti." />
+        <Slider label="Nejvíc opakování denně" value={settings.maxReviewsPerDay} min={20} max={300} step={10} onChange={(v) => update({ maxReviewsPerDay: v })} />
+      </Section>
 
-      {/* Theme */}
-      <div className="card mb-4">
-        <h3 className="section-title">Vzhled</h3>
-        <div className="flex gap-2">
-          {([['light', 'Světlý'], ['dark', 'Tmavý'], ['auto', 'Automatický']] as const).map(([val, label]) => (
-            <button
-              key={val}
-              className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                settings.theme === val
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-              onClick={() => update({ theme: val })}
-            >
-              {val === 'light' ? '☀️' : val === 'dark' ? '🌙' : '🔄'} {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Font size */}
-      <div className="card mb-4">
-        <h3 className="section-title">Velikost písma</h3>
-        <div className="flex gap-2">
-          {([['small', 'Malé', 'A'], ['medium', 'Střední', 'A'], ['large', 'Velké', 'A']] as const).map(([val, label, letter]) => (
-            <button
-              key={val}
-              className={`flex-1 px-3 py-2 rounded-xl font-medium transition-all flex flex-col items-center gap-0.5 ${
-                settings.fontSize === val
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-              onClick={() => update({ fontSize: val })}
-            >
-              <span className={val === 'small' ? 'text-xs' : val === 'large' ? 'text-xl' : 'text-base'}>{letter}</span>
-              <span className="text-[10px]">{label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Sound toggle */}
-      <div className="card mb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="section-title !mb-0">Zvuky</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Zvuky správných/špatných odpovědí</p>
+      <Section title="Vzhled a zvuk" note="Platí pro všechny aplikace v menu garon92.">
+        <div>
+          <span className="g92-label">Motiv</span>
+          <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Motiv">
+            {([['auto', '🔄 Podle systému'], ['light', '☀️ Světlý'], ['dark', '🌙 Tmavý']] as const).map(([v, l]) => (
+              <button key={v} type="button" className="g92-chip" aria-pressed={kit.theme === v} onClick={() => setKitSettings({ theme: v })}>{l}</button>
+            ))}
           </div>
-          <button
-            className={`w-12 h-7 rounded-full transition-colors ${
-              settings.soundEnabled ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'
-            }`}
-            onClick={() => update({ soundEnabled: !settings.soundEnabled })}
-          >
-            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-1 ${
-              settings.soundEnabled ? 'translate-x-5' : ''
-            }`} />
-          </button>
         </div>
-      </div>
-
-      {/* TTS */}
-      <div className="card mb-4">
-        <h3 className="section-title">Výslovnost (TTS)</h3>
-
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Automatické přehrávání</span>
-          <button
-            className={`w-12 h-7 rounded-full transition-colors ${
-              settings.ttsEnabled ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'
-            }`}
-            onClick={() => update({ ttsEnabled: !settings.ttsEnabled })}
-          >
-            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform mx-1 ${
-              settings.ttsEnabled ? 'translate-x-5' : ''
-            }`} />
-          </button>
+        <div>
+          <span className="g92-label">Velikost písma</span>
+          <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Velikost písma">
+            {([['small', 'Menší'], ['medium', 'Střední'], ['large', 'Větší']] as const).map(([v, l]) => (
+              <button key={v} type="button" className="g92-chip" aria-pressed={settings.fontSize === v} onClick={() => update({ fontSize: v })}>{l}</button>
+            ))}
+          </div>
         </div>
-
-        {voices.length > 0 && (
-          <label className="block mb-4">
-            <span className="text-sm text-slate-600 dark:text-slate-300">Hlas</span>
-            <select
-              className="input mt-1"
-              value={settings.ttsVoice || getCurrentVoiceName()}
-              onChange={(e) => {
-                setVoiceByName(e.target.value);
-                update({ ttsVoice: e.target.value });
-              }}
-            >
-              {voices.map((v) => (
-                <option key={v.name} value={v.name}>
-                  {v.name} ({v.lang})
-                </option>
-              ))}
-            </select>
-            <button
-              className="btn-ghost text-sm mt-2"
-              onClick={() => speak('Hello! This is how I sound. Nice to meet you.', settings.ttsRate)}
-            >
-              ▶ Vyzkoušet hlas
-            </button>
-          </label>
-        )}
-
+        <Row label="Zvukové efekty">
+          <input type="checkbox" role="switch" className="g92-toggle" checked={kit.sound} onChange={(e) => setKitSettings({ sound: e.target.checked })} aria-label="Zvukové efekty" />
+        </Row>
+        <Row label="Omezit animace">
+          <input type="checkbox" role="switch" className="g92-toggle" checked={kit.reducedMotion === 'on'} onChange={(e) => setKitSettings({ reducedMotion: e.target.checked ? 'on' : 'auto' })} aria-label="Omezit animace" />
+        </Row>
         <label className="block">
-          <span className="text-sm text-slate-600 dark:text-slate-300">Rychlost řeči ({settings.ttsRate}x)</span>
-          <input
-            type="range"
-            className="w-full mt-1"
-            min={0.5}
-            max={1.5}
-            step={0.1}
-            value={settings.ttsRate}
-            onChange={(e) => update({ ttsRate: +e.target.value })}
-          />
-          <div className="flex justify-between text-xs text-slate-400">
-            <span>Pomalá</span>
-            <span>Normální</span>
-            <span>Rychlá</span>
-          </div>
+          <span className="g92-label">Jak ti máme říkat? (nepovinné)</span>
+          <input className="input mt-1" value={kit.playerName} maxLength={40} placeholder="Tvoje jméno" onChange={(e) => setKitSettings({ playerName: e.target.value })} />
         </label>
-      </div>
+      </Section>
 
-      {/* Quick links */}
-      <div className="card mb-4">
-        <h3 className="section-title">Zdroje</h3>
-        <div className="space-y-2">
-          <Link to="/grammar-ref" className="flex items-center justify-between py-2 text-sm text-slate-700 hover:text-primary-600">
-            <span>📋 Gramatický přehled</span>
-            <span className="text-slate-300">→</span>
-          </Link>
-          <a
-            href="https://maturita.cermat.cz/menu/testy-a-zadani-z-predchozich-obdobi"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between py-2 text-sm text-slate-700 hover:text-primary-600"
-          >
-            <span>🎯 Oficiální CERMAT testy</span>
-            <span className="text-slate-300">↗</span>
-          </a>
-          <a
-            href="https://www.newgeneralservicelist.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between py-2 text-sm text-slate-700 hover:text-primary-600"
-          >
-            <span>📚 NGSL Wordlist</span>
-            <span className="text-slate-300">↗</span>
-          </a>
-        </div>
-      </div>
-
-      {/* Data */}
-      <div className="card mb-4">
-        <h3 className="section-title">Data a záloha</h3>
-
-        <div className="space-y-3">
-          <button className="btn-secondary w-full" onClick={handleExport}>
-            📥 Exportovat data (JSON)
-          </button>
-
-          <button className="btn-secondary w-full" onClick={handleAnkiExport}>
-            📑 Exportovat slovíčka (Anki)
-          </button>
-
-          <button className="btn-secondary w-full" onClick={() => fileRef.current?.click()}>
-            📤 Importovat data
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={handleImport}
-          />
-          {importMsg && (
-            <p className={`text-sm ${importMsg.includes('úspěšně') ? 'text-green-600' : 'text-red-600'}`}>
-              {importMsg}
-            </p>
-          )}
-
-          {!showConfirmReset ? (
-            <button className="btn-ghost text-red-500 w-full" onClick={() => setShowConfirmReset(true)}>
-              🗑 Smazat všechna data
-            </button>
-          ) : (
-            <div className="p-3 bg-red-50 rounded-xl">
-              <p className="text-sm text-red-700 mb-3">
-                Opravdu chceš smazat všechna data? Tuto akci nelze vrátit.
-              </p>
-              <div className="flex gap-2">
-                <button className="btn-secondary flex-1" onClick={() => setShowConfirmReset(false)}>
-                  Zrušit
-                </button>
-                <button className="btn-danger flex-1" onClick={handleReset}>
-                  Smazat vše
-                </button>
-              </div>
+      <Section title="Výslovnost">
+        <Row label="Po otočení kartičky přečíst slovo">
+          <input type="checkbox" role="switch" className="g92-toggle" checked={settings.ttsEnabled} onChange={(e) => update({ ttsEnabled: e.target.checked })} aria-label="Automaticky číst slovíčka" />
+        </Row>
+        {voices.length > 0 ? (
+          <label className="block">
+            <span className="g92-label">Hlas</span>
+            <div className="mt-1 flex gap-2">
+              <select
+                className="g92-select input flex-1"
+                value={settings.ttsVoice || getCurrentVoiceName()}
+                onChange={(e) => {
+                  setVoiceByName(e.target.value);
+                  update({ ttsVoice: e.target.value });
+                }}
+              >
+                {voices.map((v) => (
+                  <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+                ))}
+              </select>
+              <button type="button" className="btn-secondary" onClick={() => void speak('Hello! How are you today?', settings.ttsRate)}>Vyzkoušet</button>
             </div>
-          )}
-        </div>
-      </div>
+          </label>
+        ) : (
+          <p className="text-sm text-muted">Prohlížeč zatím nenabízí žádný anglický hlas. Na telefonu ho lze doinstalovat v nastavení systému (Převod textu na řeč).</p>
+        )}
+        <Slider label="Rychlost řeči" value={settings.ttsRate} min={0.6} max={1.2} step={0.05} format={(v) => `${Math.round(v * 100)} %`} onChange={(v) => update({ ttsRate: v })} />
+      </Section>
 
-      {/* Keyboard shortcuts */}
-      <div className="card mb-4">
-        <h3 className="section-title">⌨️ Klávesové zkratky</h3>
-        <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1.5">
-          <p><kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">Mezerník</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">Enter</kbd> — ukázat odpověď</p>
-          <p><kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">1</kbd>–<kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">4</kbd> — hodnocení (Slovíčka) nebo výběr možnosti (MCQ)</p>
-          <p><kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-mono">Enter</kbd> — zkontrolovat / další otázka</p>
+      <Section title="Záloha a data" note="Vše se ukládá jen v tomto zařízení. Záloha se hodí při přechodu na jiný telefon nebo počítač.">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button type="button" className="btn-secondary" onClick={() => void handleExport()}>⬇️ Stáhnout zálohu</button>
+          <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()}>⬆️ Obnovit ze zálohy</button>
+          <button type="button" className="btn-secondary sm:col-span-2" onClick={handleAnkiExport}>📑 Exportovat slovíčka pro Anki</button>
         </div>
-      </div>
+        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => void handleImport(e)} aria-label="Soubor se zálohou" />
+        <button type="button" className="btn-ghost btn-sm !text-danger" onClick={() => void handleReset()}>Smazat všechna data…</button>
+      </Section>
 
-      {/* PWA install */}
       {canInstall && (
-        <div className="card mb-4 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border-primary-200 dark:border-primary-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-sm text-primary-800 dark:text-primary-300">Nainstaluj si appku</h3>
-              <p className="text-xs text-primary-600 dark:text-primary-400">Funguje i offline, jako nativní apka</p>
-            </div>
-            <button className="btn-primary text-sm !py-2 !px-4" onClick={install}>
-              Instalovat
-            </button>
+        <section className="card g92-card--accent mb-4 flex items-center gap-4 !p-5">
+          <span className="text-3xl" aria-hidden="true">📲</span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-black text-fg">Nainstalovat aplikaci</h2>
+            <p className="text-sm text-muted">Spustíš ji z plochy a funguje i bez internetu.</p>
           </div>
-        </div>
+          <button type="button" className="btn-primary" onClick={() => void install()}>Instalovat</button>
+        </section>
       )}
 
-      {/* About */}
-      <div className="card mb-4">
-        <h3 className="section-title">O aplikaci</h3>
-        <p className="text-sm text-slate-500 mb-2">
-          Angličtina v1.0 — Příprava na maturitu z angličtiny.
-        </p>
-        <p className="text-xs text-slate-400">
-          Slovní zásoba založena na NGSL (New General Service List) pod licencí CC BY-SA 4.0.
-          Všechna data jsou uložena lokálně ve tvém prohlížeči.
-        </p>
-      </div>
+      <Section title="Zdroje">
+        <ul className="divide-y divide-border text-sm">
+          <li><Link to="/grammar-ref" className="flex justify-between py-2.5 font-bold">📋 Přehled gramatiky <span aria-hidden="true">›</span></Link></li>
+          <li><Link to="/study-plan" className="flex justify-between py-2.5 font-bold">📅 Studijní plán <span aria-hidden="true">›</span></Link></li>
+          <li><a href="https://maturita.cermat.cz/menu/testy-a-zadani-z-predchozich-obdobi" target="_blank" rel="noopener noreferrer" className="flex justify-between py-2.5 font-bold">🎯 Oficiální testy CERMAT <span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.newgeneralservicelist.com/" target="_blank" rel="noopener noreferrer" className="flex justify-between py-2.5 font-bold">📚 New General Service List <span aria-hidden="true">↗</span></a></li>
+        </ul>
+      </Section>
+
+      <p className="mt-6 text-center text-xs text-muted">
+        Angličtina 2.0 · g92 kit {KIT_VERSION} · slovní zásoba z NGSL (CC BY-SA 4.0) · cvičné testy jsou původní materiály ve formátu CERMAT
+      </p>
     </div>
+  );
+}
+
+function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+  return (
+    <section className="card mb-4 !p-5">
+      <h2 className="section-title !mb-1">{title}</h2>
+      {note && <p className="mb-3 text-xs text-muted">{note}</p>}
+      <div className="mt-3 space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-sm font-bold text-fg">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Slider({ label, value, min, max, step, onChange, suffix = '', hint, format }: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  suffix?: string;
+  hint?: string;
+  format?: (v: number) => string;
+}) {
+  return (
+    <label className="block">
+      <span className="flex justify-between gap-2">
+        <span className="g92-label">{label}</span>
+        <span className="text-sm font-black tabular-nums text-accent-text">{format ? format(value) : `${value}${suffix}`}</span>
+      </span>
+      <input type="range" className="g92-range mt-2 w-full" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
+    </label>
   );
 }

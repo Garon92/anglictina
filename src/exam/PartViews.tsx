@@ -80,7 +80,7 @@ function Explain({ show, ok, children, answer }: { show: boolean; ok: boolean; c
 }
 
 function Choice({
-  letter, label, selected, onClick, disabled, state, lang = 'en',
+  letter, label, selected, onClick, disabled, state, lang = 'en', compact = false,
 }: {
   letter: string;
   label: ReactNode;
@@ -89,8 +89,9 @@ function Choice({
   disabled: boolean;
   state?: 'correct' | 'wrong' | 'dim';
   lang?: string;
+  compact?: boolean;
 }) {
-  const cls = `opt ${state === 'correct' ? 'is-correct' : state === 'wrong' ? 'is-wrong' : state === 'dim' ? 'is-dim' : selected ? 'is-selected' : ''}`;
+  const cls = `opt ${compact ? 'opt--compact ' : ''}${state === 'correct' ? 'is-correct' : state === 'wrong' ? 'is-wrong' : state === 'dim' ? 'is-dim' : selected ? 'is-selected' : ''}`;
   return (
     <button type="button" className={cls} onClick={onClick} disabled={disabled} aria-pressed={selected} lang={lang}>
       <span className="opt__key" aria-hidden="true">{letter}</span>
@@ -496,10 +497,11 @@ function Part9(p: PartViewProps) {
             <li key={i} id={`gap9-${i + 1}`} className="rounded-2xl border border-border bg-surface p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`exam-task-no ${p.review ? (res[i] ? 'is-ok' : 'is-bad') : ''}`}>{taskNo(9, i)}</span>
-                <div className="flex flex-1 flex-wrap gap-1.5">
+                <div className="grid flex-1 grid-cols-3 gap-1.5">
                   {g.options.map((o, j) => (
                     <Choice
                       key={j}
+                      compact
                       letter={LETTERS[j]}
                       label={o}
                       selected={p.answers.p9[i] === j}

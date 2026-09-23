@@ -151,6 +151,9 @@ export async function submitRun(run: ExamRun): Promise<{ score: ExamScore; sessi
     const res = itemResults(p, set, run.answers);
     res.forEach((ok, i) => {
       const n = i + 1;
+      // Unanswered gaps are not stored as mistakes (a half-empty test would flood the queue).
+      const given = p === 9 ? run.answers.p9[i] : run.answers.p10[i];
+      if (given === null || given === undefined || (typeof given === 'string' && !given.trim())) return;
       if (p === 9) {
         const gap = set.part9.gaps[i];
         const sentence = sentenceAroundGap(set.part9.text, n);

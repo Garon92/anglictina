@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { recordAnswer, recordSession, type AnswerInput } from '../progress';
+import { recordAnswer, recordSession, forgiveMistake, type AnswerInput } from '../progress';
 import { playComplete, playCorrect, playIncorrect } from '../sounds';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { confirmDialog } from '../kit';
@@ -21,6 +21,7 @@ import { PageHeader, ProgressBar, Stars, starsFor } from './ui';
 /* ─── Session hook ────────────────────────────────────────────────── */
 
 export interface AnswerRecord {
+  itemId?: string;
   prompt: string;
   answer: string;
   userAnswer?: string;
@@ -43,6 +44,8 @@ export interface DrillSession {
   answer: (a: Omit<AnswerInput, 'module'> & { silent?: boolean; noTrack?: boolean }) => boolean;
   /** Save the session once (idempotent). Returns the correct ratio. */
   finish: () => Promise<number>;
+  /** The learner claims the last automatically-rejected answer was right (e.g. free translation). */
+  markLastCorrect: () => void;
 }
 
 export function useDrillSession(module: string, opts: { type?: string; tags?: string[] } = {}): DrillSession {
@@ -64,6 +67,7 @@ export function useDrillSession(module: string, opts: { type?: string; tags?: st
 
   const answer = useCallback<DrillSession['answer']>((a) => {
     const rec: AnswerRecord = {
+      itemId: a.itemId,
       prompt: a.prompt,
       answer: a.answer,
       userAnswer: a.userAnswer,
@@ -106,8 +110,18 @@ export function useDrillSession(module: string, opts: { type?: string; tags?: st
     return ratio;
   }, [module]);
 
+  const markLastCorrect = useCallback(() => {
+    const list = answersRef.current;
+    const last = list[list.length - 1];
+    if (!last || last.correct) return;
+    answersRef.current = [...list.slice(0, -1), { ...last, correct: true }];
+    setAnswers(answersRef.current);
+    void forgiveMistake(module, last.itemId ?? last.prompt);
+  }, [module]);
+
   const correct = answers.filter((x) => x.correct).length;
   return {
+    markLastCorrect,
     total: answers.length,
     correct,
     answers,
@@ -365,6 +379,74 @@ export function TextAnswer({
         }
       }}
     />
+  );
+}
+
+/* ─── Several gaps in one sentence ─────────────────────────────────── */
+
+/** Count "___" gaps in a prompt. */
+export function countGaps(prompt: string): number {
+  return (prompt.match(/_{3,}/g) ?? []).length;
+}
+
+/**
+ * One input per gap for prompts like "She ___ (not/go) … she ___ (be) ill".
+ * `values` has one entry per gap; Enter in the last field submits.
+ */
+export function MultiGapAnswer({
+  count,
+  values,
+  onChange,
+  onSubmit,
+  disabled,
+  status,
+}: {
+  count: number;
+  values: string[];
+  onChange: (v: string[]) => void;
+  onSubmit: () => void;
+  disabled?: boolean;
+  status?: 'correct' | 'wrong' | null;
+}) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  useEffect(() => {
+    if (!disabled) refs.current[0]?.focus({ preventScroll: true });
+  }, [disabled]);
+  const cls = `input text-lg ${status === 'correct' ? '!border-success !bg-success-soft' : status === 'wrong' ? '!border-danger !bg-danger-soft' : ''}`;
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {Array.from({ length: count }, (_, i) => (
+        <label key={i} className="flex items-center gap-2">
+          <span className="exam-task-no" aria-hidden="true">{i + 1}</span>
+          <input
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            className={cls}
+            value={values[i] ?? ''}
+            disabled={disabled}
+            aria-label={`Mezera ${i + 1}`}
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+            lang="en"
+            enterKeyHint={i === count - 1 ? 'done' : 'next'}
+            onChange={(e) => {
+              const next = [...values];
+              next[i] = e.target.value;
+              onChange(next);
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' || e.repeat) return;
+              e.preventDefault();
+              if (i < count - 1) refs.current[i + 1]?.focus();
+              else if (values.slice(0, count).every((v) => v?.trim()) && !disabled) onSubmit();
+            }}
+          />
+        </label>
+      ))}
+    </div>
   );
 }
 

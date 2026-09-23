@@ -1,13 +1,21 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
+import { useSettings } from '../App';
 import { speak } from '../tts';
+import { GRAMMAR_REFERENCE } from '../data/grammarReference';
+import { PageHeader, Segmented, SpeakButton } from '../components/ui';
+
+type Frame = 'present' | 'past' | 'future' | 'conditional';
 
 interface TenseInfo {
   id: string;
   nameEn: string;
   nameCs: string;
   level: 'A1' | 'A2' | 'B1';
-  color: string;
+  /** Time frame — drives the colour of the timeline dot. */
+  frame: Frame;
+  /** Matching topic in the grammar reference (/grammar-ref?t=…). */
+  refId?: string;
   formula: string;
   negativeFormula: string;
   questionFormula: string;
@@ -22,7 +30,8 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Present Simple',
     nameCs: 'Přítomný prostý',
     level: 'A1',
-    color: 'bg-green-500',
+    frame: 'present',
+    refId: 'present_simple',
     formula: 'S + V(s/es)',
     negativeFormula: "S + don't/doesn't + V",
     questionFormula: 'Do/Does + S + V?',
@@ -39,9 +48,10 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Present Continuous',
     nameCs: 'Přítomný průběhový',
     level: 'A1',
-    color: 'bg-lime-500',
+    frame: 'present',
+    refId: 'present_continuous',
     formula: 'S + am/is/are + V-ing',
-    negativeFormula: "S + am/is/are + not + V-ing",
+    negativeFormula: 'S + am/is/are + not + V-ing',
     questionFormula: 'Am/Is/Are + S + V-ing?',
     usage: ['Právě probíhající děj', 'Dočasné situace', 'Plány v blízké budoucnosti'],
     signalWords: ['now', 'right now', 'at the moment', 'currently', 'today', 'this week'],
@@ -56,7 +66,8 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Past Simple',
     nameCs: 'Minulý prostý',
     level: 'A1',
-    color: 'bg-blue-500',
+    frame: 'past',
+    refId: 'past_simple',
     formula: 'S + V-ed / 2nd form',
     negativeFormula: "S + didn't + V",
     questionFormula: 'Did + S + V?',
@@ -73,7 +84,8 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Past Continuous',
     nameCs: 'Minulý průběhový',
     level: 'A2',
-    color: 'bg-sky-500',
+    frame: 'past',
+    refId: 'past_continuous',
     formula: 'S + was/were + V-ing',
     negativeFormula: 'S + was/were + not + V-ing',
     questionFormula: 'Was/Were + S + V-ing?',
@@ -90,7 +102,8 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Present Perfect',
     nameCs: 'Předpřítomný',
     level: 'A2',
-    color: 'bg-purple-500',
+    frame: 'present',
+    refId: 'present_perfect',
     formula: 'S + have/has + V-ed / 3rd form',
     negativeFormula: "S + haven't/hasn't + V-ed / 3rd form",
     questionFormula: 'Have/Has + S + V-ed / 3rd form?',
@@ -98,7 +111,7 @@ const TENSES: TenseInfo[] = [
     signalWords: ['ever', 'never', 'already', 'yet', 'just', 'since', 'for', 'recently'],
     examples: [
       { en: 'I have visited Paris twice.', cs: 'Navštívil jsem Paříž dvakrát.' },
-      { en: "She has lived here since 2015.", cs: 'Bydlí tady od roku 2015.' },
+      { en: 'She has lived here since 2015.', cs: 'Bydlí tady od roku 2015.' },
       { en: "I've just finished my homework.", cs: 'Právě jsem dodělal úkoly.' },
     ],
   },
@@ -107,7 +120,7 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Present Perfect Continuous',
     nameCs: 'Předpřítomný průběhový',
     level: 'B1',
-    color: 'bg-violet-500',
+    frame: 'present',
     formula: 'S + have/has + been + V-ing',
     negativeFormula: "S + haven't/hasn't + been + V-ing",
     questionFormula: 'Have/Has + S + been + V-ing?',
@@ -124,7 +137,8 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Future Simple (will)',
     nameCs: 'Budoucí s will',
     level: 'A2',
-    color: 'bg-amber-500',
+    frame: 'future',
+    refId: 'future',
     formula: 'S + will + V',
     negativeFormula: "S + won't + V",
     questionFormula: 'Will + S + V?',
@@ -141,9 +155,10 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Going to',
     nameCs: 'Budoucí s going to',
     level: 'A2',
-    color: 'bg-orange-500',
+    frame: 'future',
+    refId: 'future',
     formula: 'S + am/is/are + going to + V',
-    negativeFormula: "S + am/is/are + not + going to + V",
+    negativeFormula: 'S + am/is/are + not + going to + V',
     questionFormula: 'Am/Is/Are + S + going to + V?',
     usage: ['Plány a záměry', 'Předpovědi na základě důkazů'],
     signalWords: ['tonight', 'tomorrow', 'next week', 'I plan to', 'I intend to'],
@@ -158,7 +173,7 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Past Perfect',
     nameCs: 'Předminulý',
     level: 'B1',
-    color: 'bg-indigo-500',
+    frame: 'past',
     formula: 'S + had + V-ed / 3rd form',
     negativeFormula: "S + hadn't + V-ed / 3rd form",
     questionFormula: 'Had + S + V-ed / 3rd form?',
@@ -175,7 +190,8 @@ const TENSES: TenseInfo[] = [
     nameEn: 'Conditionals (0, 1, 2)',
     nameCs: 'Podmínkové věty',
     level: 'B1',
-    color: 'bg-rose-500',
+    frame: 'conditional',
+    refId: 'conditionals',
     formula: '0: If + present, present\n1: If + present, will + V\n2: If + past, would + V',
     negativeFormula: "1: If + don't, won't\n2: If + didn't, wouldn't",
     questionFormula: 'What will/would you do if...?',
@@ -193,147 +209,244 @@ const TENSES: TenseInfo[] = [
   },
 ];
 
-const LEVEL_COLORS: Record<string, string> = {
-  A1: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  A2: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  B1: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+const FRAMES: Record<Frame, { label: string; color: string }> = {
+  present: { label: 'Přítomnost', color: 'var(--g92-success)' },
+  past: { label: 'Minulost', color: 'var(--g92-info)' },
+  future: { label: 'Budoucnost', color: 'var(--g92-warning)' },
+  conditional: { label: 'Podmínka', color: 'var(--g92-danger)' },
 };
 
+const LEVEL_CLASS: Record<TenseInfo['level'], string> = {
+  A1: 'bg-success-soft text-success',
+  A2: 'bg-info-soft text-info',
+  B1: 'bg-accent-soft text-accent-text',
+};
+
+const LEVELS = ['all', 'A1', 'A2', 'B1'] as const;
+type LevelFilter = (typeof LEVELS)[number];
+
+const REF_IDS = new Set(GRAMMAR_REFERENCE.map((t) => t.id));
+
+function LevelBadge({ level }: { level: TenseInfo['level'] }) {
+  return <span className={`badge ${LEVEL_CLASS[level]}`}>{level}</span>;
+}
+
+function FrameDot({ frame, size = 12 }: { frame: Frame; size?: number }) {
+  return (
+    <span
+      className="inline-block shrink-0 rounded-full"
+      style={{ width: size, height: size, background: FRAMES[frame].color }}
+      aria-hidden="true"
+    />
+  );
+}
+
 export default function TenseOverview() {
-  const navigate = useNavigate();
-  const [selected, setSelected] = useState<string | null>(null);
-  const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [params, setParams] = useSearchParams();
+  const selectedId = params.get('t');
+  const active = selectedId ? TENSES.find((t) => t.id === selectedId) ?? null : null;
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>('all');
+  const lastOpened = useRef<string | null>(null);
+
+  // Detail views open at the top; coming back to the list returns to the tense you opened.
+  useEffect(() => {
+    if (active) {
+      lastOpened.current = active.id;
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      return;
+    }
+    const id = lastOpened.current;
+    if (!id) return;
+    const el = document.getElementById(`tense-${id}`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+      el.focus({ preventScroll: true });
+    }
+  }, [active]);
+
+  if (active) return <TenseDetail tense={active} />;
 
   const filtered = levelFilter === 'all' ? TENSES : TENSES.filter((t) => t.level === levelFilter);
-  const active = selected ? TENSES.find((t) => t.id === selected) : null;
-
-  if (active) {
-    return (
-      <div className="page-container">
-        <button className="btn-ghost text-sm mb-4" onClick={() => setSelected(null)}>← Zpět na přehled</button>
-
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-3 h-12 rounded-full ${active.color}`} />
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{active.nameEn}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{active.nameCs}</p>
-          </div>
-          <span className={`badge ml-auto ${LEVEL_COLORS[active.level]}`}>{active.level}</span>
-        </div>
-
-        {/* Formulas */}
-        <div className="card mb-4">
-          <h3 className="section-title">Tvorba</h3>
-          <div className="space-y-2">
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Kladná věta</div>
-              <div className="font-mono text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{active.formula}</div>
-            </div>
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <div className="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Záporná věta</div>
-              <div className="font-mono text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{active.negativeFormula}</div>
-            </div>
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Otázka</div>
-              <div className="font-mono text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{active.questionFormula}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Usage */}
-        <div className="card mb-4">
-          <h3 className="section-title">Použití</h3>
-          <ul className="space-y-1">
-            {active.usage.map((u, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <span className="text-primary-500 mt-0.5">•</span> {u}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Signal words */}
-        <div className="card mb-4">
-          <h3 className="section-title">Signální slova</h3>
-          <div className="flex flex-wrap gap-2">
-            {active.signalWords.map((sw) => (
-              <span key={sw} className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-full text-sm font-medium">
-                {sw}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Examples */}
-        <div className="card">
-          <h3 className="section-title">Příklady</h3>
-          <div className="space-y-3">
-            {active.examples.map((ex, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <button
-                  className="text-primary-500 hover:text-primary-700 mt-0.5 shrink-0"
-                  onClick={() => speak(ex.en, 0.9)}
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M11.383 3.07A1 1 0 0112 4v16a1 1 0 01-1.617.784L5.131 16H2a1 1 0 01-1-1V9a1 1 0 011-1h3.131l5.252-4.784A1 1 0 0111.383 3.07z" />
-                  </svg>
-                </button>
-                <div>
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{ex.en}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{ex.cs}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="page-container">
-      <button className="btn-ghost text-sm mb-4" onClick={() => navigate('/')}>← Zpět</button>
-      <h1 className="page-title">Anglické časy</h1>
-      <p className="page-subtitle">Kompletní přehled — klikni pro detail</p>
+      <PageHeader
+        back="/practice"
+        icon="⏱️"
+        title="Přehled časů"
+        subtitle="Anglické časy přehledně — jak se tvoří, kdy se používají a podle čeho je poznáš. Klepni na čas pro detail."
+      />
 
-      <div className="flex gap-2 mb-6">
-        {['all', 'A1', 'A2', 'B1'].map((lvl) => (
-          <button
-            key={lvl}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              levelFilter === lvl
-                ? 'bg-primary-500 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-            }`}
-            onClick={() => setLevelFilter(lvl)}
-          >
-            {lvl === 'all' ? 'Vše' : lvl}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Segmented
+          label="Úroveň"
+          value={levelFilter}
+          onChange={setLevelFilter}
+          options={LEVELS.map((l) => ({ value: l, label: l === 'all' ? 'Vše' : l }))}
+        />
+        <Link to="/grammar" className="btn-soft">
+          ✏️ Otestuj se
+        </Link>
       </div>
+
+      <ul className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Legenda barev">
+        {(Object.keys(FRAMES) as Frame[]).map((f) => (
+          <li key={f} className="flex items-center gap-1.5">
+            <FrameDot frame={f} size={10} />
+            {FRAMES[f].label}
+          </li>
+        ))}
+      </ul>
 
       {/* Timeline */}
       <div className="relative">
-        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
-        <div className="space-y-3">
+        <div className="absolute top-3 bottom-3 left-[1.3rem] w-0.5 rounded-full bg-border" aria-hidden="true" />
+        <ul className="relative space-y-2.5">
           {filtered.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSelected(t.id)}
-              className="relative w-full text-left pl-12 pr-4 py-3 card-hover"
-            >
-              <div className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full ${t.color} ring-4 ring-white dark:ring-slate-900`} />
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{t.nameEn}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{t.nameCs}</div>
-                </div>
-                <span className={`badge text-xs ${LEVEL_COLORS[t.level]}`}>{t.level}</span>
-              </div>
-              <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 font-mono">{t.formula.split('\n')[0]}</div>
-            </button>
+            <li key={t.id}>
+              <button
+                id={`tense-${t.id}`}
+                type="button"
+                onClick={() => setParams({ t: t.id })}
+                className="card card-link flex w-full items-center gap-3 !py-3 !pr-3 !pl-3 text-left"
+              >
+                <span className="grid w-5 shrink-0 place-items-center" aria-hidden="true">
+                  <span
+                    className="block h-4 w-4 rounded-full"
+                    style={{ background: FRAMES[t.frame].color, boxShadow: '0 0 0 4px var(--g92-surface)' }}
+                  />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold text-fg" lang="en">{t.nameEn}</span>
+                  <span className="block text-sm text-muted">{t.nameCs}</span>
+                  <span className="mt-1 block truncate font-mono text-xs text-subtle" lang="en">{t.formula.split('\n')[0]}</span>
+                </span>
+                <LevelBadge level={t.level} />
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-subtle" aria-hidden="true">
+                  <path d="m9 6 6 6-6 6" />
+                </svg>
+              </button>
+            </li>
           ))}
+        </ul>
+      </div>
+
+      <p className="mt-6 text-center text-sm text-muted">
+        Podrobná pravidla najdeš v <Link to="/grammar-ref">přehledu gramatiky</Link>, vše na jedné stránce v <Link to="/cheatsheet">taháku</Link>.
+      </p>
+    </div>
+  );
+}
+
+/* ─── Detail ──────────────────────────────────────────────────────── */
+
+function TenseDetail({ tense }: { tense: TenseInfo }) {
+  const { settings } = useSettings();
+  const idx = TENSES.findIndex((t) => t.id === tense.id);
+  const prev = idx > 0 ? TENSES[idx - 1] : null;
+  const next = idx < TENSES.length - 1 ? TENSES[idx + 1] : null;
+  const refId = tense.refId && REF_IDS.has(tense.refId) ? tense.refId : null;
+
+  const formulas = [
+    { label: 'Kladná věta', text: tense.formula, cls: 'bg-success-soft', labelCls: 'text-success' },
+    { label: 'Záporná věta', text: tense.negativeFormula, cls: 'bg-danger-soft', labelCls: 'text-danger' },
+    { label: 'Otázka', text: tense.questionFormula, cls: 'bg-info-soft', labelCls: 'text-info' },
+  ];
+
+  return (
+    <div className="page-container">
+      <PageHeader back="/tenses" backLabel="Všechny časy" title={<span lang="en">{tense.nameEn}</span>} subtitle={tense.nameCs} />
+
+      <div className="-mt-2 mb-5 flex flex-wrap items-center gap-2">
+        <LevelBadge level={tense.level} />
+        <span className="badge">
+          <FrameDot frame={tense.frame} size={9} />
+          {FRAMES[tense.frame].label}
+        </span>
+      </div>
+
+      <div className="space-y-4">
+        <section className="card !p-5" aria-labelledby="t-form">
+          <h2 id="t-form" className="section-title">Tvorba</h2>
+          <div className="grid gap-2">
+            {formulas.map((f) => (
+              <div key={f.label} className={`rounded-md px-4 py-3 ${f.cls}`}>
+                <div className={`mb-1 text-xs font-bold ${f.labelCls}`}>{f.label}</div>
+                <div className="font-mono text-sm break-words whitespace-pre-wrap text-fg" lang="en">{f.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <section className="card !p-5" aria-labelledby="t-use">
+            <h2 id="t-use" className="section-title">Použití</h2>
+            <ul className="space-y-2">
+              {tense.usage.map((u, i) => (
+                <li key={`${i}-${u}`} className="flex items-start gap-2 text-sm leading-relaxed text-fg">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                  {u}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="card !p-5" aria-labelledby="t-signal">
+            <h2 id="t-signal" className="section-title">Signální slova</h2>
+            <ul className="flex flex-wrap gap-2">
+              {tense.signalWords.map((sw, i) => (
+                <li key={`${i}-${sw}`} className="rounded-full bg-warning-soft px-3 py-1 text-sm font-bold text-warning" lang="en">
+                  {sw}
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
+
+        <section className="card !p-5" aria-labelledby="t-ex">
+          <h2 id="t-ex" className="section-title">Příklady</h2>
+          <ul className="divide-y divide-border">
+            {tense.examples.map((ex, i) => (
+              <li key={`${i}-${ex.en}`} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                <SpeakButton onClick={() => void speak(ex.en, settings.ttsRate)} label={`Přehrát: ${ex.en}`} />
+                <div className="min-w-0">
+                  <p className="font-bold text-fg" lang="en">{ex.en}</p>
+                  <p className="text-sm text-muted">{ex.cs}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="card g92-card--accent flex flex-wrap items-center gap-3 !p-5">
+          <span className="text-3xl" aria-hidden="true">✏️</span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-black text-fg">Otestuj se</h2>
+            <p className="text-sm text-muted">Procvič si časy v gramatickém mixu — vyber si témata a úroveň.</p>
+          </div>
+          <Link to="/grammar" className="btn-primary">Procvičit</Link>
+        </section>
+
+        {refId && (
+          <p className="text-center text-sm text-muted">
+            Chceš podrobnější vysvětlení? <Link to={`/grammar-ref?t=${refId}`}>Otevřít v přehledu gramatiky</Link>
+          </p>
+        )}
+
+        <nav className="grid grid-cols-2 gap-3 pt-1" aria-label="Další časy">
+          {prev ? (
+            <Link to={`/tenses?t=${prev.id}`} className="card card-link flex min-h-[44px] flex-col !p-3 no-underline">
+              <span className="text-xs text-muted">← Předchozí</span>
+              <span className="truncate font-bold text-fg" lang="en">{prev.nameEn}</span>
+            </Link>
+          ) : <span />}
+          {next ? (
+            <Link to={`/tenses?t=${next.id}`} className="card card-link flex min-h-[44px] flex-col !p-3 text-right no-underline">
+              <span className="text-xs text-muted">Další →</span>
+              <span className="truncate font-bold text-fg" lang="en">{next.nameEn}</span>
+            </Link>
+          ) : <span />}
+        </nav>
       </div>
     </div>
   );

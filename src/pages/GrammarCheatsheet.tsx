@@ -1,7 +1,20 @@
-import { useNavigate } from 'react-router';
+import { Link } from 'react-router';
+import { PageHeader } from '../components/ui';
 
-const SECTIONS = [
+interface Section {
+  id: string;
+  title: string;
+  headers: string[];
+  rows: string[][];
+  /** Columns with English text (for pronunciation / hyphenation via lang="en"). */
+  en: number[];
+  /** Minimum table width on small screens (the table scrolls inside its card). */
+  minWidth?: string;
+}
+
+const SECTIONS: Section[] = [
   {
+    id: 'tenses',
     title: 'Časy (Tenses)',
     rows: [
       ['Present Simple', 'I work / He works', 'Do I work? / Does he work?', 'I don\'t work / He doesn\'t work', 'every day, always, usually, often, sometimes, never'],
@@ -16,8 +29,11 @@ const SECTIONS = [
       ['Future Continuous', 'I will be working', 'Will I be working?', 'I won\'t be working', 'at this time tomorrow'],
     ],
     headers: ['Čas', 'Kladná věta', 'Otázka', 'Zápor', 'Signální slova'],
+    en: [0, 1, 2, 3, 4],
+    minWidth: '46rem',
   },
   {
+    id: 'conditionals',
     title: 'Podmínkové věty (Conditionals)',
     rows: [
       ['Type 0', 'If + present, present', 'If you heat water, it boils.', 'Obecná pravda, fakta'],
@@ -26,8 +42,11 @@ const SECTIONS = [
       ['Type 3', 'If + past perfect, would have + pp', 'If I had studied, I would have passed.', 'Nereálná podmínka (minulost)'],
     ],
     headers: ['Typ', 'Struktura', 'Příklad', 'Použití'],
+    en: [0, 1, 2],
+    minWidth: '38rem',
   },
   {
+    id: 'passive',
     title: 'Trpný rod (Passive Voice)',
     rows: [
       ['Present Simple', 'am/is/are + pp', 'English is spoken here.'],
@@ -37,8 +56,11 @@ const SECTIONS = [
       ['Modal', 'modal + be + pp', 'It can be done easily.'],
     ],
     headers: ['Čas', 'Struktura', 'Příklad'],
+    en: [0, 1, 2],
+    minWidth: '30rem',
   },
   {
+    id: 'reported',
     title: 'Nepřímá řeč (Reported Speech)',
     rows: [
       ['Present Simple → Past Simple', '"I like it." → He said he liked it.'],
@@ -53,8 +75,11 @@ const SECTIONS = [
       ['Rozkazy → told/asked + to + inf.', '"Sit down." → He told me to sit down.'],
     ],
     headers: ['Pravidlo', 'Příklad'],
+    en: [1],
+    minWidth: '30rem',
   },
   {
+    id: 'modals',
     title: 'Modální slovesa',
     rows: [
       ['can', 'schopnost, dovolení', 'I can swim. Can I go?'],
@@ -69,8 +94,11 @@ const SECTIONS = [
       ['would', 'zdvořilá žádost, podmínka', 'Would you like tea? I would go.'],
     ],
     headers: ['Sloveso', 'Použití', 'Příklad'],
+    en: [0, 2],
+    minWidth: '30rem',
   },
   {
+    id: 'articles',
     title: 'Členy (Articles)',
     rows: [
       ['a/an', 'Neurčitý', 'poprvé, obecně, jeden z mnoha', 'I saw a dog. She is an artist.'],
@@ -78,8 +106,11 @@ const SECTIONS = [
       ['–', 'Bez členu', 'obecné mn.č./nepočit., vlastní jména', 'Dogs are loyal. I like music.'],
     ],
     headers: ['Člen', 'Typ', 'Kdy', 'Příklad'],
+    en: [0, 3],
+    minWidth: '36rem',
   },
   {
+    id: 'prepositions',
     title: 'Předložky času a místa',
     rows: [
       ['in', 'Čas: měsíce, roky, roční období, denní doby', 'in January, in 2020, in summer, in the morning'],
@@ -90,8 +121,11 @@ const SECTIONS = [
       ['at', 'Místo: u, při', 'at school, at home, at the bus stop, at the door'],
     ],
     headers: ['Předložka', 'Použití', 'Příklady'],
+    en: [0, 2],
+    minWidth: '32rem',
   },
   {
+    id: 'comparison',
     title: 'Stupňování přídavných jmen',
     rows: [
       ['Krátká (1-2 sl.)', 'tall → taller → the tallest', 'big → bigger → the biggest'],
@@ -100,40 +134,96 @@ const SECTIONS = [
       ['as...as', 'She is as tall as me.', 'not as...as: He is not as fast as her.'],
     ],
     headers: ['Typ', 'Příklad 1', 'Příklad 2'],
+    en: [1, 2],
+    minWidth: '34rem',
   },
 ];
 
-export default function GrammarCheatsheet() {
-  const navigate = useNavigate();
+/**
+ * In print the page is always black on white, whatever the app theme: the kit colour
+ * variables are overridden for the whole sheet, so headings never come out white.
+ */
+const PRINT_THEME = [
+  'print:[--g92-text:#000]',
+  'print:[--g92-text-muted:#333]',
+  'print:[--g92-text-subtle:#555]',
+  'print:[--g92-surface:#fff]',
+  'print:[--g92-surface-2:#f1f1f1]',
+  'print:[--g92-surface-3:#e4e4e4]',
+  'print:[--g92-border:#bbb]',
+  'print:[--g92-border-strong:#999]',
+  'print:[--accent-soft:#eee]',
+  'print:[--accent-text:#000]',
+].join(' ');
 
-  function handlePrint() {
-    window.print();
-  }
+function PrintButton({ className = '' }: { className?: string }) {
+  return (
+    <button type="button" className={`btn-primary ${className}`} onClick={() => window.print()}>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2" />
+        <path d="M6 14h12v7H6z" />
+      </svg>
+      Vytisknout
+    </button>
+  );
+}
+
+export default function GrammarCheatsheet() {
+  const year = new Date().getFullYear();
 
   return (
-    <div className="page-container print:p-2 print:max-w-none">
-      <div className="flex items-center justify-between mb-4 print:hidden">
-        <button className="btn-ghost text-sm" onClick={() => navigate('/')}>← Zpět</button>
-        <button className="btn-primary text-sm" onClick={handlePrint}>
-          🖨️ Vytisknout
-        </button>
+    <div className={`page-container page-container--wide print:!max-w-none print:text-black ${PRINT_THEME}`}>
+      <div className="print:hidden">
+        <PageHeader
+          back="/practice"
+          icon="🖨️"
+          title="Gramatický tahák"
+          subtitle="Tisknutelný tahák — všechna klíčová pravidla na jednom místě."
+          actions={<PrintButton className="hidden sm:inline-flex" />}
+        />
+
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <PrintButton className="w-full sm:hidden" />
+          <nav aria-label="Obsah taháku" className="flex flex-wrap gap-2">
+            {SECTIONS.map((s) => (
+              <a key={s.id} href={`#sec-${s.id}`} className="g92-chip no-underline">
+                {s.title.replace(/\s*\(.*\)$/, '')}
+              </a>
+            ))}
+          </nav>
+        </div>
       </div>
 
-      <h1 className="page-title print:text-xl print:mb-2">Přehled gramatiky</h1>
-      <p className="page-subtitle print:text-xs print:mb-4">Tisknutelný tahák — všechna klíčová pravidla na jednom místě</p>
+      {/* Print-only title (the app bar, navigation and buttons are hidden in print) */}
+      <header className="mb-3 hidden print:block">
+        <h1 className="text-xl font-black">Přehled gramatiky — tahák</h1>
+        <p className="text-xs">Všechna klíčová pravidla na jednom místě</p>
+      </header>
 
-      <div className="space-y-6 print:space-y-3">
+      <div className="space-y-5 print:space-y-3">
         {SECTIONS.map((section) => (
-          <div key={section.title} className="print:break-inside-avoid">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2 print:text-sm print:mb-1">
+          <section
+            key={section.id}
+            id={`sec-${section.id}`}
+            aria-labelledby={`h-${section.id}`}
+            className="card scroll-mt-24 !p-0 print:break-inside-avoid print:!rounded-none print:!border-0 print:!shadow-none"
+          >
+            <h2 id={`h-${section.id}`} className="px-5 pt-4 pb-3 text-lg font-black text-fg print:px-0 print:pt-0 print:pb-1 print:text-sm">
               {section.title}
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse print:text-[9px]">
+            <div className="overflow-x-auto px-5 pb-5 print:overflow-visible print:px-0 print:pb-0">
+              <table
+                className="w-full border-collapse text-sm print:!min-w-0 print:text-[9.5px] print:leading-snug"
+                style={{ minWidth: section.minWidth }}
+              >
                 <thead>
-                  <tr className="bg-primary-50 dark:bg-primary-900/20 print:bg-gray-100">
+                  <tr>
                     {section.headers.map((h) => (
-                      <th key={h} className="text-left px-3 py-2 font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 print:px-1 print:py-0.5 print:border-gray-400">
+                      <th
+                        key={h}
+                        scope="col"
+                        className="border-b-2 border-border-strong bg-surface-2 px-3 py-2 text-left text-xs font-bold tracking-wide text-muted uppercase first:rounded-tl-md last:rounded-tr-md print:rounded-none print:border print:border-border-strong print:px-1.5 print:py-0.5 print:text-[9px] print:text-fg"
+                      >
                         {h}
                       </th>
                     ))}
@@ -141,9 +231,15 @@ export default function GrammarCheatsheet() {
                 </thead>
                 <tbody>
                   {section.rows.map((row, i) => (
-                    <tr key={i} className={i % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/50'}>
+                    <tr key={i} className="border-b border-border last:border-b-0">
                       {row.map((cell, j) => (
-                        <td key={j} className="px-3 py-2 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 print:px-1 print:py-0.5 print:border-gray-400 print:text-black">
+                        <td
+                          key={j}
+                          lang={section.en.includes(j) ? 'en' : undefined}
+                          className={`px-3 py-2 align-top leading-relaxed print:border print:border-border print:px-1.5 print:py-0.5 ${
+                            j === 0 ? 'min-w-[7.5rem] font-bold text-fg print:min-w-0' : 'text-fg'
+                          }`}
+                        >
                           {cell}
                         </td>
                       ))}
@@ -152,12 +248,15 @@ export default function GrammarCheatsheet() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
         ))}
       </div>
 
-      <div className="mt-6 text-center text-xs text-slate-400 print:mt-2">
-        Angličtina — Příprava na maturitu • {new Date().getFullYear()}
+      <p className="mt-6 text-center text-sm text-muted print:hidden">
+        Podrobnosti a příklady najdeš v <Link to="/grammar-ref">přehledu gramatiky</Link> a v <Link to="/tenses">přehledu časů</Link>.
+      </p>
+      <div className="mt-4 text-center text-xs text-subtle print:mt-2 print:text-[9px]">
+        Angličtina — Příprava na maturitu • {year}
       </div>
     </div>
   );
